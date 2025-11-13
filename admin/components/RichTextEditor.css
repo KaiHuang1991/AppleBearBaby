@@ -1,0 +1,110 @@
+/* Rich Text Editor Styles */
+.rich-text-editor {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: white;
+}
+
+.rich-text-editor-toolbar {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #d1d5db;
+  padding: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.rich-text-editor-content {
+  padding: 1rem;
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.rich-text-editor-content:focus {
+  outline: none;
+  border: none;
+}
+
+.rich-text-editor-content[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.rich-text-editor-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rich-text-editor-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.rich-text-editor-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.rich-text-editor-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Content styling */
+.rich-text-editor-content h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.rich-text-editor-content h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.rich-text-editor-content h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.rich-text-editor-content h4 {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+
+.rich-text-editor-content p {
+  margin: 0.5em 0;
+}
+
+.rich-text-editor-content ul,
+.rich-text-editor-content ol {
+  margin: 0.5em 0;
+  padding-left: 2em;
+}
+
+.rich-text-editor-content li {
+  margin: 0.25em 0;
+}
+
+.rich-text-editor-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+  border-radius: 0.5rem;
+}
+
+.rich-text-editor-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text-editor-content a:hover {
+  color: #1d4ed8;
+}
+
