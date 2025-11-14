@@ -1,0 +1,8 @@
+
+POST http://localhost:4000/api/user/admin HTTP/1.1
+content-type: application/json
+
+{ 
+   "email":"admin@applebear.com",
+   "password":"hfy831053"  
+}
