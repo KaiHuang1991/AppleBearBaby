@@ -218,7 +218,7 @@ const sendInquiry = async (req, res) => {
         port: 465,           // SSL端口
         secure: true,        // 启用SSL
         auth: {
-            user: process.env.EMAIL_USER, // 例如 1034201254@qq.com
+            user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASSWORD, // QQ邮箱授权码
         },
         logger: true,        // 启用日志
@@ -257,9 +257,18 @@ const sendInquiry = async (req, res) => {
     });
     emailContent += `</ul><h2 style="text-weight:700;">总价: ${currency}${total}</h2>`;
 
+    // 检查必需的邮箱配置
+    if (!process.env.INQUIRY_RECEIVER_EMAIL) {
+        console.error('错误: INQUIRY_RECEIVER_EMAIL未在.env文件中设置');
+        return res.status(500).json({
+            error: '邮件配置缺失',
+            message: 'Please set INQUIRY_RECEIVER_EMAIL in .env file.'
+        });
+    }
+    
     const mailOptions = {
         from: "AppleBear <" + process.env.EMAIL_USER + ">", // 发件人
-        to: ['1034201254@qq.com'], // 收件人（可从 .env 或前端传入）
+        to: [process.env.INQUIRY_RECEIVER_EMAIL], // 收件人（从环境变量读取）
         subject: '新的购物车询价',
         html: emailContent,
         attachments: Array.isArray(attachments) ? attachments.map(a => ({

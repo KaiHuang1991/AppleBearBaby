@@ -6,12 +6,21 @@ import dotenv from 'dotenv'
 dotenv.config();
 
 const getRefreshToken = async () => {
-    console.log(process.env.CLIENT_ID)
+    // 检查必需的环境变量
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.error('错误: 请在.env文件中设置GOOGLE_CLIENT_ID和GOOGLE_CLIENT_SECRET');
+        console.error('示例:');
+        console.error('GOOGLE_CLIENT_ID=your_client_id.apps.googleusercontent.com');
+        console.error('GOOGLE_CLIENT_SECRET=your_client_secret');
+        process.exit(1);
+    }
+    
+    console.log('使用CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);
     // 配置 OAuth 2.0 客户端
     const oauth2Client = new google.auth.OAuth2(
-        "217650016446-gdb03hsia2pt0pse8kt5bc69f26jgq9e.apps.googleusercontent.com",
-        "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",
-        "http://localhost:3000" // 例如 http://localhost:3000
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000"
     );
     const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
 

@@ -1,0 +1,250 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Prata&display=swap');
+@import "tailwindcss";
+
+/* Global Font Size Settings */
+html {
+  font-size: 17px; /* 增大基础字号从默认的 16px 到 17px */
+}
+
+body {
+  font-size: 1rem; /* 相对于 html 的 17px */
+  line-height: 1.6; /* 增加行高，提升可读性 */
+}
+
+/* Responsive font size adjustments */
+@media (min-width: 640px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 18px; /* 平板及以上设备字号更大 */
+  }
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 18px; /* 桌面设备保持 18px */
+  }
+}
+
+/* Subtle cartoon-style animations and effects */
+@keyframes gentle-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes gentle-sparkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+/* Blue/Cyan cartoon-style elements */
+.cartoon-bg {
+  background: linear-gradient(45deg, #e0f2fe 0%, #b3e5fc 50%, #81d4fa 100%);
+}
+
+.cartoon-shadow {
+  box-shadow: 0 8px 32px rgba(33, 150, 243, 0.2);
+}
+
+.cartoon-border {
+  border: 2px solid #2196f3;
+  border-radius: 16px;
+}
+
+.gentle-bounce {
+  animation: gentle-bounce 3s ease-in-out infinite;
+}
+
+.gentle-float {
+  animation: gentle-float 4s ease-in-out infinite;
+}
+
+.gentle-sparkle {
+  animation: gentle-sparkle 3s ease-in-out infinite;
+}
+
+/* Cute background patterns */
+.cartoon-dots {
+  background-image: radial-gradient(circle, #2196f3 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.cartoon-hearts {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%232196f3' fill-opacity='0.1'%3E%3Cpath d='M20 30c-2.5-2.5-7.5-7.5-7.5-12.5C12.5 12.5 15 10 20 10s7.5 2.5 7.5 7.5C27.5 22.5 22.5 27.5 20 30z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+.cartoon-stars {
+  background-image: url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2300bcd4' fill-opacity='0.2'%3E%3Cpath d='M15 0l4.5 13.5H30l-11.25 8.25L22.5 35.25 15 27 7.5 35.25l11.25-13.5L0 13.5h10.5z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Cartoon-style buttons */
+.cartoon-btn {
+  background: linear-gradient(45deg, #2196f3, #03a9f4);
+  border: 2px solid #1976d2;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+  transition: all 0.3s ease;
+}
+
+.cartoon-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
+/* Cartoon-style cards */
+.cartoon-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #2196f3;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(33, 150, 243, 0.15);
+  transition: all 0.3s ease;
+  /* min-height: 400px; */
+  /* max-height: 450px; */
+}
+
+.cartoon-card:hover {
+  /* transform: translateY(-3px); */
+  box-shadow: 0 8px 32px rgba(33, 150, 243, 0.25);
+}
+
+/* Grid alignment utilities */
+.grid-items-align {
+  display: grid;
+  align-items: stretch;
+}
+
+.grid-items-align > * {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Product card specific styles */
+.product-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  max-height: 450px;
+}
+
+.product-card .product-image {
+  flex-shrink: 0;
+  height: auto;
+  overflow: hidden;
+}
+
+.product-card .product-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card .product-title {
+  flex: 1;
+  min-height: 2.5rem;
+}
+
+.product-card .product-actions {
+  margin-top: auto;
+}
+
+/* Ensure dropdown menu stays on top */
+.dropdown-menu {
+  z-index: 99999999 !important;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  pointer-events: auto !important;
+}
+
+.dropdown-menu > div {
+  z-index: 99999999 !important;
+  position: relative;
+  pointer-events: auto !important;
+}
+
+/* Ensure navbar has proper stacking context */
+.navbar-container {
+  z-index: 9999999 !important;
+}
+
+/* Ensure all page content stays below navbar */
+.page-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure dropdown menu items are clickable */
+.dropdown-menu p {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Override any conflicting styles */
+.dropdown-menu {
+  position: absolute !important;
+  z-index: 99999999 !important;
+  pointer-events: auto !important;
+}
+
+a.active hr{
+    visibility: visible;
+}
+*{
+    font-family: outfit;
+}
+.prata-regular {
+    font-family: "Prata", serif;
+    font-weight: 400;
+    font-style: normal;
+  }
+  
+  /* Custom scrollbar styling - visible but styled */
+  ::-webkit-scrollbar{
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #2196f3;
+    border-radius: 5px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #1976d2;
+  }
+
+  @media (max-width:640px) {
+    a.active{
+        background-color:black;
+        color:white;
+    }
+  }

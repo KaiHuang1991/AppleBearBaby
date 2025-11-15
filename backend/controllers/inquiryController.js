@@ -150,9 +150,19 @@ const sendInquiryUpdateEmail = async (inquiry) => {
   }
 
   const html = formatInquiryEmailHtml(inquiry)
+  
+  // 检查必需的邮箱配置
+  if (!process.env.INQUIRY_RECEIVER_EMAIL) {
+    console.error('错误: INQUIRY_RECEIVER_EMAIL未在.env文件中设置');
+    return {
+      success: false,
+      message: 'Email configuration missing. Please set INQUIRY_RECEIVER_EMAIL in .env file.'
+    };
+  }
+  
   const mailOptions = {
     from: `"AppleBear" <${process.env.EMAIL_USER}>`,
-    to: process.env.INQUIRY_RECEIVER_EMAIL || '1034201254@qq.com',
+    to: process.env.INQUIRY_RECEIVER_EMAIL,
     replyTo: inquiry.userEmail,
     subject: `Inquiry Update - ${inquiry.userName || inquiry.userEmail}`,
     html
