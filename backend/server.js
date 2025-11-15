@@ -35,6 +35,12 @@ const allowedOrigins = [
   'http://localhost:5175'
 ]
 
+// 从环境变量读取允许的域名（生产环境）
+if (process.env.ALLOWED_ORIGINS) {
+  const envOrigins = process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  allowedOrigins.push(...envOrigins)
+}
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -45,9 +51,13 @@ app.use(cors({
       callback(null, true)
     } else {
       // For development, allow any localhost origin
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
         callback(null, true)
       } else {
+        // In production, log rejected origins for debugging
+        if (process.env.NODE_ENV === 'production') {
+          console.warn(`CORS blocked origin: ${origin}`)
+        }
         callback(new Error('Not allowed by CORS'))
       }
     }
