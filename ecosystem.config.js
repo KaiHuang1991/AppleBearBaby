@@ -5,7 +5,7 @@ module.exports = {
   apps: [
     {
       name: 'applebearbaby-backend',
-      script: './backend/server.js',
+      script: './server.js',
       cwd: './backend',
       instances: 1,
       exec_mode: 'fork',
@@ -13,8 +13,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 4000
       },
-      error_file: './logs/backend-error.log',
-      out_file: './logs/backend-out.log',
+      error_file: '../logs/backend-error.log',
+      out_file: '../logs/backend-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       autorestart: true,
@@ -32,8 +32,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 5173
       },
-      error_file: './logs/frontend-error.log',
-      out_file: './logs/frontend-out.log',
+      error_file: '../logs/frontend-error.log',
+      out_file: '../logs/frontend-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       autorestart: true,
@@ -51,8 +51,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 5174
       },
-      error_file: './logs/admin-error.log',
-      out_file: './logs/admin-out.log',
+      error_file: '../logs/admin-error.log',
+      out_file: '../logs/admin-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       autorestart: true,

@@ -65,7 +65,8 @@ sudo cp nginx.conf /etc/nginx/sites-available/applebearbaby
 sudo nano /etc/nginx/sites-available/applebearbaby
 # 将 your-domain.com 替换为您的域名
 
-# 启用配置
+# 启用配置（如果已存在则先删除）
+sudo rm -f /etc/nginx/sites-enabled/applebearbaby
 sudo ln -s /etc/nginx/sites-available/applebearbaby /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx

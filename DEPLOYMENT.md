@@ -160,11 +160,12 @@ sudo cp nginx.conf /etc/nginx/sites-available/applebearbaby
 sudo nano /etc/nginx/sites-available/applebearbaby
 # 将 your-domain.com 替换为您的实际域名
 
-# 创建软链接
+# 创建软链接（如果已存在则先删除）
+sudo rm -f /etc/nginx/sites-enabled/applebearbaby
 sudo ln -s /etc/nginx/sites-available/applebearbaby /etc/nginx/sites-enabled/
 
 # 删除默认配置（可选）
-sudo rm /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/default
 
 # 测试配置
 sudo nginx -t
@@ -182,7 +183,7 @@ sudo systemctl restart nginx
 sudo apt install certbot python3-certbot-nginx -y
 
 # 获取证书（替换为您的域名和邮箱）
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com --email your-email@example.com
+sudo certbot --nginx -d applebearbaby.net -d www.applebearbaby.net --email 1034201254@qq.com
 
 # 证书会自动续期，也可以手动测试
 sudo certbot renew --dry-run
