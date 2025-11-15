@@ -398,17 +398,9 @@ const ShopContextProvider = (props) => {
       lat: -34.397,
       lng: 150.644,
     };
-    // 从环境变量获取Google Maps API密钥
-    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    
-    if (!googleMapsApiKey) {
-      console.warn('警告: VITE_GOOGLE_MAPS_API_KEY未设置，Google Maps可能无法正常工作');
-      return <div>Google Maps API密钥未配置</div>;
-    }
-    
     return (
       // LoadScript 加载 Google Maps JavaScript API
-      <LoadScript googleMapsApiKey={googleMapsApiKey}>
+      <LoadScript googleMapsApiKey="AIzaSyCI4KCRxc10tpJLV2ojoygQe9BTtvI7PIQ">
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={center}
