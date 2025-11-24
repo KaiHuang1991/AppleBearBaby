@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import RelatedProducts from '../componets/RelatedProducts'
 import SocialShare from '../componets/SocialShare'
 import { ShopContext } from '../context/ShopContext'
@@ -193,8 +194,9 @@ const Product = () => {
     }
   }, [productId])
 
-  useEffect(() => {
-    if (!productData) return
+  // 生成SEO相关的meta信息
+  const generateSEOMeta = () => {
+    if (!productData) return null
 
     const stripHtml = (html = '') =>
       (html || '')
@@ -209,7 +211,7 @@ const Product = () => {
       try {
         return new URL(path).toString()
       } catch (error) {
-        const base = window.location.origin
+        const base = typeof window !== 'undefined' ? window.location.origin : ''
         if (!path.startsWith('/')) {
           return `${base}/${path}`
         }
@@ -222,42 +224,55 @@ const Product = () => {
     const description = stripHtml(productData.description || '').slice(0, 160)
     const image = Array.isArray(productData.image) && productData.image.length ? ensureAbsoluteUrl(productData.image[0]) : ''
 
-    const metaDefinitions = [
-      { selector: 'meta[property="og:type"]', attr: 'property', value: 'og:type', content: 'product' },
-      { selector: 'meta[property="og:title"]', attr: 'property', value: 'og:title', content: title },
-      { selector: 'meta[property="og:description"]', attr: 'property', value: 'og:description', content: description },
-      { selector: 'meta[property="og:image"]', attr: 'property', value: 'og:image', content: image },
-      { selector: 'meta[property="og:url"]', attr: 'property', value: 'og:url', content: canonical },
-      { selector: 'meta[name="twitter:card"]', attr: 'name', value: 'twitter:card', content: 'summary_large_image' },
-      { selector: 'meta[name="twitter:title"]', attr: 'name', value: 'twitter:title', content: title },
-      { selector: 'meta[name="twitter:description"]', attr: 'name', value: 'twitter:description', content: description },
-      { selector: 'meta[name="twitter:image"]', attr: 'name', value: 'twitter:image', content: image },
-    ]
-
-    const previousMeta = metaDefinitions.map(({ selector, attr, value, content }) => {
-      let element = document.head.querySelector(selector)
-      let created = false
-      if (!element) {
-        element = document.createElement('meta')
-        element.setAttribute(attr, value)
-        document.head.appendChild(element)
-        created = true
-      }
-      const previousContent = element.getAttribute('content')
-      element.setAttribute('content', content || '')
-      return { element, created, previousContent }
-    })
-
-    return () => {
-      previousMeta.forEach(({ element, created, previousContent }) => {
-        if (created) {
-          element.remove()
-        } else if (previousContent !== null) {
-          element.setAttribute('content', previousContent)
+    // 生成关键词：产品名称、分类、属性值等组合
+    const keywordsArray = []
+    if (productData.name) keywordsArray.push(productData.name)
+    if (productData.category) keywordsArray.push(productData.category)
+    if (productData.subCategory) keywordsArray.push(productData.subCategory)
+    if (productData.thirdCategory) keywordsArray.push(productData.thirdCategory)
+    
+    // 添加属性值到关键词
+    if (Array.isArray(productData.attributes) && productData.attributes.length > 0) {
+      productData.attributes.forEach(attr => {
+        if (attr?.value) {
+          keywordsArray.push(attr.value)
+        }
+        // 也添加属性名称（如果有）
+        if (attr?.attribute) {
+          const attrName = typeof attr.attribute === 'object' ? attr.attribute.name || attr.attribute.label : attr.attribute
+          if (attrName) keywordsArray.push(attrName)
         }
       })
     }
-  }, [productData])
+    
+    // 添加尺寸到关键词
+    if (Array.isArray(productData.sizes) && productData.sizes.length > 0) {
+      productData.sizes.forEach(size => {
+        if (size) keywordsArray.push(size)
+      })
+    }
+
+    // 限制关键词数量，避免过长（最多15个关键词）
+    const keywords = keywordsArray.slice(0, 15).join(', ')
+
+    return {
+      title,
+      description, // 移除价格信息，价格已有专门的product:price meta标签
+      keywords,
+      image,
+      canonical,
+      ogType: 'product',
+      // 添加产品价格（用于结构化数据）
+      price: productData.price,
+      currency: currency.replace('$', 'USD'),
+      // 添加产品可用性
+      availability: 'in stock',
+      // 添加品牌信息（如果有）
+      brand: productData.brand || 'AppleBearBaby'
+    }
+  }
+
+  const seoMeta = generateSEOMeta()
 
   useEffect(() => {
     if (productData?.sizes && productData.sizes.length > 0) {
@@ -272,6 +287,41 @@ const Product = () => {
 
   return productData ? (
     <div className=' mt-20 transition-opacity ease-in duration-500 opacity-100 cartoon-bg min-h-screen pb-20'>
+      {/* SEO Meta Tags */}
+      {seoMeta && (
+        <Helmet>
+          {/* 基础Meta标签 */}
+          <title>{seoMeta.title}</title>
+          <meta name="description" content={seoMeta.description} />
+          <meta name="keywords" content={seoMeta.keywords} />
+          <link rel="canonical" href={seoMeta.canonical} />
+          
+          {/* Open Graph Meta标签（Facebook, LinkedIn等） */}
+          <meta property="og:type" content={seoMeta.ogType} />
+          <meta property="og:title" content={seoMeta.title} />
+          <meta property="og:description" content={seoMeta.description} />
+          <meta property="og:image" content={seoMeta.image} />
+          <meta property="og:url" content={seoMeta.canonical} />
+          {seoMeta.price && (
+            <>
+              <meta property="product:price:amount" content={seoMeta.price.toString()} />
+              <meta property="product:price:currency" content={seoMeta.currency} />
+            </>
+          )}
+          <meta property="product:availability" content={seoMeta.availability} />
+          <meta property="product:brand" content={seoMeta.brand} />
+          
+          {/* Twitter Card Meta标签 */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={seoMeta.title} />
+          <meta name="twitter:description" content={seoMeta.description} />
+          <meta name="twitter:image" content={seoMeta.image} />
+          
+          {/* 额外的SEO标签 */}
+          <meta name="robots" content="index, follow" />
+          <meta name="author" content={seoMeta.brand} />
+        </Helmet>
+      )}
       {/* Breadcrumb Navigation */}
       <div className='bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200'>
         <div className='px-4 sm:px-8 lg:px-12 py-4'>
