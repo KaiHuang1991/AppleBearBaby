@@ -18,7 +18,7 @@ const ProductItem = ({id,image,name,price}) => {
 
   return ( 
       <Link className='text-gray-700 cursor-pointer h-full'target='_blank' to={`/product/${id}`}>
-        <div className='cartoon-card p-4 transition-all duration-300 h-full flex flex-col'>
+        <div className='w-full  cartoon-card p-4 transition-all duration-300 h-full flex flex-col'>
             <div className='overflow-hidden rounded-xl mb-3 flex-shrink-0'>
                 <img className='product-item-img hover:scale-110 transition ease-in-out duration-300 w-full aspect-square object-cover' src={image[0]} alt="" />
             </div>

@@ -97,7 +97,7 @@ const Hero = () => {
   const ImageContent = () => {
     const imgElement = (
       <img 
-        className='block w-full h-auto mx-auto transition-opacity duration-500 object-contain'
+        className='relative w-full  mx-auto transition-opacity duration-500 object-contain'
         src={currentSlideData.imageUrl} 
         alt={currentSlideData.title} 
       />
