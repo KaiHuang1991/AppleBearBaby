@@ -94,21 +94,11 @@ const registerUser = async (req, res) => {
             console.error('Failed to send verification email:', emailResult.error)
         }
 
-        // Create token but user needs to verify email
-        const token = createToken(user.id)
-
-        // Set HttpOnly cookie for token (7 days expiry)
-        res.cookie('token', token, {
-            httpOnly: true, // Prevents JavaScript access (XSS protection)
-            secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-            sameSite: 'lax', // CSRF protection
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-            path: '/'
-        })
+        // Don't create token or set cookie - user must verify email first
+        // User will get token only after email verification and login
 
         res.json({ 
             success: true, 
-            token, 
             userId: user.id, 
             userName: user.name,
             isVerified: false,

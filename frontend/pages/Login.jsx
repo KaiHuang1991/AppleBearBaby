@@ -10,7 +10,7 @@ const Login = () => {
   const [name,setName] =useState('')
   const [password,setPassword] =useState('')
   const [email,setEmail] =useState('')
-  const [showVerificationNotice, setShowVerificationNotice] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [resendingEmail, setResendingEmail] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
@@ -70,32 +70,16 @@ const Login = () => {
       if(currentState === "Sign Up"){
         const response = await axios.post(backendUrl+'/api/user/register',{name,email,password})
         if(response.data.success){
-          setToken(response.data.token)
+          // Don't set token or save user info - user needs to verify email first
           setName('')
           setEmail('')
           setPassword('')
-          // Token is now stored in HttpOnly cookie, but keep user info in localStorage
-          localStorage.setItem("userId",response.data.userId)
-          localStorage.setItem("userName",response.data.userName)
-          localStorage.setItem("userEmail",email)
-          // Don't store token in localStorage anymore - it's in HttpOnly cookie
-          localStorage.setItem("isVerified", response.data.isVerified || false)
-          if (response.data.avatar) {
-            localStorage.setItem('userAvatar', response.data.avatar)
-          } else {
-            localStorage.removeItem('userAvatar')
-          }
-          if (response.data.joinDate) {
-            localStorage.setItem('joinDate', response.data.joinDate)
-          } else {
-            localStorage.removeItem('joinDate')
-          }
           
-          // Show verification notice
-          if (!response.data.isVerified) {
-            setShowVerificationNotice(true)
-            toast.success(response.data.message)
-          }
+          // Show success message
+          toast.success(response.data.message || "Registration successful! Please check your email to verify your account.")
+          
+          // Navigate to verification page
+          navigate('/awaiting-verification', { state: { email } })
         }
         else{ 
         toast.error(response.data.message)
@@ -151,33 +135,35 @@ const Login = () => {
           <hr className='border-none h-[1.5px] w-8 bg-gray-800'/>
         </div>
         
-        {/* Verification Notice */}
-        {showVerificationNotice && (
-          <div className='w-full bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4'>
-            <div className='flex items-start gap-3'>
-              <span className='text-2xl'>📧</span>
-              <div className='flex-1'>
-                <p className='font-semibold text-blue-800 mb-2'>Verify Your Email</p>
-                <p className='text-sm text-gray-700 mb-3'>
-                  We've sent a verification link to <strong>{email}</strong>. 
-                  Please check your inbox and click the link to verify your account.
-                </p>
-                <button
-                  type='button'
-                  onClick={handleResendVerification}
-                  disabled={resendingEmail}
-                  className='text-sm text-blue-600 hover:text-blue-800 font-medium underline disabled:opacity-50'
-                >
-                  {resendingEmail ? 'Sending...' : 'Resend Verification Email'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
         {currentState === 'Login'?'':<input onChange={(e)=>{setName(e.target.value)}} value={name} type="text" className='w-full px-3 py-2 border border-gray-800'placeholder='Name' required />}
         <input onChange={(e)=>{setEmail(e.target.value)}} value={email} type="email" className='w-full px-3 py-2 border border-gray-800'placeholder='Email' required />
-        <input onChange={(e)=>{setPassword(e.target.value)}} value={password} type="password" className='w-full px-3 py-2 border border-gray-800'placeholder='Password'required  />
+        <div className='w-full relative'>
+          <input 
+            onChange={(e)=>{setPassword(e.target.value)}} 
+            value={password} 
+            type={showPassword ? "text" : "password"} 
+            className='w-full px-3 py-2 pr-10 border border-gray-800' 
+            placeholder='Password'
+            required  
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none'
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            )}
+          </button>
+        </div>
         <div className='w-full flex justify-between text-sm mt-[-8px]'>
           <p 
             className='cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
