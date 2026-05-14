@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import { ShopContext } from '../context/ShopContext'
 
 const VerifyEmail = () => {
   const { token: verifyToken } = useParams()
   const navigate = useNavigate()
-  const { backendUrl } = useContext(ShopContext)
+  const { api } = useContext(ShopContext)
   const [status, setStatus] = useState('verifying') // 'verifying', 'success', 'error'
   const [message, setMessage] = useState('')
 
@@ -17,8 +16,7 @@ const VerifyEmail = () => {
 
   const verifyEmail = async () => {
     try {
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await axios.get(`${baseUrl}/api/user/verify-email/${verifyToken}`)
+      const response = await api.userVerifyEmail(verifyToken)
       
       if (response.data.success) {
         setStatus('success')

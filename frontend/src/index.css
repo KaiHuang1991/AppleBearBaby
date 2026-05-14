@@ -130,6 +130,26 @@ body {
   box-shadow: 0 8px 32px rgba(33, 150, 243, 0.25);
 }
 
+/* Customer inquiry list: unread — match admin inquiry “new message” amber style (Tailwind bg on .cartoon-card loses cascade). */
+.cartoon-card.inquiry-card-unread {
+  background: #fffbeb; /* amber-50 */
+  border-width: 2px;
+  border-style: solid;
+  border-color: #fde68a; /* amber-200 */
+  border-left-width: 4px;
+  border-left-color: #f59e0b; /* amber-500, same as admin border-l-amber-500 */
+  box-shadow:
+    inset 0 0 0 2px #fbbf24,
+    /* ring-2 ring-inset ring-amber-400 */
+    0 1px 2px rgba(0, 0, 0, 0.06); /* shadow-sm */
+}
+
+.cartoon-card.inquiry-card-unread:hover {
+  box-shadow:
+    inset 0 0 0 2px #fbbf24,
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
 /* Grid alignment utilities */
 .grid-items-align {
   display: grid;

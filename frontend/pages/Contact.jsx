@@ -1,13 +1,18 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import Title from '../componets/Title'
-import {assets} from '../src/assets/assets'
 import NewsLetterBox from '../componets/NewsLetterBox'
-import { useContext } from 'react'
-import { ShopContext } from '../context/ShopContext'
 import { useNavigate } from 'react-router-dom'
 
 const Contact = () => {
   const navigate = useNavigate()
+
+  const emailHref = useMemo(() => {
+    if (typeof navigator === 'undefined') return 'mailto:1034201254@qq.com'
+    if (/MicroMessenger/i.test(navigator.userAgent)) {
+      return 'https://mail.qq.com/cgi-bin/qm_share?t=qm_mailto&email=MTAzNDIwMTI1NEBxcS5jb20%3D'
+    }
+    return 'mailto:1034201254@qq.com'
+  }, [])
 
   const handleRequestQuote = () => {
     // Navigate to cart page for quote request
@@ -45,7 +50,26 @@ const Contact = () => {
             <div className='ml-[-15px] cartoon-card p-10 md:p-12 flex flex-col justify-center items-start gap-6 w-full md:max-w-2xl'>
               <p className='font-semibold text-xl text-blue-600'>Wholesale Office</p>
               <p className='text-gray-500'>No.9 Hengde Road, Niansanli Street,<br/> Yiwu City, Jinhua City, Zhejiang Province, China</p>
-              <p className='text-gray-500'>Tel:(+86)15867976938<br/>Email:1034201254@qq.com</p>
+              <p className='text-gray-500'>
+                Tel:{' '}
+                <a
+                  href='https://wa.me/8615867976938'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-blue-600 hover:text-blue-800 underline underline-offset-2'
+                >
+                  (+86)15867976938
+                </a>
+                <br />
+                Email:{' '}
+                <a
+                  href={emailHref}
+                  {...(emailHref.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  className='text-blue-600 hover:text-blue-800 underline underline-offset-2'
+                >
+                  1034201254@qq.com
+                </a>
+              </p>
               <p className='font-semibold text-xl text-cyan-600'>Wholesale Inquiries</p>
               <p className='text-gray-500'>Get wholesale pricing, bulk order information, and exclusive deals for healthcare facilities and retailers</p>
               <button 

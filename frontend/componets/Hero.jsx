@@ -1,11 +1,10 @@
 import React from 'react'
 import { assets } from '../src/assets/assets'
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+import { useState, useEffect, useContext } from 'react'
+import { ShopContext } from '../context/ShopContext'
 
 const Hero = () => {
+  const { api } = useContext(ShopContext)
   // State management
   const [slides, setSlides] = useState([])
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -17,7 +16,7 @@ const Hero = () => {
   useEffect(() => {
     const fetchHeroConfig = async () => {
       try {
-        const response = await axios.get(`${backendUrl}/api/hero`)
+        const response = await api.heroList()
         if (response.data.success) {
           const config = response.data.config
           // Only show active slides
@@ -47,7 +46,7 @@ const Hero = () => {
     }
 
     fetchHeroConfig()
-  }, [])
+  }, [api])
 
   // Auto play slides
   useEffect(() => {

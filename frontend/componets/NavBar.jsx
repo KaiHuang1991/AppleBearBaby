@@ -7,7 +7,7 @@ import SideCart from './SideCart'
 const NavBar = () => {
     const [visiable,setVisiable] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
-    const {setShowSearch,getCartCount,navigate,token,setToken,setCartItems, openCart, user, logout} = useContext(ShopContext)
+    const {setShowSearch,getCartCount,navigate,token,setToken,setCartItems, openCart, user, logout, inquiryUnreadCount, requestCustomerInquiryDesktopAlerts} = useContext(ShopContext)
     const location = useLocation()
     const isHomePage = location.pathname === '/'
     
@@ -80,23 +80,52 @@ const NavBar = () => {
                     {user?.name || localStorage.getItem('userName')}
                   </span>
                 )}
-                <img 
-                  onClick={()=>token? setShowDropdown(!showDropdown):navigate('/login')} 
-                  onMouseEnter={() => token ? setShowDropdown(true) : null}
-                  onMouseLeave={() => setShowDropdown(false)}
-                  src={user?.avatar || localStorage.getItem('userAvatar') || assets.profile_icon} 
-                  className={`cursor-pointer hover:scale-110 transition-transform duration-300 ${token && (user?.avatar || localStorage.getItem('userAvatar')) ? 'w-9 h-9 rounded-full object-cover border border-blue-200' : 'w-5'}`} 
-                  alt="Profile" 
-                />
+                <div className="relative shrink-0">
+                  <img 
+                    onClick={()=>token? setShowDropdown(!showDropdown):navigate('/login')} 
+                    onMouseEnter={() => token ? setShowDropdown(true) : null}
+                    onMouseLeave={() => setShowDropdown(false)}
+                    src={user?.avatar || localStorage.getItem('userAvatar') || assets.profile_icon} 
+                    className={`cursor-pointer hover:scale-110 transition-transform duration-300 ${token && (user?.avatar || localStorage.getItem('userAvatar')) ? 'w-9 h-9 rounded-full object-cover border border-blue-200' : 'w-5'}`} 
+                    alt="Profile" 
+                  />
+                  {token && inquiryUnreadCount > 0 ? (
+                    <span
+                      className="pointer-events-none absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white shadow-sm"
+                      title={
+                        inquiryUnreadCount === 1
+                          ? 'New reply to your inquiry'
+                          : `${inquiryUnreadCount} new inquiry replies`
+                      }
+                      aria-label={
+                        inquiryUnreadCount === 1
+                          ? 'New reply to your inquiry'
+                          : `${inquiryUnreadCount} unread inquiry replies`
+                      }
+                    />
+                  ) : null}
+                </div>
                 {token && showDropdown &&
                 <div 
                   className='dropdown-menu absolute right-0 top-full pt-2 z-[60]'
                   onMouseEnter={() => setShowDropdown(true)}
                   onMouseLeave={() => setShowDropdown(false)}
                 >
-                    <div className="flex flex-col gap-2 w-36 py-3 px-5 cartoon-card text-gray-500 shadow-lg bg-white border border-gray-200">
-                        <p onClick={()=>navigate('/profile')} className='cursor-pointer hover:text-blue-600 transition-colors duration-300'>My Profile</p>
-                        <p onClick={()=>navigate('/inquiries')} className='cursor-pointer hover:text-blue-600 transition-colors duration-300'>Inquiries</p>
+                    <div className="flex flex-col gap-2 w-44 py-3 px-5 cartoon-card text-gray-500 shadow-lg bg-white border border-gray-200">
+                        <p onClick={() => { navigate('/profile'); setShowDropdown(false) }} className='cursor-pointer hover:text-blue-600 transition-colors duration-300'>My Profile</p>
+                        <p onClick={() => { navigate('/inquiries'); setShowDropdown(false) }} className='flex cursor-pointer items-center justify-between gap-2 hover:text-blue-600 transition-colors duration-300'>
+                          <span>Inquiries</span>
+                          {inquiryUnreadCount > 0 ? (
+                            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[11px] font-bold text-white">{inquiryUnreadCount > 99 ? '99+' : inquiryUnreadCount}</span>
+                          ) : null}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => { requestCustomerInquiryDesktopAlerts(); setShowDropdown(false) }}
+                          className="text-left text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Enable reply alerts (browser)
+                        </button>
                         <p onClick={logOut} className='cursor-pointer hover:text-blue-600 transition-colors duration-300'>Logout</p>
                     </div>
                 </div>}

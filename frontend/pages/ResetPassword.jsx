@@ -1,13 +1,12 @@
 import React, { useState, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import axios from 'axios'
 import { toast } from 'react-toastify'
 import { ShopContext } from '../context/ShopContext'
 
 const ResetPassword = () => {
   const { token: resetToken } = useParams()
   const navigate = useNavigate()
-  const { backendUrl } = useContext(ShopContext)
+  const { api } = useContext(ShopContext)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -31,8 +30,7 @@ const ResetPassword = () => {
 
     try {
       setLoading(true)
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await axios.post(`${baseUrl}/api/user/reset-password/${resetToken}`, {
+      const response = await api.userResetPassword(resetToken, {
         password
       })
 

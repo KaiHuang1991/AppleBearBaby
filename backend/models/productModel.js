@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  /** Optional SKU / model code shown on storefront and admin (e.g. 8007E). */
+  modelNumber: { type: String, trim: true, default: '' },
   description: { type: String, required: true },
   price: { type: Number, required: true },
   image: { type: [String], required: true }, // 修改為 String 陣列，假設儲存圖片 URL

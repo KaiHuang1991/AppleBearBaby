@@ -44,13 +44,13 @@ const inquirySchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['pending', 'responded', 'completed', 'cancelled'],
+    enum: ['pending', 'replied', 'responded', 'completed', 'cancelled'],
     default: 'pending'
   },
   emailStatus: {
     type: String,
-    enum: ['pending', 'sent', 'failed'],
-    default: 'pending'
+    enum: ['pending', 'sent', 'failed', 'skipped'],
+    default: 'skipped'
   },
   message: {
     type: String,
@@ -60,6 +60,20 @@ const inquirySchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  messages: [{
+    author: { type: String, enum: ['user', 'admin'], required: true },
+    body: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  lastActivityAt: { type: Date },
+  lastMessageBody: { type: String, default: '' },
+  lastMessageAuthor: { type: String, enum: ['user', 'admin', ''], default: '' },
+  lastMessageAt: { type: Date },
+  hasUnreadAdminReply: { type: Boolean, default: false },
+  userLastReadAt: { type: Date },
+  /** Customer posted since admin last opened this thread (admin list / notifications) */
+  hasUnreadUserMessageForAdmin: { type: Boolean, default: false },
+  adminLastReadAt: { type: Date },
   totalAmount: {
     type: Number,
     required: true

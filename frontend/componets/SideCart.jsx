@@ -4,6 +4,8 @@ import { ShopContext } from '../context/ShopContext'
 const SideCart = () => {
   const { isCartOpen, closeCart, cartItems, products, currency, updateQuantity, getCartAmount, navigate } = useContext(ShopContext)
   const [pendingMap, setPendingMap] = useState({})
+  /** Local quantity text while typing; subtotal uses cart until blur / Enter commits. */
+  const [draftQty, setDraftQty] = useState({})
 
   const setPending = useCallback((key, value) => {
     setPendingMap(prev => {
@@ -23,10 +25,50 @@ const SideCart = () => {
     setPending(key, true)
     try {
       await updateQuantity(productId, size, quantity)
+      setDraftQty((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
     } finally {
       setPending(key, false)
     }
   }, [setPending, updateQuantity])
+
+  const commitDraftQuantity = useCallback(
+    async (item) => {
+      const itemKey = `${item._id}__${item.size}`
+      const raw = draftQty[itemKey] !== undefined ? draftQty[itemKey] : String(item.quantity)
+      const trimmed = String(raw).trim()
+      if (trimmed === '') {
+        setDraftQty((prev) => {
+          const next = { ...prev }
+          delete next[itemKey]
+          return next
+        })
+        return
+      }
+      const v = parseInt(trimmed, 10)
+      if (!Number.isFinite(v) || v < 0) {
+        setDraftQty((prev) => {
+          const next = { ...prev }
+          delete next[itemKey]
+          return next
+        })
+        return
+      }
+      if (v === item.quantity) {
+        setDraftQty((prev) => {
+          const next = { ...prev }
+          delete next[itemKey]
+          return next
+        })
+        return
+      }
+      await handleUpdateQuantity(item._id, item.size, v)
+    },
+    [draftQty, handleUpdateQuantity]
+  )
 
   const items = useMemo(() => {
     const list = []
@@ -98,12 +140,19 @@ const SideCart = () => {
                           className='w-10 text-center text-sm border-l border-r disabled:bg-gray-100'
                           type='number'
                           min={0}
-                          value={item.quantity}
+                          value={draftQty[itemKey] !== undefined ? draftQty[itemKey] : item.quantity}
                           disabled={isPending}
-                          onChange={async (e) => {
-                            const v = Number(e.target.value)
-                            if (!Number.isFinite(v)) return
-                            await handleUpdateQuantity(item._id, item.size, Math.max(0, v))
+                          onChange={(e) => {
+                            setDraftQty((prev) => ({ ...prev, [itemKey]: e.target.value }))
+                          }}
+                          onBlur={() => {
+                            void commitDraftQuantity(item)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              void commitDraftQuantity(item)
+                            }
                           }}
                         />
                         <button

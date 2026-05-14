@@ -1,6 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 @import "tailwindcss";
 
+/* Match frontend customer inquiry cards (frontend/src/index.css) */
+.cartoon-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #2196f3;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(33, 150, 243, 0.15);
+  transition: all 0.3s ease;
+}
+.cartoon-card:hover {
+  box-shadow: 0 8px 32px rgba(33, 150, 243, 0.25);
+}
+.cartoon-card.inquiry-card-unread {
+  background: #fffbeb;
+  border-width: 2px;
+  border-style: solid;
+  border-color: #fde68a;
+  border-left-width: 4px;
+  border-left-color: #f59e0b;
+  box-shadow: inset 0 0 0 2px #fbbf24, 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.cartoon-card.inquiry-card-unread:hover {
+  box-shadow: inset 0 0 0 2px #fbbf24, 0 1px 3px rgba(0, 0, 0, 0.08);
+}
 
 .active{
     background-color: #ffebf5;

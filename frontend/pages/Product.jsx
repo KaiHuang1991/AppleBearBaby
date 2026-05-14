@@ -6,7 +6,6 @@ import SocialShare from '../componets/SocialShare'
 import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets.js'
 import { toast } from 'react-toastify'
-import axios from 'axios'
 import { flyToCart } from '../src/utils/flyToCart'
 import '../styles/ProductDescription.css'
 
@@ -14,7 +13,7 @@ import '../styles/ProductDescription.css'
 const Product = () => {
   const { productId } = useParams()
   const navigate = useNavigate()
-  const { products, currency, addToCart, submitComment, getProductCategoryPath, token, backendUrl } = useContext(ShopContext)
+  const { products, currency, addToCart, submitComment, getProductCategoryPath, api } = useContext(ShopContext)
   const [productData, setProductData] = useState(false)
   const [image, setImage] = useState('')
   const [size, setSize] = useState('')
@@ -114,8 +113,7 @@ const Product = () => {
       }
       
       console.log('Fetching comments for product:', productId)
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await axios.post(`${baseUrl}/api/product/listcomment`, {
+      const response = await api.productListComment({
         productId
       })
       
@@ -150,12 +148,7 @@ const Product = () => {
   }
   const handleDeleteComment = async (reviewId) => {
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await axios.delete(`${baseUrl}/api/reviews/delete/${reviewId}`, {
-        headers
-      })
+      const response = await api.reviewsDelete(reviewId)
       if (response.data.success) {
         toast.success('Comment deleted successfully!')
         // Refresh comments after deletion
@@ -227,6 +220,9 @@ const Product = () => {
     // 生成关键词：产品名称、分类、属性值等组合
     const keywordsArray = []
     if (productData.name) keywordsArray.push(productData.name)
+    if (productData.modelNumber && String(productData.modelNumber).trim()) {
+      keywordsArray.push(String(productData.modelNumber).trim())
+    }
     if (productData.category) keywordsArray.push(productData.category)
     if (productData.subCategory) keywordsArray.push(productData.subCategory)
     if (productData.thirdCategory) keywordsArray.push(productData.thirdCategory)
@@ -436,6 +432,11 @@ const Product = () => {
           
           <div className='p-4 sm:p-6'>
             <h4 className='font-medium text-xl sm:text-xl'>{productData.name}</h4>
+            {productData.modelNumber && String(productData.modelNumber).trim() ? (
+              <p className='text-sm text-gray-600 mt-1'>
+                型号 <span className='font-semibold text-gray-800'>{String(productData.modelNumber).trim()}</span>
+              </p>
+            ) : null}
           <div className='flex items-center gap-1 mt-2'>
             <p onClick={() => setRating(1)} className='cursor-pointer'>{rating >= 1 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
             <p>{averageRating >= 2 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
@@ -558,8 +559,8 @@ const Product = () => {
         </div>
       </div>
       {/*Description & Review Section*/}
-      <div className='mt-12 px-4 sm:px-8 lg:px-12'>
-        <div className='bg-white rounded-lg shadow-md overflow-hidden'>
+      <div className='mt-12 px-4 sm:px-8 lg:px-12 min-w-0'>
+        <div className='bg-white rounded-lg shadow-md overflow-hidden min-w-0'>
           <div className='flex justify-center gap-2 p-3'>
             <button
               onClick={() => setTabs("description")}
@@ -579,9 +580,9 @@ const Product = () => {
             </button>
           </div>
           {tabs === "description" ? (
-            <div className='border-t border-blue-100 bg-white px-6 py-6 text-sm text-gray-600'>
+            <div className='border-t border-blue-100 bg-white px-6 py-6 text-sm text-gray-600 min-w-0'>
               <div
-                className='product-description-detail flex flex-col gap-4 w-full max-w-4xl mx-auto'
+                className='product-description-detail flex flex-col gap-4 w-full max-w-4xl min-w-0 mx-auto'
             dangerouslySetInnerHTML={{ __html: productData.description }}
               />
             </div>

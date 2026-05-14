@@ -140,6 +140,13 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
               if (uploadedUrl) {
                 img.src = uploadedUrl
                 img.removeAttribute('data-original-src')
+                // 如果图片还没有包裹在div中，则包裹它
+                if (!img.parentElement || !img.parentElement.classList.contains('product-description-image-wrapper')) {
+                  const wrapper = document.createElement('div')
+                  wrapper.className = 'product-description-image-wrapper'
+                  img.parentNode.insertBefore(wrapper, img)
+                  wrapper.appendChild(img)
+                }
               }
             }
           } catch (error) {
@@ -147,6 +154,17 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
             // 出错时保留原图片
           }
         }
+        
+        // 完成上传后，确保所有图片都包裹在div中
+        const processedImages = tempDiv.querySelectorAll('img')
+        processedImages.forEach(img => {
+          if (!img.parentElement || !img.parentElement.classList.contains('product-description-image-wrapper')) {
+            const wrapper = document.createElement('div')
+            wrapper.className = 'product-description-image-wrapper'
+            img.parentNode.insertBefore(wrapper, img)
+            wrapper.appendChild(img)
+          }
+        })
         
         // 完成上传
         setIsUploading(false)
@@ -204,7 +222,7 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
         
         // 只在非批量处理时插入图片
         if (!skipInsert) {
-          const img = `<img src="${imageUrl}" alt="Uploaded image" style="max-width: 800px; height: auto;" />`
+          const img = `<div class="product-description-image-wrapper"><img src="${imageUrl}" alt="Uploaded image" style="max-width: 100%; height: auto;" /></div>`
           console.log('Inserting image into editor')
           document.execCommand('insertHTML', false, img)
           updateContent()
@@ -233,6 +251,25 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
     }
   }
 
+  // 确保所有图片都包裹在div中
+  const wrapImagesInDiv = () => {
+    if (!editorRef.current) return
+    
+    const images = editorRef.current.querySelectorAll('img')
+    images.forEach(img => {
+      // 如果图片还没有包裹在div中，则包裹它
+      if (!img.parentElement || !img.parentElement.classList.contains('product-description-image-wrapper')) {
+        const wrapper = document.createElement('div')
+        wrapper.className = 'product-description-image-wrapper'
+        img.parentNode.insertBefore(wrapper, img)
+        wrapper.appendChild(img)
+      }
+    })
+    
+    // 更新内容
+    updateContent()
+  }
+
   // 初始化和更新编辑器内容
   useEffect(() => {
     if (editorRef.current) {
@@ -240,6 +277,8 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
       if (!isInitialized.current) {
         const initialContent = value || '<p>Start writing your product description here. Use the toolbar above to format text, add images, and create custom layouts...</p>'
         editorRef.current.innerHTML = initialContent
+        // 确保已有内容中的图片都包裹在div中
+        setTimeout(() => wrapImagesInDiv(), 0)
         lastExternalValue.current = value
         isInitialized.current = true
         return
@@ -259,6 +298,8 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
           if (!isEditing) {
             // 用户没在编辑，可以安全更新
             editorRef.current.innerHTML = value
+            // 确保新内容中的图片都包裹在div中
+            setTimeout(() => wrapImagesInDiv(), 0)
           }
         }
       }
@@ -269,23 +310,26 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
     console.log('handleImageUpload triggered')
     console.log('Files:', e.target.files)
     
-    const file = e.target.files[0]
-    if (!file) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) {
       console.log('No file selected')
       return
     }
 
-    console.log('File selected:', file.name, file.type, file.size)
+    // 依次上传多张图片并插入（避免并发导致光标/插入顺序错乱）
+    for (const file of files) {
+      console.log('File selected:', file.name, file.type, file.size)
 
-    // 验证文件大小（最大5MB）
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB')
-      return
+      // 验证文件大小（最大5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`Image "${file.name}" size should be less than 5MB`)
+        continue
+      }
+
+      // 使用统一的上传函数
+      console.log('Calling uploadAndInsertImage')
+      await uploadAndInsertImage(file)
     }
-
-    // 使用统一的上传函数
-    console.log('Calling uploadAndInsertImage')
-    await uploadAndInsertImage(file)
     
     // 重置文件输入，以便可以再次选择相同的文件
     if (fileInputRef.current) {
@@ -445,6 +489,7 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
           ref={fileInputRef}
           type='file'
           accept='image/*'
+          multiple
           onChange={handleImageUpload}
           className='hidden'
           disabled={isUploading}
@@ -462,8 +507,15 @@ const RichTextEditor = ({ value, onChange, token, backendUrl }) => {
       <div
         ref={editorRef}
         contentEditable
-        onInput={updateContent}
-        onBlur={updateContent}
+        onInput={() => {
+          updateContent()
+          // 在输入时也检查图片是否需要包裹
+          setTimeout(() => wrapImagesInDiv(), 100)
+        }}
+        onBlur={() => {
+          wrapImagesInDiv()
+          updateContent()
+        }}
         onPaste={handlePaste}
         onFocus={handleFocus}
         className='rich-text-editor-content'

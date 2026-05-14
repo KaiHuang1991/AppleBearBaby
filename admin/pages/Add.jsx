@@ -9,6 +9,7 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
   const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
   const [images, setImages] = useState([]) // 改用数组存储多张图片
   const [name, setName] = useState('')
+  const [modelNumber, setModelNumber] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
@@ -98,6 +99,7 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
       const formData = new FormData()
 
       formData.append("name", name)
+      formData.append("modelNumber", modelNumber.trim())
       formData.append("description", description)
       formData.append("price", price)
       formData.append("category", category)
@@ -132,6 +134,7 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
         toast.success(response.data.message)
         setImages([]) // 重置图片数组
         setName('')
+        setModelNumber('')
         setDescription('')
         setPrice('')
         setSizes([])
@@ -239,6 +242,16 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
       <div className='w-full'>
         <p className='mb-2'>Product Name</p>
         <input onChange={(e) => { setName(e.target.value) }} value={name} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='Type here' required />
+      </div>
+      <div className='w-full'>
+        <p className='mb-2'>产品型号（选填）</p>
+        <input
+          onChange={(e) => setModelNumber(e.target.value)}
+          value={modelNumber}
+          className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg'
+          type='text'
+          placeholder='例如 8007E'
+        />
       </div>
       <div className='w-full'>
         <p className='mb-2'>Product Description (Rich Text Editor)</p>

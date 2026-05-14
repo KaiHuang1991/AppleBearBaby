@@ -4,6 +4,17 @@
 .product-description-detail {
   line-height: 1.6;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  /* Flex/grid children with wide images default to min-width:auto and refuse to shrink — clips under overflow-hidden */
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Top-level HTML blocks from the editor must be allowed to shrink on narrow screens */
+.product-description > *,
+.product-description-detail > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Preserve inline line-height styles from editor */
@@ -75,15 +86,75 @@
   list-style-type: decimal;
 }
 
-/* Images */
+/* Images — override editor/pasted inline width so mobile never overflows */
 .product-description img,
 .product-description-detail img {
-  width: 800px;
-  height: auto;
-  max-width: 100%; /* 小屏幕时自适应 */
-  margin: 1em auto; /* 水平居中 */
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 1em auto;
   border-radius: 0.5rem;
   display: block;
+  object-fit: contain;
+  box-sizing: border-box;
+}
+
+/* Image wrapper for better mobile display */
+.product-description-image-wrapper,
+.product-description-detail .product-description-image-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5em auto;
+  padding: 0;
+  min-width: 0;
+  /* Force wrappers to occupy full row (avoid side-by-side when parent is flex) */
+  display: block;
+  flex: 0 0 100%;
+  clear: both;
+  text-align: center;
+  overflow: visible;
+}
+
+.product-description-image-wrapper img,
+.product-description-detail .product-description-image-wrapper img {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 0 auto;
+  border-radius: 0.5rem;
+  display: block;
+  object-fit: contain;
+  box-sizing: border-box;
+}
+
+/* If description contains flex containers, force them to stack vertically when they contain images */
+.product-description-detail *:has(> .product-description-image-wrapper),
+.product-description *:has(> .product-description-image-wrapper) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* Mobile responsive styles for image wrapper */
+@media (max-width: 640px) {
+  .product-description-image-wrapper,
+  .product-description-detail .product-description-image-wrapper {
+    margin: 1em auto;
+    padding: 0;
+    width: 100%;
+  }
+
+  .product-description img,
+  .product-description-detail img {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .product-description-image-wrapper img,
+  .product-description-detail .product-description-image-wrapper img {
+    border-radius: 0.375rem;
+  }
 }
 
 /* Links */

@@ -1,77 +1,34 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from '../componets/Title'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 
 const Inquiries = () => {
-  const { token, currency, backendUrl } = useContext(ShopContext)
+  const { token, currency, api, refreshInquiryUnreadCount } = useContext(ShopContext)
   const navigate = useNavigate()
   const [inquiries, setInquiries] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchTimeout, setSearchTimeout] = useState(null)
+  const searchRef = useRef('')
+  const searchDebounceRef = useRef(null)
+  const skipDebouncedSearchOnce = useRef(true)
 
   useEffect(() => {
-    if (token) {
-      fetchUserInquiries()
-    } else {
-      setLoading(false)
-    }
-  }, [token])
-
-  // Debounced search effect
-  useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout)
-    }
-    
-    const timeout = setTimeout(() => {
-      if (token) {
-        fetchUserInquiries()
-      }
-    }, 1500) // 1.5 second delay
-    
-    setSearchTimeout(timeout)
-    
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout)
-      }
-    }
+    searchRef.current = searchTerm
   }, [searchTerm])
 
-  const fetchUserInquiries = async () => {
+  const fetchUserInquiries = useCallback(async () => {
     try {
       setLoading(true)
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      // Backend will use authenticated user ID from token/cookie
-      // We can use /user route without userId parameter
-      let url = `${baseUrl}/api/inquiries/user`
-      
-      // Add search parameter if searchTerm exists
-      const params = new URLSearchParams()
-      if (searchTerm.trim()) {
-        params.append('search', searchTerm.trim())
-      }
-      if (params.toString()) {
-        url += `?${params.toString()}`
-      }
-      
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = {
-        'Content-Type': 'application/json'
-      }
-      if (token) headers.token = token
-      
-      const response = await fetch(url, {
-        headers,
-        credentials: 'include' // Include cookies
-      })
-      const data = await response.json()
+      const q = searchRef.current.trim()
+      const params = q ? { search: q } : {}
+      const response = await api.inquiriesUserList(params)
+      const data = response.data
       
       if (data.success) {
         setInquiries(data.inquiries)
+        refreshInquiryUnreadCount()
       } else {
         console.error('Failed to fetch inquiries:', data.message)
         toast.error(data.message || 'Failed to fetch inquiries')
@@ -82,7 +39,45 @@ const Inquiries = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, api, refreshInquiryUnreadCount])
+
+  useEffect(() => {
+    if (token) {
+      fetchUserInquiries()
+    } else {
+      setLoading(false)
+    }
+  }, [token, fetchUserInquiries])
+
+  /** Debounce search: one request after user stops typing (ref timer clears previous). */
+  useEffect(() => {
+    if (!token) {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+        searchDebounceRef.current = null
+      }
+      skipDebouncedSearchOnce.current = true
+      return
+    }
+    if (skipDebouncedSearchOnce.current) {
+      skipDebouncedSearchOnce.current = false
+      return
+    }
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+      searchDebounceRef.current = null
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      searchDebounceRef.current = null
+      fetchUserInquiries()
+    }, 3000)
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+        searchDebounceRef.current = null
+      }
+    }
+  }, [searchTerm, token, fetchUserInquiries])
 
   const handleDeleteInquiry = async (inquiryId) => {
     if (!window.confirm('Are you sure you want to delete this inquiry?')) {
@@ -90,17 +85,8 @@ const Inquiries = () => {
     }
 
     try {
-      const userId = localStorage.getItem('userId')
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await fetch(`${baseUrl}/api/inquiries/user/${inquiryId}`, {
-        method: 'DELETE',
-        headers: {
-          'token': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId })
-      })
-      const data = await response.json()
+      const response = await api.inquiriesUserDelete(inquiryId)
+      const data = response.data
       
       if (data.success) {
         toast.success('Inquiry deleted successfully')
@@ -114,37 +100,28 @@ const Inquiries = () => {
     }
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'responded':
-        return 'bg-blue-100 text-blue-800'
-      case 'completed':
-        return 'bg-green-100 text-green-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+  const getStatusColor = (cf) => {
+    if (cf === 'pending') return 'bg-yellow-100 text-yellow-800'
+    return 'bg-emerald-100 text-emerald-800'
   }
 
-  const getEmailStatusColor = (emailStatus) => {
-    switch (emailStatus) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'sent':
-        return 'bg-green-100 text-green-800'
-      case 'failed':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+  /** Customer-facing: only pending vs replied (no email / legacy status chips). */
+  const customerFacingStatus = (inquiry) => {
+    const s = String(inquiry.customerThreadStatus ?? inquiry.displayStatus ?? inquiry.status ?? '').toLowerCase()
+    if (s === 'pending') return 'pending'
+    return 'replied'
   }
+
+  const threadStatusLabel = (inquiry) => (customerFacingStatus(inquiry) === 'pending' ? 'Pending' : 'Replied')
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     })
   }
 
@@ -229,78 +206,113 @@ const Inquiries = () => {
             </div>
           ) : (
             <div className="space-y-6 h-auto">
-              {inquiries.map((inquiry) => (
-                <div key={inquiry._id} className="cartoon-card p-6 h-auto overflow-hidden">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">Inquiry #{inquiry._id.slice(-6)}</h3>
-                      <p className="text-sm text-gray-500">{formatDate(inquiry.createdAt)}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(inquiry.status)}`}>
-                        {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
-                      </span>
-                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getEmailStatusColor(inquiry.emailStatus)}`}>
-                        {inquiry.emailStatus === 'sent' ? '✅ Success' :
-                         inquiry.emailStatus === 'failed' ? '❌ Fail' :
-                         '⏳ Pending'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {inquiry.products.map((product, index) => (
-                      <div key={index} className="flex items-center gap-4 p-3 bg-gray-50 border border-gray-100 rounded-lg">
-                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center shadow-inner">
-                          <span className="text-gray-600">📦</span>
+              {inquiries.map((inquiry) => {
+                const st = customerFacingStatus(inquiry)
+                const unread = Boolean(inquiry.hasUnreadAdminReply)
+                const preview =
+                  inquiry.latestThreadMessageLine ||
+                  inquiry.lastMessageBody ||
+                  (inquiry.message ? String(inquiry.message).slice(0, 160) : '')
+                const chatTo = `/inquiries/${inquiry._id}`
+                return (
+                  <div
+                    key={inquiry._id}
+                    className={`cartoon-card p-6 h-auto min-w-0 transition-colors ${
+                      unread ? 'inquiry-card-unread' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-lg font-semibold text-gray-800 flex flex-wrap items-center gap-2">
+                          Inquiry #{inquiry._id.slice(-6)}
+                          {unread ? (
+                            <span className="text-[11px] font-bold uppercase tracking-wide text-amber-800 bg-amber-200/90 px-2 py-0.5 rounded-full">
+                              Unread
+                            </span>
+                          ) : null}
+                        </h3>
+                        <p className="text-sm text-gray-500">{formatDate(inquiry.createdAt)}</p>
+                        {inquiry.hasUnreadAdminReply ? (
+                          <p className="text-xs font-semibold text-amber-800 mt-1">New reply — open chat below</p>
+                        ) : null}
+                      </div>
+                      <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+                        <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
+                          <span
+                            className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(st)}`}
+                          >
+                            {threadStatusLabel(inquiry)}
+                          </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-800 truncate">{product.productName}</p>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                            <span>Qty: {product.quantity}</span>
-                            <span>Size: {product.size}</span>
-                            <span>Price: {currency}{product.price}</span>
+                        <Link
+                          to={chatTo}
+                          className="inline-flex w-full shrink-0 items-center justify-center rounded-md bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow hover:bg-blue-700 sm:w-auto sm:min-w-[8.5rem]"
+                        >
+                          Open chat
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {inquiry.products.map((product, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-4 p-3 bg-gray-50 border border-gray-100 rounded-lg"
+                        >
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center shadow-inner">
+                            <span className="text-gray-600">📦</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 truncate">{product.productName}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                              <span>Qty: {product.quantity}</span>
+                              <span>Size: {product.size}</span>
+                              <span>
+                                Price: {currency}
+                                {product.price}
+                              </span>
+                            </div>
                           </div>
                         </div>
+                      ))}
+                    </div>
+
+                    {preview ? (
+                      <div className="mt-4 text-sm text-gray-700 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                        <span className="font-semibold">
+                          {inquiry.latestThreadMessageLine ? 'Latest message' : 'Latest:'}
+                        </span>{' '}
+                        <span className="text-gray-600 break-words">{preview}</span>
                       </div>
-                    ))}
-                  </div>
+                    ) : null}
+                    {inquiry.userPhone ? (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <span className="font-semibold text-gray-700">Phone:</span> {inquiry.userPhone}
+                      </div>
+                    ) : null}
 
-                  {inquiry.message && (
-                    <div className="mt-4 text-sm text-gray-700 bg-blue-50 border border-blue-100 rounded-lg p-3">
-                      <span className="font-semibold">Message:</span>{' '}
-                      <span className="text-gray-600 break-words">{inquiry.message}</span>
-                    </div>
-                  )}
-                  {inquiry.userPhone && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      <span className="font-semibold text-gray-700">Phone:</span> {inquiry.userPhone}
-                    </div>
-                  )}
-
-                  <div className="mt-6 mt-10 pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm text-gray-600">Total Amount</p>
-                      <p className="text-xl font-semibold text-gray-800">{currency}{inquiry.totalAmount}</p>
-                      <button
-                        onClick={() => handleDeleteInquiry(inquiry._id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-colors shadow"
-                      >
-                        <span>🗑</span>
-                        Delete Inquiry
-                      </button>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      {inquiry.adminResponse && (
-                        <div className="text-sm text-gray-700 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200 sm:order-1 order-2">
-                          <p className="font-medium text-gray-600">Admin Response</p>
-                          <p className="text-gray-700 whitespace-pre-wrap break-words">{inquiry.adminResponse}</p>
-                        </div>
-                      )}
+                    <div className="mt-6 flex flex-col gap-3 border-t border-gray-200 pt-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm text-gray-600">Total Amount</p>
+                        <p className="text-xl font-semibold text-gray-800">
+                          {currency}
+                          {inquiry.totalAmount}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteInquiry(inquiry._id)}
+                          className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-md bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-red-600 sm:w-auto sm:min-w-[8.5rem]"
+                        >
+                          <span aria-hidden>🗑</span>
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

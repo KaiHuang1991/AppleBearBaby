@@ -4,7 +4,7 @@ import Title from '../componets/Title'
 import { toast } from 'react-toastify'
 
 const Profile = () => {
-  const { token, navigate, user, updateUserAvatar } = useContext(ShopContext)
+  const { token, navigate, user, updateUserAvatar, inquiryUnreadCount } = useContext(ShopContext)
   const [loading, setLoading] = useState(true)
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState('')
@@ -202,12 +202,17 @@ const Profile = () => {
                     onClick={() => navigate('/inquiries')}
                     className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-300"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full items-center gap-3">
                       <span className="text-xl">📋</span>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-800">View My Inquiries</p>
                         <p className="text-sm text-gray-600">Check your order status</p>
                       </div>
+                      {inquiryUnreadCount > 0 ? (
+                        <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white">
+                          {inquiryUnreadCount > 99 ? '99+' : inquiryUnreadCount}
+                        </span>
+                      ) : null}
                     </div>
                   </button>
                   

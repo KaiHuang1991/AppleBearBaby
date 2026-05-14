@@ -54,15 +54,35 @@ const Footer = () => {
                   <span className='text-xl gentle-bounce'>📞</span>
               </div>
               <ul className='flex flex-col gap-2 text-gray-600 text-base items-center lg:items-start'>
-                 <li className='hover:text-blue-600 transition-colors duration-300 cursor-pointer'>+86-15867976938</li>
-                 <li className='hover:text-blue-600 transition-colors duration-300 cursor-pointer'>wholesale@babycare.com</li>   
+                 <li>
+                   <a
+                     href='https://wa.me/8615867976938'
+                     target='_blank'
+                     rel='noopener noreferrer'
+                     className='text-blue-600 hover:text-blue-800 underline-offset-2 hover:underline'
+                   >
+                     +86-15867976938
+                   </a>
+                 </li>
+                 <li>
+                   <a
+                     href='mailto:1034201254@qq.com'
+                     className='text-blue-600 hover:text-blue-800 underline-offset-2 hover:underline'
+                   >
+                     1034201254@qq.com
+                   </a>
+                 </li>
               </ul>
               
               {/* Social media icons */}
               <div className='flex gap-3 mt-4 justify-center lg:justify-start'>
-                  <div className='w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer'>
+                  <a
+                    href='mailto:1034201254@qq.com'
+                    className='w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer'
+                    aria-label='Email wholesale'
+                  >
                       <span className='text-sm'>📧</span>
-                  </div>
+                  </a>
                   <div className='w-8 h-8 bg-cyan-200 rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300 cursor-pointer'>
                       <span className='text-sm'>📱</span>
                   </div>

@@ -37,8 +37,9 @@ const Inquiries = ({ token }) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800'
+      case 'replied':
       case 'responded':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-emerald-100 text-emerald-800'
       case 'completed':
         return 'bg-green-100 text-green-800'
       default:
@@ -47,12 +48,13 @@ const Inquiries = ({ token }) => {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      second: '2-digit'
     })
   }
 
@@ -99,7 +101,13 @@ const Inquiries = ({ token }) => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {inquiries.map((inquiry) => (
+                {inquiries.map((inquiry) => {
+                  const st = inquiry.displayStatus || inquiry.status
+                  const label =
+                    st === 'replied' || st === 'responded'
+                      ? 'Replied'
+                      : st.charAt(0).toUpperCase() + st.slice(1)
+                  return (
                   <tr key={inquiry._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -117,8 +125,8 @@ const Inquiries = ({ token }) => {
                        </div>
                      </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(inquiry.status)}`}>
-                        {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(st)}`}>
+                        {label}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -135,7 +143,8 @@ const Inquiries = ({ token }) => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

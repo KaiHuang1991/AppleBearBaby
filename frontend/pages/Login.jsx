@@ -1,12 +1,11 @@
 import React, { useContext, useEffect } from 'react'
 import { useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
-import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const Login = () => {
   const [currentState,setCurrentState] =useState('Login')
-  const {token,setToken,navigate,backendUrl} =useContext(ShopContext)
+  const {token,setToken,navigate,api} =useContext(ShopContext)
   const [name,setName] =useState('')
   const [password,setPassword] =useState('')
   const [email,setEmail] =useState('')
@@ -19,7 +18,7 @@ const Login = () => {
   const handleResendVerification = async () => {
     try {
       setResendingEmail(true)
-      const response = await axios.post(backendUrl+'/api/user/resend-verification', { email })
+      const response = await api.userResendVerification({ email })
       
       if (response.data.success) {
         toast.success(response.data.message)
@@ -44,7 +43,7 @@ const Login = () => {
     
     try {
       setSendingResetEmail(true)
-      const response = await axios.post(backendUrl+'/api/user/forgot-password', { 
+      const response = await api.userForgotPassword({ 
         email: forgotPasswordEmail 
       })
       
@@ -66,9 +65,9 @@ const Login = () => {
   const onSubmitHandler= async (event)=>{
     event.preventDefault()
     try {
-      //console.log(backendUrl)
+      //console.log('login')
       if(currentState === "Sign Up"){
-        const response = await axios.post(backendUrl+'/api/user/register',{name,email,password})
+        const response = await api.userRegister({name,email,password})
         if(response.data.success){
           // Don't set token or save user info - user needs to verify email first
           setName('')
@@ -85,7 +84,7 @@ const Login = () => {
         toast.error(response.data.message)
         }
       }else{
-        const response = await axios.post(backendUrl+'/api/user/login',{email,password})
+        const response = await api.userLogin({email,password})
         if(response.data.success){
           setToken(response.data.token)
           // Token is now stored in HttpOnly cookie, but keep user info in localStorage

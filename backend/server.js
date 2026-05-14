@@ -14,6 +14,7 @@ import reviewRoute from "./routes/reviewRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
 import attributeRoute from "./routes/attributeRoute.js";
 import heroRoute from "./routes/heroRoute.js";
+import chatbotRoute from "./routes/chatbotRoute.js";
 
 // App Config
 
@@ -41,6 +42,24 @@ if (process.env.ALLOWED_ORIGINS) {
   allowedOrigins.push(...envOrigins)
 }
 
+/** LAN / loopback origins used by Vite --host, Expo, Metro, etc. (not sent as "localhost") */
+function isDevelopmentNetworkOrigin(origin) {
+  try {
+    const { hostname } = new URL(origin)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+    const m = /^172\.(\d{1,3})\./.exec(hostname)
+    if (m) {
+      const second = Number(m[1])
+      if (second >= 16 && second <= 31) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -50,8 +69,8 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true)
     } else {
-      // For development, allow any localhost origin
-      if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      // Development: localhost, 127.0.0.1, and private LAN IPs (Metro/Expo, vite --host)
+      if (process.env.NODE_ENV !== 'production' && isDevelopmentNetworkOrigin(origin)) {
         callback(null, true)
       } else {
         // In production, log rejected origins for debugging
@@ -79,6 +98,7 @@ app.use('/api/reviews',reviewRoute)
 app.use('/api/categories', categoryRoute)
 app.use('/api/attributes', attributeRoute)
 app.use('/api/hero', heroRoute)
+app.use('/api/chatbot', chatbotRoute)
 
 app.get('/',(req,res)=>{
    res.send("API Working")

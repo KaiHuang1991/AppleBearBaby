@@ -9,6 +9,7 @@ import Cart from '../pages/Cart'
 import Login from '../pages/Login'
 import PlaceOrder from '../pages/PlaceOrder'
 import Inquiries from '../pages/Inquiries'
+import InquiryThread from '../pages/InquiryThread'
 import Profile from '../pages/Profile'
 import Blogs from '../pages/Blogs'
 import BlogDetail from '../pages/BlogDetail'
@@ -19,6 +20,7 @@ import NavBar from '../componets/NavBar'
 import Footer from '../componets/Footer'
 import SearchBar from '../componets/SearchBar'
 import ScrollToTop from '../componets/ScrollToTop'
+import AiChatWidget from '../componets/AiChatWidget'
 import { ToastContainer } from 'react-toastify'
 
 const App = () => {
@@ -52,6 +54,7 @@ const App = () => {
             <Route path='/reset-password/:token' element={<ResetPassword />} />
             <Route path='/place-order' element={<PlaceOrder />} />
             <Route path='/inquiries' element={<Inquiries />} />
+            <Route path='/inquiries/:id' element={<InquiryThread />} />
             <Route path='/profile' element={<Profile />} />
             <Route path='/blogs' element={<Blogs />} />
             <Route path='/blog/:id' element={<BlogDetail />} />
@@ -62,6 +65,7 @@ const App = () => {
       <div className="w-[80%] mx-auto">
         <Footer />
       </div>
+      <AiChatWidget />
     </div>
   )
 }

@@ -14,6 +14,7 @@ const Cart = () => {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [attachments, setAttachments] = useState([]) // {name,type,base64}
+  const [qtyDraft, setQtyDraft] = useState({})
   const products = JSON.parse(localStorage.getItem("products"))
   //let newCartData = JSON.parse(localStorage.getItem("cartItems"))
   console.log(products)
@@ -43,6 +44,49 @@ const Cart = () => {
     }
   }, [cartItems, token])
 
+  const lineKey = (item) => `${item._id}__${item.size}`
+
+  const commitCartQuantity = (item) => {
+    const key = lineKey(item)
+    const raw = qtyDraft[key] !== undefined ? qtyDraft[key] : String(item.quantity)
+    const trimmed = String(raw).trim()
+    if (trimmed === '') {
+      setQtyDraft((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      return
+    }
+    const v = parseInt(trimmed, 10)
+    if (!Number.isFinite(v) || v < 0) {
+      setQtyDraft((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      return
+    }
+    if (v === item.quantity) {
+      setQtyDraft((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      return
+    }
+    if (v === 0) {
+      updateQuantity(item._id, item.size, 0)
+    } else {
+      updateQuantity(item._id, item.size, v)
+    }
+    setQtyDraft((prev) => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
   return (
     <div className='border-t pt-28 bg-gradient-to-br from-blue-50 to-cyan-50 min-h-screen'>
       <div className='text-2xl mb-3'>
@@ -66,15 +110,35 @@ const Cart = () => {
                       </div>
                     </div>
                   </div>
-                  <input onChange={(e) => {
-                    const value = e.target.value
-                    if (value === '' || value === '0' || Number(value) <= 0) {
+                  <input
+                    className='border max-w-10 sm:max-w-20 px-1 sm:px-2 py-1'
+                    type="number"
+                    min={0}
+                    value={qtyDraft[lineKey(item)] !== undefined ? qtyDraft[lineKey(item)] : item.quantity}
+                    onChange={(e) => {
+                      setQtyDraft((prev) => ({ ...prev, [lineKey(item)]: e.target.value }))
+                    }}
+                    onBlur={() => commitCartQuantity(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        commitCartQuantity(item)
+                      }
+                    }}
+                  />
+                  <img
+                    onClick={() => {
+                      setQtyDraft((prev) => {
+                        const next = { ...prev }
+                        delete next[lineKey(item)]
+                        return next
+                      })
                       updateQuantity(item._id, item.size, 0)
-                    } else {
-                      updateQuantity(item._id, item.size, Number(value))
-                    }
-                  }} className='border max-w-10 sm:max-w-20 px-1 sm:px-2 py-1' type="number" min={0} value={item.quantity} />
-                  <img onClick={() => updateQuantity(item._id, item.size, 0)} className='w-4 mr-4 sm:w-5 cursor-pointer ' src={assets.bin_icon} alt="" />
+                    }}
+                    className='w-4 mr-4 sm:w-5 cursor-pointer '
+                    src={assets.bin_icon}
+                    alt=""
+                  />
                 </div>
               )
             })

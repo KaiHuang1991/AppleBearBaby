@@ -14,7 +14,7 @@ const BlogDetail = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [editContent, setEditContent] = useState('');
   
-  const { getBlogComments, addBlogComment, updateBlogComment, deleteBlogComment, token, user, backendUrl } = useContext(ShopContext);
+  const { getBlogComments, addBlogComment, updateBlogComment, deleteBlogComment, token, user, api } = useContext(ShopContext);
 
   useEffect(() => {
     fetchBlog();
@@ -78,11 +78,8 @@ const BlogDetail = () => {
 
   const fetchBlog = async () => {
     try {
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${baseUrl}/api/blogs/${id}`, {
-        credentials: 'include' // Include cookies
-      });
-      const data = await response.json();
+      const response = await api.blogsGetById(id);
+      const data = response.data;
       
       if (data.success) {
         setBlog(data.blog);

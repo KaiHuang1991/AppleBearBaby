@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 
 const Blogs = () => {
-  const { backendUrl } = useContext(ShopContext);
+  const { api } = useContext(ShopContext);
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,18 +17,13 @@ const Blogs = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
-      const url = searchTerm 
-        ? `${baseUrl}/api/blogs/all?search=${encodeURIComponent(searchTerm)}`
-        : `${baseUrl}/api/blogs/all`;
+      const params = searchTerm
+        ? { search: searchTerm }
+        : {};
+      const response = await api.blogsAll(params);
       
-      const response = await fetch(url, {
-        credentials: 'include' // Include cookies
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        setBlogs(data.blogs);
+      if (response.data.success) {
+        setBlogs(response.data.blogs);
       }
     } catch (error) {
       console.error('Error fetching blogs:', error);

@@ -2,6 +2,145 @@ import inquiryModel from '../models/inquiryModel.js'
 import productModel from '../models/productModel.js'
 import nodemailer from 'nodemailer'
 
+const buildThreadMessages = (inquiry) => {
+  const raw = inquiry.toObject ? inquiry.toObject() : { ...inquiry }
+  let list = Array.isArray(raw.messages) && raw.messages.length
+    ? raw.messages.map((m) => ({
+        author: m.author,
+        body: m.body,
+        createdAt: m.createdAt || raw.createdAt
+      }))
+    : []
+
+  if (!list.length && raw.message) {
+    list.push({
+      author: 'user',
+      body: raw.message,
+      createdAt: raw.createdAt || new Date(0)
+    })
+  }
+
+  if (raw.adminResponse) {
+    const hasAdmin = list.some((m) => m.author === 'admin')
+    if (!hasAdmin) {
+      list.push({
+        author: 'admin',
+        body: raw.adminResponse,
+        createdAt: raw.updatedAt || raw.createdAt
+      })
+    }
+  }
+
+  list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+  return list
+}
+
+const threadHasAdminReply = (messages) => messages.some((m) => m.author === 'admin')
+
+const seedLegacyUserMessage = (inquiry) => {
+  if (!inquiry.messages || inquiry.messages.length === 0) {
+    const legacy = (inquiry.message || '').trim()
+    if (legacy) {
+      inquiry.messages = inquiry.messages || []
+      inquiry.messages.push({
+        author: 'user',
+        body: legacy,
+        createdAt: inquiry.createdAt || new Date()
+      })
+    }
+  }
+}
+
+const hydrateInquiry = (inquiry, { includeMessages = true } = {}) => {
+  if (!inquiry) return null
+  const obj = inquiry.toObject ? inquiry.toObject() : { ...inquiry }
+  /** When messages are not selected from DB, thread is rebuilt from legacy `message` which may be all user bodies joined with \\n\\n (see postUserInquiryMessage). */
+  const hadLoadedMessages = Array.isArray(obj.messages) && obj.messages.length > 0
+  const messages = buildThreadMessages(obj)
+  obj.messages = includeMessages ? messages : undefined
+  const last = messages.length ? messages[messages.length - 1] : null
+
+  /** True last speaker for list (no messages selected) vs thread view. */
+  const lastAuthor =
+    hadLoadedMessages && last
+      ? last.author
+      : obj.lastMessageAuthor === 'admin' || obj.lastMessageAuthor === 'user'
+        ? obj.lastMessageAuthor
+        : last?.author || null
+
+  /** Admin UI: Replied only when the store sent the latest message; Pending when the customer spoke last or thread is empty. */
+  if (obj.status === 'completed' || obj.status === 'cancelled') {
+    obj.displayStatus = obj.status
+  } else {
+    obj.displayStatus = lastAuthor === 'admin' ? 'replied' : 'pending'
+  }
+
+  obj.awaitingAdminReply = lastAuthor === 'user'
+
+  /** Customer list badge: when messages are not loaded, synthetic `last` from buildThreadMessages can disagree with the real thread (preview uses lastMessageAuthor). Use denormalized lastMessageAuthor + admin signals for the list; full messages when loaded (chat page). */
+  if (obj.status === 'completed' || obj.status === 'cancelled') {
+    obj.customerThreadStatus = obj.status
+  } else if (obj.status === 'responded') {
+    obj.customerThreadStatus = 'replied'
+  } else if (hadLoadedMessages) {
+    const hasAdmin = threadHasAdminReply(messages)
+    obj.customerThreadStatus =
+      hasAdmin && last && last.author === 'user' ? 'replied' : 'pending'
+  } else {
+    const hasAdmin =
+      threadHasAdminReply(messages) ||
+      Boolean(String(obj.adminResponse || '').trim()) ||
+      obj.status === 'replied' ||
+      obj.status === 'responded'
+    const lastAuthor =
+      obj.lastMessageAuthor === 'admin' || obj.lastMessageAuthor === 'user'
+        ? obj.lastMessageAuthor
+        : last?.author || ''
+    obj.customerThreadStatus =
+      hasAdmin && lastAuthor === 'user' ? 'replied' : 'pending'
+  }
+
+  const customerDisplayName =
+    (obj.userName && String(obj.userName).trim()) ||
+    (typeof obj.userId === 'object' &&
+      obj.userId &&
+      String(obj.userId.name || '').trim()) ||
+    (obj.userEmail && String(obj.userEmail).trim()) ||
+    (typeof obj.userId === 'object' &&
+      obj.userId &&
+      String(obj.userId.email || '').trim()) ||
+    'Customer'
+  const storeDisplayName =
+    (process.env.INQUIRY_STORE_DISPLAY_NAME && String(process.env.INQUIRY_STORE_DISPLAY_NAME).trim()) ||
+    'Store'
+
+  let previewAuthor = ''
+  let previewBody = ''
+  if (hadLoadedMessages && messages.length) {
+    const lm = messages[messages.length - 1]
+    previewAuthor = lm.author
+    previewBody = lm.body != null && lm.body !== undefined ? String(lm.body) : ''
+  } else if (
+    (obj.lastMessageAuthor === 'user' || obj.lastMessageAuthor === 'admin') &&
+    obj.lastMessageBody
+  ) {
+    previewAuthor = obj.lastMessageAuthor
+    previewBody = String(obj.lastMessageBody).trim()
+  } else if (messages.length) {
+    const lm = messages[messages.length - 1]
+    previewAuthor = lm.author
+    previewBody = lm.body != null && lm.body !== undefined ? String(lm.body) : ''
+    if (previewAuthor === 'user' && previewBody.includes('\n\n')) {
+      const segs = previewBody.split(/\n\n/).map((s) => s.trim()).filter(Boolean)
+      if (segs.length > 1) previewBody = segs[segs.length - 1]
+    }
+  }
+
+  const senderName = previewAuthor === 'admin' ? storeDisplayName : customerDisplayName
+  obj.latestThreadMessageLine = previewBody ? `${senderName}: ${previewBody}` : ''
+  return obj
+}
+
 const normalizeId = (value) => {
   if (!value) return null
   if (typeof value === 'string') return value
@@ -182,7 +321,7 @@ const createInquiry = async (req, res) => {
   try {
     // Try to get userId from authenticated user first, fallback to body
     const userId = req.user?.id || req.body.userId || null
-    const { userEmail, userName, userPhone, products, message, emailStatus = 'pending' } = req.body
+    const { userEmail, userName, userPhone, products, message, emailStatus } = req.body
 
     // Validate required fields
     if (!userEmail) {
@@ -201,15 +340,29 @@ const createInquiry = async (req, res) => {
       })
     }
 
+    const bodyText = (message || '').trim()
+    const now = new Date()
+    const notifyByEmail = process.env.INQUIRY_NOTIFY_ON_CREATE === 'true'
+    const initialMessages = bodyText
+      ? [{ author: 'user', body: bodyText, createdAt: now }]
+      : []
+
     const newInquiry = new inquiryModel({
       userId, // Use authenticated userId if available
       userEmail,
       userName: userName || '',
       userPhone: userPhone || '',
       products: normalizedProducts,
-      message: message || '',
+      message: bodyText,
       totalAmount,
-      emailStatus
+      messages: initialMessages,
+      lastActivityAt: now,
+      lastMessageBody: bodyText.slice(0, 500),
+      lastMessageAuthor: bodyText ? 'user' : '',
+      lastMessageAt: bodyText ? now : undefined,
+      hasUnreadAdminReply: false,
+      hasUnreadUserMessageForAdmin: true,
+      emailStatus: notifyByEmail ? (emailStatus || 'pending') : 'skipped'
     })
 
     const savedInquiry = await newInquiry.save()
@@ -229,48 +382,121 @@ const createInquiry = async (req, res) => {
   }
 }
 
-// Get all inquiries (admin only)
+// Get count of inquiries with unread admin replies (logged-in customer)
+const getUserInquiryUnreadCount = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' })
+    }
+    const count = await inquiryModel.countDocuments({ userId, hasUnreadAdminReply: true })
+    res.status(200).json({ success: true, count })
+  } catch (error) {
+    console.error('Error counting user inquiry unread:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error counting unread inquiries',
+      error: error.message
+    })
+  }
+}
+
+// Admin: count inquiries with new customer messages since admin last read
+const getAdminInquiryUnreadCount = async (req, res) => {
+  try {
+    const count = await inquiryModel.countDocuments({ hasUnreadUserMessageForAdmin: true })
+    res.status(200).json({ success: true, count })
+  } catch (error) {
+    console.error('Error counting unread inquiries:', error)
+    res.status(500).json({ success: false, message: 'Error counting unread inquiries', error: error.message })
+  }
+}
+
 const getAllInquiries = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search, emailStatus } = req.query
-    
-    let query = {}
-    
-    // Filter by status
+    const { page = 1, limit = 10, status, search, messageStatus } = req.query
+
+    const conditions = []
+
     if (status) {
-      query.status = status
-    }
-    
-    // Filter by email status
-    if (emailStatus) {
-      query.emailStatus = emailStatus
-    }
-    
-    // Search by username or email
-    if (search) {
-      query.$or = [
-        { userName: { $regex: search, $options: 'i' } },
-        { userEmail: { $regex: search, $options: 'i' } }
-      ]
+      conditions.push({ status })
     }
 
-    const skip = (page - 1) * limit
-    
+    const ms = typeof messageStatus === 'string' ? messageStatus.trim().toLowerCase() : ''
+    if (ms === 'replied') {
+      conditions.push({ lastMessageAuthor: 'admin' })
+    } else if (ms === 'pending') {
+      conditions.push({
+        $or: [
+          { lastMessageAuthor: 'user' },
+          { lastMessageAuthor: '' },
+          { lastMessageAuthor: null },
+          { lastMessageAuthor: { $exists: false } }
+        ]
+      })
+    }
+
+    if (search && String(search).trim()) {
+      const q = String(search).trim()
+      conditions.push({
+        $or: [
+          { userName: { $regex: q, $options: 'i' } },
+          { userEmail: { $regex: q, $options: 'i' } }
+        ]
+      })
+    }
+
+    let query = {}
+    if (conditions.length === 1) {
+      query = conditions[0]
+    } else if (conditions.length > 1) {
+      query.$and = conditions
+    }
+
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10)
+
     const inquiries = await inquiryModel
       .find(query)
-      .sort({ createdAt: -1 })
+      .select('-messages')
+      .sort({
+        hasUnreadUserMessageForAdmin: -1,
+        lastActivityAt: -1,
+        updatedAt: -1
+      })
       .skip(skip)
-      .limit(parseInt(limit))
+      .limit(parseInt(limit, 10))
       .populate('userId', 'name email')
+      .populate('products.productId')
 
     const total = await inquiryModel.countDocuments(query)
 
+    const hydrated = inquiries.map((inv) => {
+      try {
+        return hydrateInquiry(inv, { includeMessages: false })
+      } catch (e) {
+        console.error('hydrateInquiry failed for', inv?._id, e)
+        const plain = inv.toObject ? inv.toObject() : { ...inv }
+        return {
+          ...plain,
+          displayStatus:
+            plain.status === 'completed' || plain.status === 'cancelled'
+              ? plain.status
+              : plain.lastMessageAuthor === 'admin'
+                ? 'replied'
+                : 'pending',
+          customerThreadStatus: plain.status === 'completed' || plain.status === 'cancelled' ? plain.status : 'pending',
+          latestThreadMessageLine: '',
+          awaitingAdminReply: plain.lastMessageAuthor === 'user'
+        }
+      }
+    })
+
     res.status(200).json({
       success: true,
-      inquiries,
+      inquiries: hydrated,
       total,
       currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / parseInt(limit, 10))
     })
   } catch (error) {
     console.error('Error fetching inquiries:', error)
@@ -310,16 +536,18 @@ const getUserInquiries = async (req, res) => {
 
     const inquiries = await inquiryModel
       .find(query)
-      .sort({ createdAt: -1 })
+      .select('-messages')
+      .sort({ hasUnreadAdminReply: -1, lastActivityAt: -1, updatedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
       // No need to populate - we already have productName, price, etc. in the inquiry
 
+    const hydrated = inquiries.map((inv) => hydrateInquiry(inv, { includeMessages: false }))
     const total = await inquiryModel.countDocuments(query)
 
     res.status(200).json({
       success: true,
-      inquiries,
+      inquiries: hydrated,
       total,
       currentPage: parseInt(page),
       totalPages: Math.ceil(total / limit)
@@ -334,11 +562,51 @@ const getUserInquiries = async (req, res) => {
   }
 }
 
-// Get single inquiry
+// Get single inquiry (owner only; marks thread as read)
 const getInquiryById = async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user?.id
 
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      })
+    }
+
+    const inquiry = await inquiryModel
+      .findOne({ _id: id, userId })
+      .populate('products.productId')
+
+    if (!inquiry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inquiry not found'
+      })
+    }
+
+    inquiry.hasUnreadAdminReply = false
+    inquiry.userLastReadAt = new Date()
+    await inquiry.save()
+
+    res.status(200).json({
+      success: true,
+      inquiry: hydrateInquiry(inquiry, { includeMessages: true })
+    })
+  } catch (error) {
+    console.error('Error fetching inquiry:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching inquiry',
+      error: error.message
+    })
+  }
+}
+
+const getAdminInquiryThread = async (req, res) => {
+  try {
+    const { id } = req.params
     const inquiry = await inquiryModel
       .findById(id)
       .populate('userId', 'name email')
@@ -351,15 +619,109 @@ const getInquiryById = async (req, res) => {
       })
     }
 
+    inquiry.hasUnreadUserMessageForAdmin = false
+    inquiry.adminLastReadAt = new Date()
+    await inquiry.save()
+
     res.status(200).json({
       success: true,
-      inquiry
+      inquiry: hydrateInquiry(inquiry, { includeMessages: true })
     })
   } catch (error) {
-    console.error('Error fetching inquiry:', error)
+    console.error('Error fetching inquiry (admin):', error)
     res.status(500).json({
       success: false,
       message: 'Error fetching inquiry',
+      error: error.message
+    })
+  }
+}
+
+const postUserInquiryMessage = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user?.id
+    const text = (req.body?.text || req.body?.message || '').trim()
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' })
+    }
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Message is required' })
+    }
+
+    const inquiry = await inquiryModel.findOne({ _id: id, userId })
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found' })
+    }
+
+    const now = new Date()
+    seedLegacyUserMessage(inquiry)
+    inquiry.messages.push({ author: 'user', body: text, createdAt: now })
+
+    const merged = buildThreadMessages(inquiry)
+    inquiry.message = merged.filter((m) => m.author === 'user').map((m) => m.body).join('\n\n')
+
+    inquiry.lastActivityAt = now
+    inquiry.lastMessageBody = text.slice(0, 500)
+    inquiry.lastMessageAuthor = 'user'
+    inquiry.lastMessageAt = now
+    inquiry.status = threadHasAdminReply(merged) ? 'replied' : 'pending'
+    inquiry.hasUnreadUserMessageForAdmin = true
+
+    await inquiry.save()
+
+    res.status(200).json({
+      success: true,
+      inquiry: hydrateInquiry(inquiry, { includeMessages: true })
+    })
+  } catch (error) {
+    console.error('Error posting user inquiry message:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error posting message',
+      error: error.message
+    })
+  }
+}
+
+const postAdminInquiryMessage = async (req, res) => {
+  try {
+    const { id } = req.params
+    const text = (req.body?.text || req.body?.message || '').trim()
+
+    if (!text) {
+      return res.status(400).json({ success: false, message: 'Message is required' })
+    }
+
+    const inquiry = await inquiryModel.findById(id)
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found' })
+    }
+
+    const now = new Date()
+    seedLegacyUserMessage(inquiry)
+    inquiry.messages.push({ author: 'admin', body: text, createdAt: now })
+    inquiry.adminResponse = text
+    inquiry.status = 'replied'
+    inquiry.lastActivityAt = now
+    inquiry.lastMessageBody = text.slice(0, 500)
+    inquiry.lastMessageAuthor = 'admin'
+    inquiry.lastMessageAt = now
+    inquiry.hasUnreadAdminReply = true
+    inquiry.hasUnreadUserMessageForAdmin = false
+
+    await inquiry.save()
+
+    res.status(200).json({
+      success: true,
+      inquiry: hydrateInquiry(inquiry, { includeMessages: true })
+    })
+  } catch (error) {
+    console.error('Error posting admin inquiry message:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error posting message',
       error: error.message
     })
   }
@@ -371,17 +733,7 @@ const updateInquiryStatus = async (req, res) => {
     const { id } = req.params
     const { status, adminResponse, emailStatus } = req.body
 
-    const updateData = {}
-    if (status) updateData.status = status
-    if (adminResponse) updateData.adminResponse = adminResponse
-    if (emailStatus) updateData.emailStatus = emailStatus
-
-    const inquiry = await inquiryModel.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    )
-
+    const inquiry = await inquiryModel.findById(id)
     if (!inquiry) {
       return res.status(404).json({
         success: false,
@@ -389,10 +741,36 @@ const updateInquiryStatus = async (req, res) => {
       })
     }
 
+    if (status) inquiry.status = status
+    if (emailStatus) inquiry.emailStatus = emailStatus
+
+    if (typeof adminResponse === 'string' && adminResponse.trim()) {
+      const t = adminResponse.trim()
+      inquiry.adminResponse = t
+      const lastAdmin = [...inquiry.messages].reverse().find((m) => m.author === 'admin')
+      const isNew = !lastAdmin || lastAdmin.body !== t
+      const now = new Date()
+      if (isNew) {
+        seedLegacyUserMessage(inquiry)
+        inquiry.messages.push({ author: 'admin', body: t, createdAt: now })
+      }
+      inquiry.status = 'replied'
+      inquiry.lastActivityAt = now
+      inquiry.lastMessageBody = t.slice(0, 500)
+      inquiry.lastMessageAuthor = 'admin'
+      inquiry.lastMessageAt = now
+      inquiry.hasUnreadAdminReply = true
+      inquiry.hasUnreadUserMessageForAdmin = false
+    } else if (adminResponse === '') {
+      inquiry.adminResponse = ''
+    }
+
+    await inquiry.save()
+
     res.status(200).json({
       success: true,
       message: 'Inquiry updated successfully',
-      inquiry
+      inquiry: hydrateInquiry(inquiry, { includeMessages: true })
     })
   } catch (error) {
     console.error('Error updating inquiry:', error)
@@ -436,7 +814,11 @@ const deleteInquiry = async (req, res) => {
 const deleteUserInquiry = async (req, res) => {
   try {
     const { id } = req.params
-    const { userId } = req.body
+    const userId = req.user?.id
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' })
+    }
 
     const inquiry = await inquiryModel.findOne({ _id: id, userId })
 
@@ -498,12 +880,13 @@ const updateUserInquiry = async (req, res) => {
       inquiry.userPhone = userPhone
     }
 
-    inquiry.status = 'pending'
-    inquiry.emailStatus = 'pending'
+    const merged = buildThreadMessages(inquiry)
+    inquiry.status = threadHasAdminReply(merged) ? 'replied' : 'pending'
+    inquiry.emailStatus = 'skipped'
 
     await inquiry.save()
 
-    res.json({ success: true, message: 'Inquiry updated successfully', inquiry })
+    res.json({ success: true, message: 'Inquiry updated successfully', inquiry: hydrateInquiry(inquiry, { includeMessages: true }) })
   } catch (error) {
     console.error('Error updating user inquiry:', error)
     res.status(500).json({ success: false, message: 'Error updating inquiry', error: error.message })
@@ -570,9 +953,14 @@ const resendUserInquiry = async (req, res) => {
 
 export {
   createInquiry,
+  getAdminInquiryUnreadCount,
+  getUserInquiryUnreadCount,
   getAllInquiries,
   getUserInquiries,
   getInquiryById,
+  getAdminInquiryThread,
+  postUserInquiryMessage,
+  postAdminInquiryMessage,
   updateInquiryStatus,
   deleteInquiry,
   deleteUserInquiry,

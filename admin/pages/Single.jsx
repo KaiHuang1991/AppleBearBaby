@@ -15,6 +15,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
   const [image3, setImage3] = useState(false)
   const [image4, setImage4] = useState(false)
   const [name, setName] = useState('')
+  const [modelNumber, setModelNumber] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
@@ -77,6 +78,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       setImage3(product.image?.[2] || false)
       setImage4(product.image?.[3] || false)
       setName(product.name || '')
+      setModelNumber(product.modelNumber || '')
       setDescription(product.description || '')
       setPrice(product.price || '')
       const resolvedCategoryId = product.categoryId ? String(product.categoryId._id || product.categoryId) : ''
@@ -186,6 +188,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       const formData = new FormData()
       formData.append('product_id', productId)
       formData.append('name', name)
+      formData.append('modelNumber', modelNumber.trim())
       formData.append('description', description)
       formData.append('price', price)
       formData.append('category', category)
@@ -281,6 +284,17 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       <div className='w-full'>
         <p className='mb-2'>Product Name</p>
         <input onChange={(e) => { setName(e.target.value) }} value={name} className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg' type='text' placeholder='Type here' required />
+      </div>
+
+      <div className='w-full'>
+        <p className='mb-2'>产品型号（选填）</p>
+        <input
+          onChange={(e) => setModelNumber(e.target.value)}
+          value={modelNumber}
+          className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg'
+          type='text'
+          placeholder='例如 8007E'
+        />
       </div>
 
       <div className='w-full'>

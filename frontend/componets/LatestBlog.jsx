@@ -5,7 +5,7 @@ import { ShopContext } from '../context/ShopContext'
 
 const LatestBlog = () => {
   const navigate = useNavigate()
-  const { backendUrl } = useContext(ShopContext)
+  const { api } = useContext(ShopContext)
   const [blogPosts, setBlogPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -32,11 +32,8 @@ const LatestBlog = () => {
   const fetchLatestBlogs = async () => {
     try {
       setLoading(true)
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await fetch(`${baseUrl}/api/blogs/all?page=1&limit=10`, {
-        credentials: 'include' // Include cookies
-      })
-      const data = await response.json()
+      const response = await api.blogsAll({ page: 1, limit: 10 })
+      const data = response.data
       
       if (data.success && data.blogs && data.blogs.length > 0) {
         const latestBlogs = data.blogs.slice(0, 3)

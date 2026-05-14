@@ -1,0 +1,8 @@
+{
+  "name": "applebearbaby-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "packages/api"
+  ]
+}

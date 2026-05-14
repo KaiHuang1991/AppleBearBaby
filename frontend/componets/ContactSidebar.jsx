@@ -28,18 +28,41 @@ const contactMethods = [
   {
     key: 'email',
     label: 'Email',
-    value: '1034201254@qq.com'
+    value: '1034201254@qq.com',
+    /** Plain mailto; WeChat / some in-app browsers block mailto — use resolveEmailHref() at render */
+    href: 'mailto:1034201254@qq.com'
   },
-
   {
     key: 'whatsapp',
     label: 'WhatsApp',
-    value: 'Kai:+86-15867976938'
-  },
+    value: 'Kai:+86-15867976938',
+    /** Opens WhatsApp chat / add contact (international format, no +) */
+    href: 'https://wa.me/8615867976938'
+  }
 ]
 
+/** WeChat (and some WebViews) block mailto:; QQ Mail web entry still works for @qq.com addresses. */
+function resolveEmailHref() {
+  if (typeof navigator === 'undefined') return 'mailto:1034201254@qq.com'
+  if (/MicroMessenger/i.test(navigator.userAgent)) {
+    return 'https://mail.qq.com/cgi-bin/qm_share?t=qm_mailto&email=MTAzNDIwMTI1NEBxcS5jb20%3D'
+  }
+  return 'mailto:1034201254@qq.com'
+}
+
 const ContactSidebar = () => {
+  const [mobileDockVisible, setMobileDockVisible] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const emailHref = resolveEmailHref()
+
+  const scheduleCollapseMobilePanel = () => {
+    window.setTimeout(() => setMobileOpen(false), 280)
+  }
+
+  const collapseMobileDock = () => {
+    setMobileDockVisible(false)
+    setMobileOpen(false)
+  }
 
   return (
     <>
@@ -48,65 +71,108 @@ const ContactSidebar = () => {
           {/* Compact Rail */}
           <div className='flex flex-col items-center gap-4 rounded-l-2xl bg-gradient-to-b from-blue-500 via-sky-500 to-cyan-400 px-3 py-4 shadow-lg transition-opacity duration-200 group-hover:hidden group-focus-within:hidden'>
             {contactMethods.map((method) => (
-              <span
+              <a
                 key={method.label}
-                className='text-white drop-shadow-sm'
+                href={method.key === 'email' ? emailHref : method.href}
+                {...(method.key === 'whatsapp' || (method.key === 'email' && emailHref.startsWith('http'))
+                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  : {})}
+                className='inline-flex text-white drop-shadow-sm transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 rounded-md'
+                aria-label={`${method.label}: ${method.value}`}
               >
                 {iconMap[method.key]}
-              </span>
+              </a>
             ))}
           </div>
 
           {/* Expanded Panel */}
-          <div className='absolute top-0 right-full mr-3 hidden rounded-lg bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 px-6 py-5 text-sm font-medium text-white shadow-xl group-hover:flex group-hover:flex-col group-focus-within:flex group-focus-within:flex-col'>
+          <div className='absolute top-0 right-full mr-3 hidden min-w-max max-w-[calc(100vw-2rem)] rounded-lg bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 px-6 py-5 text-sm font-medium text-white shadow-xl group-hover:flex group-hover:flex-col group-focus-within:flex group-focus-within:flex-col'>
             {contactMethods.map((method, index) => (
-              <div
+              <a
                 key={method.label}
-                className={`flex items-center gap-3 ${index !== contactMethods.length - 1 ? 'mb-4' : ''}`}
+                href={method.key === 'email' ? emailHref : method.href}
+                {...(method.key === 'whatsapp' || (method.key === 'email' && emailHref.startsWith('http'))
+                  ? { target: '_blank', rel: 'noopener noreferrer' }
+                  : {})}
+                className={`flex shrink-0 items-center gap-3 whitespace-nowrap rounded-md transition-opacity hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${index !== contactMethods.length - 1 ? 'mb-4' : ''}`}
               >
                 <span className='text-white drop-shadow-sm'>{iconMap[method.key]}</span>
                 <span className='text-white drop-shadow-sm'>{method.value}</span>
-              </div>
+              </a>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Mobile contact chip */}
-      <div className='sm:hidden fixed bottom-5 right-4 z-50'>
-        <div className='flex flex-col items-end gap-3'>
-          {mobileOpen && (
-            <div className='w-64 rounded-2xl bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 p-4 text-white shadow-2xl space-y-3 transition-all duration-200'>
-              {contactMethods.map((method) => (
-                <button
-                  key={method.label}
-                  type='button'
-                  className='w-full flex items-center gap-3 rounded-xl bg-white/15 px-3 py-2 text-left transition-colors hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/60'
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className='text-white drop-shadow-sm'>{iconMap[method.key]}</span>
-                  <span className='text-sm font-medium'>{method.value}</span>
-                </button>
-              ))}
-            </div>
+      {/* Mobile: thin edge tab only until tapped; avoids covering product content */}
+      <button
+        type='button'
+        className='sm:hidden fixed top-1/2 right-0 z-[51] flex h-28 min-h-[44px] w-9 min-w-[36px] -translate-y-1/2 items-center justify-center rounded-l-xl border-0 bg-gradient-to-b from-blue-500 via-sky-500 to-cyan-400 text-white shadow-lg shadow-blue-900/10 outline-none ring-0 transition hover:brightness-105 active:brightness-95 focus-visible:ring-2 focus-visible:ring-white/70'
+        onClick={() => (mobileDockVisible ? collapseMobileDock() : setMobileDockVisible(true))}
+        aria-expanded={mobileDockVisible}
+        aria-label={
+          mobileDockVisible
+            ? '收起联系方式'
+            : '展开联系方式（WhatsApp / 邮箱）'
+        }
+      >
+        <svg
+          className='h-6 w-6 shrink-0 drop-shadow-sm'
+          viewBox='0 0 24 24'
+          fill='none'
+          stroke='currentColor'
+          strokeWidth='2'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          aria-hidden
+        >
+          {mobileDockVisible ? (
+            <path d='M9 18l6-6-6-6' />
+          ) : (
+            <path d='M15 18l-6-6 6-6' />
           )}
+        </svg>
+      </button>
 
-          <button
-            type='button'
-            onClick={() => setMobileOpen((prev) => !prev)}
-            className='flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-3 text-white shadow-xl shadow-blue-400/40 hover:scale-[1.03] active:scale-[0.97] transition-transform'
-            aria-expanded={mobileOpen}
-            aria-label='Contact options'
-          >
-            <span className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20'>
-              {iconMap.whatsapp}
-            </span>
-            <span className='text-sm font-semibold tracking-wide'>
-              {mobileOpen ? 'Close contact' : 'Contact us'}
-            </span>
-          </button>
+      {mobileDockVisible && (
+        <div className='sm:hidden fixed top-1/2 right-11 z-50 max-h-[85vh] -translate-y-1/2'>
+          <div className='flex max-h-[85vh] flex-col items-end gap-3 overflow-y-auto'>
+            {mobileOpen && (
+              <div className='w-64 rounded-2xl bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 p-4 text-white shadow-2xl space-y-3 transition-all duration-200'>
+                {contactMethods.map((method) => (
+                  <a
+                    key={method.label}
+                    href={method.key === 'email' ? emailHref : method.href}
+                    {...(method.key === 'whatsapp' || (method.key === 'email' && emailHref.startsWith('http'))
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                    className='flex w-full shrink-0 items-center gap-3 whitespace-nowrap rounded-xl bg-white/15 px-3 py-2 text-left transition-colors hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/60'
+                    onClick={scheduleCollapseMobilePanel}
+                  >
+                    <span className='text-white drop-shadow-sm'>{iconMap[method.key]}</span>
+                    <span className='text-sm font-medium'>{method.value}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <button
+              type='button'
+              onClick={() => setMobileOpen((prev) => !prev)}
+              className='flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-3 text-white shadow-xl shadow-blue-400/40 transition-transform hover:scale-[1.03] active:scale-[0.97]'
+              aria-expanded={mobileOpen}
+              aria-label='Contact options'
+            >
+              <span className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/20'>
+                {iconMap.whatsapp}
+              </span>
+              <span className='text-sm font-semibold tracking-wide'>
+                {mobileOpen ? 'Close contact' : 'Contact us'}
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </>
   )
 }

@@ -5,6 +5,7 @@ import { Route, Routes } from 'react-router-dom'
 import Add from '../pages/Add'
 import List from '../pages/List'
 import Inquiries from '../pages/Inquiries'
+import InquiryThread from '../pages/InquiryThread'
 import Blogs from '../pages/Blogs'
 import AddBlog from '../pages/AddBlog'
 import Categories from '../pages/Categories'
@@ -12,7 +13,7 @@ import Hero from '../pages/Hero'
 import Login from '../components/Login'
 import {ToastContainer} from 'react-toastify'
 import Single from '../pages/Single'
-export const  backendUrl = import.meta.env.VITE_BACKEND_URL
+export const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
 export const currency = "$"
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'):'')
@@ -24,16 +25,18 @@ const App = () => {
       <ToastContainer/>
       {token === '' ? <Login setToken={setToken} /> :
         <>
-          <NavBar setToken={setToken}/>
-          <hr />
-          <div className='flex w-full'>
+          <header className='sticky top-0 z-50 h-14 shrink-0 border-b border-gray-200 bg-white shadow-sm'>
+            <NavBar setToken={setToken} />
+          </header>
+          <div className='flex w-full min-w-0 items-start'>
             <SideBar />
-            <div className='w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base'>
+            <div className='flex-1 min-w-0 pl-[max(5vw,25px)] pr-8 my-8 text-gray-600 text-base'>
               <Routes>
                 <Route path='/' element={<Blogs token = {token}/>} />
                 <Route path='/add' element={<Add token = {token} backendUrl={backendUrl}/>} />
                 <Route path='/list' element={<List token = {token} backendUrl={backendUrl}/>} />
                 <Route path='/inquiries' element={<Inquiries token = {token}/>} />
+                <Route path='/inquiry/:id' element={<InquiryThread token={token} />} />
                 <Route path='/categories' element={<Categories token={token} backendUrl={backendUrl} />} />
                 <Route path='/hero' element={<Hero token={token} backendUrl={backendUrl} />} />
                 <Route path='/blogs' element={<Blogs token = {token}/>} />

@@ -19,7 +19,9 @@ const parseJsonField = (value, defaultValue) => {
 }
 
 const addProduct = async (req, res) => {
-    const { name, description, price, category, subCategory, thirdCategory, sizes, bestseller, categoryId, subCategoryId, thirdCategoryId } = req.body
+    const { name, description, price, category, subCategory, thirdCategory, sizes, bestseller, categoryId, subCategoryId, thirdCategoryId, modelNumber } = req.body
+    const modelNumberTrim =
+        typeof modelNumber === 'string' ? modelNumber.trim() : modelNumber != null ? String(modelNumber).trim() : ''
     const attributeIdsRaw = req.body.attributes || req.body.attributeIds
     const image1 = req.files.image1 && req.files.image1[0]
     const image2 = req.files.image2 && req.files.image2[0]
@@ -125,6 +127,7 @@ const addProduct = async (req, res) => {
 
     const productData = {
         name,
+        modelNumber: modelNumberTrim,
         description,
         category: resolvedCategoryName,
         categoryId: resolvedCategoryId || undefined,
@@ -249,7 +252,11 @@ const commentsList = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
 
-        const { name, description, price, category, subCategory, thirdCategory, sizes, bestseller, product_id, image1, image2, image3, image4, categoryId, subCategoryId, thirdCategoryId } = req.body
+        const { name, description, price, category, subCategory, thirdCategory, sizes, bestseller, product_id, image1, image2, image3, image4, categoryId, subCategoryId, thirdCategoryId, modelNumber } = req.body
+        const modelNumberTrim =
+            modelNumber !== undefined && modelNumber !== null
+                ? String(modelNumber).trim()
+                : undefined
         const attributesRaw = req.body.attributes || req.body.attributeIds
         const currenctProduct = await productModel.findById(product_id)
         currenctProduct.image = []
@@ -266,6 +273,9 @@ const updateProduct = async (req, res) => {
 
 
         currenctProduct.name = name
+        if (modelNumberTrim !== undefined) {
+            currenctProduct.modelNumber = modelNumberTrim
+        }
         currenctProduct.description = description
         currenctProduct.price = Number(price)
         currenctProduct.category = category

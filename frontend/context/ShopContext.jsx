@@ -1,11 +1,8 @@
-import { createContext, useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import axios from 'axios'
+import { createHttpClient, createShopApi } from "@applebear/api";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
-
-// Configure axios defaults to send cookies with requests
-axios.defaults.withCredentials = true;
 
 export const ShopContext = createContext();
 
@@ -113,9 +110,23 @@ const ShopContextProvider = (props) => {
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [token, setToken] = useState(false)
+  const tokenRef = useRef(token)
+  tokenRef.current = token
   const [user, setUser] = useState(getCachedUser)
+  const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0)
+  const prevCustomerInquiryUnreadRef = useRef(null)
   const navigate = useNavigate()
-  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+  const httpClient = useMemo(
+    () =>
+      createHttpClient({
+        baseURL: backendUrl,
+        getToken: () => (typeof tokenRef.current === 'string' ? tokenRef.current : undefined),
+        withCredentials: true,
+      }),
+    [backendUrl]
+  )
+  const api = useMemo(() => createShopApi(httpClient), [httpClient])
   const openCart = () => setIsCartOpen(true)
   const closeCart = () => setIsCartOpen(false)
   const addToCart = async (itemId, size = 'Default', quantity = 1) => {
@@ -128,12 +139,8 @@ const ShopContextProvider = (props) => {
     const qty = Math.max(1, parseInt(quantity, 10) || 1)
 
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.post(
-        backendUrl + '/api/cart/add',
+      const response = await api.cartAdd(
         { itemId, size: normalizedSize, quantity: qty },
-        { headers }
       )
       if (response.data.success) {
         setCartItems(sanitizeCartData(response.data.newCartData))
@@ -147,7 +154,7 @@ const ShopContextProvider = (props) => {
   const updateInquiryEmailStatus = async (inquiryId, status) => {
     if (!inquiryId) return
     try {
-      await axios.put(`${backendUrl}/api/inquiries/email-status/${inquiryId}`, { emailStatus: status })
+      await api.inquiriesEmailStatus(inquiryId, { emailStatus: status })
     } catch (error) {
       console.error('Failed to update inquiry email status:', error)
     }
@@ -167,72 +174,67 @@ const ShopContextProvider = (props) => {
       const userId = formData.get('userId') || (user?._id ? user._id : null)
 
       // First, create the inquiry in the database
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
       const inquiryData = {
         userId: userId || null,
         userEmail: email,
         userName: name,
         userPhone: number,
         products: cartItems,
-        message: message || `Inquiry from ${name} (${email})`,
-        emailStatus: 'pending'
+        message: message || `Inquiry from ${name} (${email})`
       }
 
-      const inquiryResponse = await axios.post(backendUrl + '/api/inquiries/create', inquiryData, { headers })
-      
+      const inquiryResponse = await api.inquiriesCreate(inquiryData)
+
       if (inquiryResponse.data.success) {
-        // Then send the email
-        const emailData = {
-          email,
-          name,
-          number,
-          cartItems: cartItems.map(item => {
-            const product = products.find(p => p._id === item._id)
-            return {
-              name: product ? product.name : 'Unknown Product',
-              price: product ? product.price : 0,
-              size: item.size,
-              quantity: item.quantity,
-              image: product && product.image ? product.image[0] : ''
-            }
-          }),
-          currency: '$',
-          total: cartItems.reduce((sum, item) => {
-            const product = products.find(p => p._id === item._id)
-            return sum + (product ? product.price * item.quantity : 0)
-          }, 0),
-          message,
-          attachments: attachments.map(a => ({
-            filename: a.name,
-            content: (a.base64 || '').split(',')[1] || '',
-            encoding: 'base64',
-            contentType: a.type || 'application/octet-stream'
-          }))
+        const sendLegacyEmail = import.meta.env.VITE_INQUIRY_SEND_EMAIL === 'true'
+
+        if (sendLegacyEmail) {
+          const emailData = {
+            email,
+            name,
+            number,
+            cartItems: cartItems.map(item => {
+              const product = products.find(p => p._id === item._id)
+              return {
+                name: product ? product.name : 'Unknown Product',
+                price: product ? product.price : 0,
+                size: item.size,
+                quantity: item.quantity,
+                image: product && product.image ? product.image[0] : ''
+              }
+            }),
+            currency: '$',
+            total: cartItems.reduce((sum, item) => {
+              const product = products.find(p => p._id === item._id)
+              return sum + (product ? product.price * item.quantity : 0)
+            }, 0),
+            message,
+            attachments: attachments.map(a => ({
+              filename: a.name,
+              content: (a.base64 || '').split(',')[1] || '',
+              encoding: 'base64',
+              contentType: a.type || 'application/octet-stream'
+            }))
+          }
+
+          const emailResponse = await api.cartSendInquiry(emailData)
+
+          if (emailResponse.data.message === '邮件发送成功') {
+            await updateInquiryEmailStatus(inquiryResponse.data.inquiry._id, 'sent')
+          } else {
+            await updateInquiryEmailStatus(inquiryResponse.data.inquiry._id, 'failed')
+            console.error('Email response:', emailResponse.data)
+            throw new Error(emailResponse.data.error || emailResponse.data.details || 'Email sending failed')
+          }
         }
 
-        const emailResponse = await axios.post(backendUrl + '/api/cart/send-inquiry', emailData)
-        console.log('Email response:', emailResponse.data)
-        
-        if (emailResponse.data.message === '邮件发送成功') {
-          await updateInquiryEmailStatus(inquiryResponse.data.inquiry._id, 'sent')
-          
-          // Clear cart after successful inquiry and email
-          setCartItems({})
-          try {
-            // Token is now sent via cookie, but keep header as fallback
-            const headers = token ? { token } : {}
-            await axios.post(backendUrl + '/api/cart/clear', {}, { headers })
-          } catch (clearError) {
-            console.warn('Failed to clear remote cart after inquiry:', clearError?.response?.data || clearError.message)
-          }
-          return inquiryResponse.data
-        } else {
-          await updateInquiryEmailStatus(inquiryResponse.data.inquiry._id, 'failed')
-          
-          console.error('Email response:', emailResponse.data)
-          throw new Error(emailResponse.data.error || emailResponse.data.details || 'Email sending failed')
+        setCartItems({})
+        try {
+          await api.cartClear()
+        } catch (clearError) {
+          console.warn('Failed to clear remote cart after inquiry:', clearError?.response?.data || clearError.message)
         }
+        return inquiryResponse.data
       } else {
         throw new Error(inquiryResponse.data.message || 'Failed to create inquiry')
       }
@@ -242,6 +244,30 @@ const ShopContextProvider = (props) => {
         throw new Error(error.response.data.error || error.response.data.details || error.response.data.message || 'Request failed')
       }
       throw error
+    }
+  }
+
+  const postInquiryMessage = async (inquiryId, text) => {
+    if (!token || !inquiryId) return null
+    try {
+      const response = await api.inquiriesUserThreadMessage(inquiryId, { text })
+      return response.data
+    } catch (error) {
+      console.error('postInquiryMessage:', error)
+      toast.error(error?.response?.data?.message || error.message || 'Failed to send message')
+      return null
+    }
+  }
+
+  const getInquiryThread = async (inquiryId) => {
+    if (!token || !inquiryId) return null
+    try {
+      const response = await api.inquiriesUserThread(inquiryId)
+      return response.data
+    } catch (error) {
+      console.error('getInquiryThread:', error)
+      toast.error(error?.response?.data?.message || error.message || 'Failed to load conversation')
+      return null
     }
   }
 
@@ -275,7 +301,7 @@ const ShopContextProvider = (props) => {
   const fetchCategories = useCallback(async () => {
     setLoadingCategories(true)
     try {
-      const response = await axios.get(`${backendUrl}/api/categories`)
+      const response = await api.categoriesList()
       if (response.data.success) {
         const categoriesData = Array.isArray(response.data.categories) ? response.data.categories : []
         const normalizedCategories = categoriesData.map(cat => {
@@ -311,7 +337,7 @@ const ShopContextProvider = (props) => {
     } finally {
       setLoadingCategories(false)
     }
-  }, [backendUrl])
+  }, [api])
 
   useEffect(() => {
     fetchCategories()
@@ -421,13 +447,12 @@ const ShopContextProvider = (props) => {
       for (const [key, value] of formData.entries()) {
         console.log(`FormData ${key}:`, value instanceof File ? value.name : value);
       }
-      const commentResponse=await axios.post(backendUrl + '/api/reviews/add', 
-      formData,{headers:{token}})
+      const commentResponse = await api.reviewsAdd(formData)
       if(commentResponse.data.success){
         const review_id = commentResponse.data.review._id
-      const response=await axios.post(backendUrl + '/api/product/comment', {
+      const response=await api.productLinkComment({
         review_id,productId
-      },{headers:{token}})
+      })
       console.log(response.data)
       
       // Show success message
@@ -483,31 +508,83 @@ const ShopContextProvider = (props) => {
   }
   const getProductsData = async () => {
     try {
-      const response = await axios.get(backendUrl + "/api/product/list", {
-        params: { all: true }
-      })
+      const response = await api.productList({ all: true })
       if (response.data.success) {
         setProducts(response.data.products)
         localStorage.setItem("products",JSON.stringify(response.data.products))
       } else {
-        toast.error(response.data.messege)
+        toast.error(response.data.message || 'Failed to load products')
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.messege)
+      console.error('Failed to load products:', error)
+      toast.error(
+        error.response?.data?.message || error.message || 'Failed to load products'
+      )
     }
   }
   useEffect(() => {
     getProductsData()
   }, [])
+
+  const refreshInquiryUnreadCount = useCallback(async () => {
+    if (!token) {
+      setInquiryUnreadCount(0)
+      prevCustomerInquiryUnreadRef.current = null
+      return 0
+    }
+    try {
+      const response = await api.inquiriesUserUnreadCount()
+      if (!response.data?.success) return 0
+      const c = typeof response.data.count === 'number' ? response.data.count : 0
+      setInquiryUnreadCount(c)
+      window.dispatchEvent(new CustomEvent('customer-inquiry-unread-refresh', { detail: { count: c } }))
+      if (prevCustomerInquiryUnreadRef.current !== null && c > prevCustomerInquiryUnreadRef.current) {
+        const d = c - prevCustomerInquiryUnreadRef.current
+        toast.info(
+          d === 1
+            ? 'The store replied to your inquiry — open Inquiries to read.'
+            : `${d} new replies in your inquiries.`
+        )
+        try {
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            void new Notification('AppleBearBaby', {
+              body: d === 1 ? 'New reply to your inquiry.' : `${d} new inquiry replies.`
+            })
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      prevCustomerInquiryUnreadRef.current = c
+      return c
+    } catch {
+      return 0
+    }
+  }, [token, api])
+
+  useEffect(() => {
+    if (!token) {
+      setInquiryUnreadCount(0)
+      prevCustomerInquiryUnreadRef.current = null
+      return undefined
+    }
+    refreshInquiryUnreadCount()
+    const id = setInterval(() => {
+      refreshInquiryUnreadCount()
+    }, 25000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshInquiryUnreadCount()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [token, refreshInquiryUnreadCount])
   
   const getUserInfo = async (token) => {
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.get(`${backendUrl}/api/user/profile`, {
-        headers
-      })
+      const response = await api.userProfile()
       if (response.data.success) {
         setUser(response.data.user)
         cacheUserInfo(response.data.user)
@@ -537,14 +614,7 @@ const ShopContextProvider = (props) => {
     formData.append('avatar', file)
 
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = {
-        'Content-Type': 'multipart/form-data'
-      }
-      if (token) headers.token = token
-      const response = await axios.put(`${backendUrl}/api/user/avatar`, formData, {
-        headers
-      })
+      const response = await api.userAvatar(formData)
 
       if (response.data.success) {
         const avatarUrl = response.data.avatar || ''
@@ -588,17 +658,15 @@ const ShopContextProvider = (props) => {
 
   const getUserCart = async (token) => {
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.post(backendUrl + '/api/cart/get', {}, { headers })
+      const response = await api.cartGet()
       if (response.data.success) {
         // console.log(response.data.cartData)
         const cleaned = sanitizeCartData(response.data.cartData)
         setCartItems(cleaned)
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.messege)
+      console.error('Failed to load cart:', error)
+      toast.error(error.response?.data?.message || error.message || 'Failed to load cart')
     }
   }
   const updateQuantity = async (itemId, size, quantity) => {
@@ -608,9 +676,7 @@ const ShopContextProvider = (props) => {
     }
 
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.post(backendUrl + '/api/cart/update', { itemId, size, quantity }, { headers })
+      const response = await api.cartUpdate({ itemId, size, quantity })
       if (response.data.success) {
         setCartItems(sanitizeCartData(response.data.newCartData))
       }
@@ -623,7 +689,7 @@ const ShopContextProvider = (props) => {
   // Blog comment functions
   const getBlogComments = async (blogId) => {
     try {
-      const response = await axios.get(`${backendUrl}/api/comments/blog/${blogId}`)
+      const response = await api.commentsBlog(blogId)
       if (response.data.success) {
         return response.data.comments
       }
@@ -636,13 +702,11 @@ const ShopContextProvider = (props) => {
 
   const addBlogComment = async (blogId, content, userName) => {
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.post(`${backendUrl}/api/comments/add`, {
+      const response = await api.commentsAdd({
         blogId,
         content,
         userName
-      }, { headers })
+      })
       
       if (response.data.success) {
         toast.success('Comment added successfully!')
@@ -658,11 +722,9 @@ const ShopContextProvider = (props) => {
 
   const updateBlogComment = async (commentId, content) => {
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.put(`${backendUrl}/api/comments/update/${commentId}`, {
+      const response = await api.commentsUpdate(commentId, {
         content
-      }, { headers })
+      })
       
       if (response.data.success) {
         toast.success('Comment updated successfully!')
@@ -678,11 +740,7 @@ const ShopContextProvider = (props) => {
 
   const deleteBlogComment = async (commentId) => {
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.delete(`${backendUrl}/api/comments/delete/${commentId}`, {
-        headers
-      })
+      const response = await api.commentsDelete(commentId)
       
       if (response.data.success) {
         toast.success('Comment deleted successfully!')
@@ -703,13 +761,7 @@ const ShopContextProvider = (props) => {
     }
 
     try {
-      // Token is now sent via cookie, but keep header as fallback
-      const headers = token ? { token } : {}
-      const response = await axios.post(
-        `${backendUrl}/api/inquiries/user/${inquiryId}/resend`,
-        payload,
-        { headers }
-      )
+      const response = await api.inquiriesUserResend(inquiryId, payload)
 
       if (response.data.success) {
         if (response.data.emailResult && response.data.emailResult.success === false) {
@@ -732,10 +784,12 @@ const ShopContextProvider = (props) => {
   // Logout function - clears cookie and local state
   const logout = async () => {
     try {
-      await axios.post(`${backendUrl}/api/user/logout`)
+      await api.userLogout()
       setToken(false)
       setUser(null)
       setCartItems({})
+      setInquiryUnreadCount(0)
+      prevCustomerInquiryUnreadRef.current = null
       cacheUserInfo(null)
       // Remove token from localStorage if it exists (for backward compatibility)
       localStorage.removeItem('token')
@@ -748,6 +802,8 @@ const ShopContextProvider = (props) => {
       setToken(false)
       setUser(null)
       setCartItems({})
+      setInquiryUnreadCount(0)
+      prevCustomerInquiryUnreadRef.current = null
       cacheUserInfo(null)
       localStorage.removeItem('token')
       localStorage.removeItem('userId')
@@ -756,9 +812,20 @@ const ShopContextProvider = (props) => {
     }
   }
 
+  const requestCustomerInquiryDesktopAlerts = async () => {
+    if (typeof Notification === 'undefined') {
+      toast.warn('Desktop notifications are not supported in this browser.')
+      return
+    }
+    const p = await Notification.requestPermission()
+    if (p === 'granted') toast.success('You will be notified when the store replies to your inquiry.')
+    else toast.info('Notifications were not enabled.')
+  }
+
   const value = {
     products, currency, delivery_fee, search, setSearch, showSearch, setShowSearch, cartItems, addToCart, getCartCount, updateQuantity, getCartAmount,
-    navigate, getProductsData, backendUrl, token, setToken, getGoogleMap, sendInquiryEmail, submitComment, setCartItems,
+    navigate, getProductsData, backendUrl, api, token, setToken, getGoogleMap, sendInquiryEmail, getInquiryThread, postInquiryMessage, submitComment, setCartItems,
+    inquiryUnreadCount, refreshInquiryUnreadCount, requestCustomerInquiryDesktopAlerts,
     getBlogComments, addBlogComment, updateBlogComment, deleteBlogComment, user, getUserInfo,
     isCartOpen, openCart, closeCart,
     categories, categoryTree, loadingCategories, fetchCategories,

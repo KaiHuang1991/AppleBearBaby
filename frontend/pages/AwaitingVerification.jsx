@@ -1,21 +1,19 @@
 import React, { useState, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import axios from 'axios'
 import { toast } from 'react-toastify'
 import { ShopContext } from '../context/ShopContext'
 
 const AwaitingVerification = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { backendUrl } = useContext(ShopContext)
+  const { api } = useContext(ShopContext)
   const email = location.state?.email || localStorage.getItem('userEmail') || ''
   const [resending, setResending] = useState(false)
 
   const handleResendEmail = async () => {
     try {
       setResending(true)
-      const baseUrl = backendUrl || import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
-      const response = await axios.post(`${baseUrl}/api/user/resend-verification`, { email })
+      const response = await api.userResendVerification({ email })
       
       if (response.data.success) {
         toast.success(response.data.message)

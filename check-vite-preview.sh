@@ -73,3 +73,6 @@ ls -ld /var/www/AppleBearBaby/frontend/public 2>/dev/null || echo "public 目录
 
 
 
+
+
+
