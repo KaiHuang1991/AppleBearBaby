@@ -21,6 +21,7 @@ import NavBar from '../componets/NavBar'
 import Footer from '../componets/Footer'
 import SearchBar from '../componets/SearchBar'
 import ScrollToTop from '../componets/ScrollToTop'
+import SiteSeo from '../componets/SiteSeo'
 import AiChatWidget from '../componets/AiChatWidget'
 import { ToastContainer } from 'react-toastify'
 
@@ -31,6 +32,7 @@ const App = () => {
   return (
     <div>
       <ScrollToTop />
+      <SiteSeo />
       <NavBar />
       <ToastContainer />
       {/* <SearchBar /> */}

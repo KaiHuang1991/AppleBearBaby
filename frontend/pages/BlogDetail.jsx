@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import '../styles/ProductDescription.css';
 import BlogShare from '../componets/BlogShare';
+import Seo from '../componets/Seo';
+import { SITE } from '../src/seo/config';
 
 const BlogDetail = () => {
   const { id } = useParams();
@@ -99,61 +101,24 @@ const BlogDetail = () => {
     return text.replace(/\s+/g, ' ').trim().slice(0, 180)
   }, [blog])
 
-  useEffect(() => {
-    if (!blog) return
-
-    const ensureAbsoluteUrl = (path = '') => {
-      if (!path) return ''
-      try {
-        return new URL(path).toString()
-      } catch (error) {
-        const base = window.location.origin
-        if (!path.startsWith('/')) {
-          return `${base}/${path}`
-        }
-        return `${base}${path}`
-      }
-    }
-
-    const canonical = typeof window !== 'undefined' ? window.location.href : ''
-    const title = blog.title || 'Blog Article'
-    const description = computedExcerpt || blog.excerpt || ''
-    const image = blog.image ? ensureAbsoluteUrl(blog.image) : ''
-
-    const metaDefinitions = [
-      { selector: 'meta[property="og:type"]', attr: 'property', value: 'og:type', content: 'article' },
-      { selector: 'meta[property="og:title"]', attr: 'property', value: 'og:title', content: title },
-      { selector: 'meta[property="og:description"]', attr: 'property', value: 'og:description', content: description },
-      { selector: 'meta[property="og:image"]', attr: 'property', value: 'og:image', content: image },
-      { selector: 'meta[property="og:url"]', attr: 'property', value: 'og:url', content: canonical },
-      { selector: 'meta[name="twitter:card"]', attr: 'name', value: 'twitter:card', content: 'summary_large_image' },
-      { selector: 'meta[name="twitter:title"]', attr: 'name', value: 'twitter:title', content: title },
-      { selector: 'meta[name="twitter:description"]', attr: 'name', value: 'twitter:description', content: description },
-      { selector: 'meta[name="twitter:image"]', attr: 'name', value: 'twitter:image', content: image },
-    ]
-
-    const previousMeta = metaDefinitions.map(({ selector, attr, value, content }) => {
-      let element = document.head.querySelector(selector)
-      let created = false
-      if (!element) {
-        element = document.createElement('meta')
-        element.setAttribute(attr, value)
-        document.head.appendChild(element)
-        created = true
-      }
-      const previousContent = element.getAttribute('content')
-      element.setAttribute('content', content || '')
-      return { element, created, previousContent }
-    })
-
-    return () => {
-      previousMeta.forEach(({ element, created, previousContent }) => {
-        if (created) {
-          element.remove()
-        } else if (previousContent !== null) {
-          element.setAttribute('content', previousContent)
-        }
-      })
+  const blogJsonLd = useMemo(() => {
+    if (!blog) return null
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: blog.title,
+      description: computedExcerpt || blog.excerpt || '',
+      image: blog.image ? [blog.image] : undefined,
+      datePublished: blog.createdAt,
+      dateModified: blog.updatedAt || blog.createdAt,
+      author: { '@type': 'Organization', name: SITE.brand },
+      publisher: {
+        '@type': 'Organization',
+        name: SITE.name,
+        logo: origin ? { '@type': 'ImageObject', url: `${origin}${SITE.defaultImage}` } : undefined,
+      },
+      mainEntityOfPage: origin ? `${origin}/blog/${blog._id}` : undefined,
     }
   }, [blog, computedExcerpt])
 
@@ -192,6 +157,14 @@ const BlogDetail = () => {
     <div className="min-h-screen py-8 relative">
       <div className="absolute inset-0 cartoon-bg"></div>
       <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
+      <Seo
+        title={blog.title}
+        description={computedExcerpt || blog.excerpt}
+        image={blog.image}
+        keywords={Array.isArray(blog.tags) ? blog.tags.join(', ') : undefined}
+        ogType="article"
+        jsonLd={blogJsonLd}
+      />
       
       {/* Floating decorative elements */}
       <div className="absolute top-20 right-10 w-12 h-12 bg-blue-300/40 rounded-full gentle-float"></div>
