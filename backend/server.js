@@ -14,6 +14,7 @@ import reviewRoute from "./routes/reviewRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
 import attributeRoute from "./routes/attributeRoute.js";
 import heroRoute from "./routes/heroRoute.js";
+import videoRoute from "./routes/videoRoute.js";
 import chatbotRoute from "./routes/chatbotRoute.js";
 
 // App Config
@@ -98,6 +99,7 @@ app.use('/api/reviews',reviewRoute)
 app.use('/api/categories', categoryRoute)
 app.use('/api/attributes', attributeRoute)
 app.use('/api/hero', heroRoute)
+app.use('/api/videos', videoRoute)
 app.use('/api/chatbot', chatbotRoute)
 
 app.get('/',(req,res)=>{

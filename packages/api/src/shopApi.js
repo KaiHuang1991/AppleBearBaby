@@ -25,6 +25,10 @@ export function createShopApi(client) {
     blogsAll: (params) => client.get('/api/blogs/all', { params }),
     blogsGetById: (id) => client.get(`/api/blogs/${id}`),
 
+    videosAll: (params) => client.get('/api/videos/all', { params }),
+    videosGetById: (id) => client.get(`/api/videos/${id}`),
+    videosByProduct: (productId) => client.get(`/api/videos/product/${productId}`),
+
     // --- Product & reviews ---
     productList: (params) => client.get('/api/product/list', { params }),
     productListComment: (body) => client.post('/api/product/listcomment', body),

@@ -12,6 +12,7 @@ import Inquiries from '../pages/Inquiries'
 import InquiryThread from '../pages/InquiryThread'
 import Profile from '../pages/Profile'
 import Blogs from '../pages/Blogs'
+import Videos from '../pages/Videos'
 import BlogDetail from '../pages/BlogDetail'
 import VerifyEmail from '../pages/VerifyEmail'
 import AwaitingVerification from '../pages/AwaitingVerification'
@@ -58,6 +59,7 @@ const App = () => {
             <Route path='/profile' element={<Profile />} />
             <Route path='/blogs' element={<Blogs />} />
             <Route path='/blog/:id' element={<BlogDetail />} />
+            <Route path='/videos' element={<Videos />} />
           </Routes>
         </div>
       )}

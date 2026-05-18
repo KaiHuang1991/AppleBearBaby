@@ -10,6 +10,7 @@ import Blogs from '../pages/Blogs'
 import AddBlog from '../pages/AddBlog'
 import Categories from '../pages/Categories'
 import Hero from '../pages/Hero'
+import Videos from '../pages/Videos'
 import Login from '../components/Login'
 import {ToastContainer} from 'react-toastify'
 import Single from '../pages/Single'
@@ -39,6 +40,7 @@ const App = () => {
                 <Route path='/inquiry/:id' element={<InquiryThread token={token} />} />
                 <Route path='/categories' element={<Categories token={token} backendUrl={backendUrl} />} />
                 <Route path='/hero' element={<Hero token={token} backendUrl={backendUrl} />} />
+                <Route path='/videos' element={<Videos token={token} backendUrl={backendUrl} />} />
                 <Route path='/blogs' element={<Blogs token = {token}/>} />
                 <Route path='/add-blog' element={<AddBlog token = {token}/>} />
                 <Route path='/edit-blog/:id' element={<AddBlog token = {token}/>} />

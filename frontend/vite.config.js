@@ -4,20 +4,16 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(),tailwindcss()],
-<<<<<<< Updated upstream
-  server:{port:5173}
-=======
+  plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     // Listen on all interfaces so http://YOUR_LAN_IP:5173 works from phone / other PCs
     host: true,
   },
-  preview:{
-    port:5173, 
+  preview: {
+    port: 5173,
     host: true,
-    cors: true
+    cors: true,
   },
-  base: '/'
->>>>>>> Stashed changes
+  base: '/',
 })

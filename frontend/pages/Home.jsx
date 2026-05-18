@@ -5,6 +5,7 @@ import LatestCollection from '../componets/LatestCollection'
 import HotSale from '../componets/HotSale'
 import BabyProducts from '../componets/BabyProducts'
 import LatestBlog from '../componets/LatestBlog'
+import LatestVideos from '../componets/LatestVideos'
 import ContactSidebar from '../componets/ContactSidebar'
 import ScrollToTop from '../componets/ScrollToTop'
 
@@ -36,6 +37,7 @@ const Home = () => {
             <HotSale />
             <BabyProducts />
             <LatestBlog />
+            <LatestVideos />
           </div>
         </div>
       </div>

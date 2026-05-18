@@ -9,6 +9,18 @@ html {
 body {
   font-size: 1rem; /* 相对于 html 的 17px */
   line-height: 1.6; /* 增加行高，提升可读性 */
+  /* 隐藏非输入区的文本插入光标（竖线），文字仍可正常选中复制 */
+  caret-color: transparent;
+}
+
+/* 表单控件与可编辑区域保留可见输入光标 */
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='button']):not([type='submit']):not([type='reset']):not([type='file']):not([type='image']):not([type='hidden']):not([type='range']):not([type='color']),
+  textarea,
+  select,
+  [contenteditable='true']
+) {
+  caret-color: auto;
 }
 
 /* Responsive font size adjustments */
@@ -218,8 +230,21 @@ body {
   z-index: 1;
 }
 
+/* Navbar: pointer on interactive elements; prevent image drag */
+.site-navbar a,
+.site-navbar button,
+.site-navbar [role='button'] {
+  cursor: pointer;
+}
+
+.site-navbar img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
 /* Ensure dropdown menu items are clickable */
-.dropdown-menu p {
+.dropdown-menu p,
+.dropdown-menu button {
   pointer-events: auto !important;
   cursor: pointer !important;
 }

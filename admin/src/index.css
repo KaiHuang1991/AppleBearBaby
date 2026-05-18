@@ -34,6 +34,20 @@
     font-family: Outfit;
 }
 
+body {
+  caret-color: transparent;
+}
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='button']):not([type='submit']):not([type='reset']):not([type='file']):not([type='image']):not([type='hidden']):not([type='range']):not([type='color']),
+  textarea,
+  select,
+  [contenteditable='true'],
+  .rich-text-editor-content
+) {
+  caret-color: auto;
+}
+
 select,input,textarea{
     border:1px solid #c2c2c2;
     outline-color: #c586a5;

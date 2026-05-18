@@ -8,6 +8,7 @@ import { assets } from '../src/assets/assets.js'
 import { toast } from 'react-toastify'
 import { flyToCart } from '../src/utils/flyToCart'
 import '../styles/ProductDescription.css'
+import YouTubeEmbed from '../componets/YouTubeEmbed'
 
 
 const Product = () => {
@@ -30,6 +31,7 @@ const Product = () => {
   const [userNames, setUserName] = useState([])
   const [averageRating, setAverageRating] = useState(5)
   const [loadingComments, setLoadingComments] = useState(true)
+  const [productVideos, setProductVideos] = useState([])
 
   const userId = localStorage.getItem("userId")
 
@@ -186,6 +188,20 @@ const Product = () => {
       fetchCommentsData()
     }
   }, [productId])
+
+  useEffect(() => {
+    if (!productId) return
+    const loadVideos = async () => {
+      try {
+        const { data } = await api.videosByProduct(productId)
+        if (data?.success) setProductVideos(data.videos || [])
+        else setProductVideos([])
+      } catch {
+        setProductVideos([])
+      }
+    }
+    loadVideos()
+  }, [productId, api])
 
   // 生成SEO相关的meta信息
   const generateSEOMeta = () => {
@@ -570,6 +586,16 @@ const Product = () => {
             >
               Description
             </button>
+            {productVideos.length > 0 ? (
+              <button
+                onClick={() => setTabs('videos')}
+                aria-selected={tabs === 'videos'}
+                className={`px-5 py-3 text-sm sm:text-base font-semibold cursor-pointer rounded-md transition-colors duration-200
+              ${tabs === 'videos' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'}`}
+              >
+                Videos({productVideos.length})
+              </button>
+            ) : null}
             <button
               onClick={() => setTabs("reviews")}
               aria-selected={tabs==='reviews'}
@@ -579,14 +605,28 @@ const Product = () => {
               Reviews({reviews.length})
             </button>
           </div>
-          {tabs === "description" ? (
+          {tabs === 'videos' && productVideos.length > 0 ? (
+            <div className='border-t border-blue-100 bg-white px-6 py-6 min-w-0'>
+              <div className="flex flex-col gap-8 max-w-3xl mx-auto">
+                {productVideos.map((video) => (
+                  <div key={video._id}>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">{video.title}</h3>
+                    <YouTubeEmbed youtubeId={video.youtubeId} title={video.title} />
+                    {video.description ? (
+                      <p className="text-sm text-gray-600 mt-3">{video.description}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : tabs === "description" ? (
             <div className='border-t border-blue-100 bg-white px-6 py-6 text-sm text-gray-600 min-w-0'>
               <div
                 className='product-description-detail flex flex-col gap-4 w-full max-w-4xl min-w-0 mx-auto'
             dangerouslySetInnerHTML={{ __html: productData.description }}
               />
             </div>
-          ) :
+          ) : (
             <div className='flex flex-col gap-4 border-t border-blue-100 bg-white px-6 py-6 text-sm text-gray-600'>
               <div className='flex flex-col w-full max-w-4xl mx-auto'>
               {/* <h3 className="text-lg font-semibold text-gray-800 mb-4">Submit</h3> */}
@@ -808,7 +848,7 @@ const Product = () => {
               </div>
             </div>
           </div>
-          }
+          )}
         </div>
       </div>
       {/*Related Products*/}
@@ -823,4 +863,4 @@ const Product = () => {
   )
 }
 
-      export default Product
+export default Product
