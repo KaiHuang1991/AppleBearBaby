@@ -1,9 +1,10 @@
 import userModel from '../models/userModel.js'
+import inquiryModel from '../models/inquiryModel.js'
 import validator from 'validator'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail } from '../config/emailConfig.js'
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendRegistrationNotifyEmail } from '../config/emailConfig.js'
 import { v2 as cloudinary } from 'cloudinary'
 import fs from 'fs/promises'
 
@@ -87,11 +88,22 @@ const registerUser = async (req, res) => {
         })
         const user = await newUser.save()
 
-        // Send verification email
+        // Send verification email to the new user
         const emailResult = await sendVerificationEmail(email, name, verificationToken)
         
         if (!emailResult.success) {
             console.error('Failed to send verification email:', emailResult.error)
+        }
+
+        // Notify admin of new registration
+        const notifyResult = await sendRegistrationNotifyEmail({
+            name,
+            email,
+            userId: user.id,
+            createdAt: user.createdAt
+        })
+        if (!notifyResult.success) {
+            console.error('Failed to send registration notify email:', notifyResult.error)
         }
 
         // Don't create token or set cookie - user must verify email first
@@ -438,4 +450,127 @@ const updateUserAvatar = async (req, res) => {
     }
 };
 
-export { loginUser, registerUser, adminLogin, getUserProfile, verifyEmail, resendVerificationEmail, forgotPassword, resetPassword, updateUserAvatar, logoutUser }
+// Admin: list registered users with inquiry counts
+const getAdminUsers = async (req, res) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10))
+        const search = typeof req.query.search === 'string' ? req.query.search.trim() : ''
+
+        const query = {}
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ]
+        }
+
+        const skip = (page - 1) * limit
+        const [users, total] = await Promise.all([
+            userModel
+                .find(query)
+                .select('name email avatar isVerified createdAt updatedAt')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            userModel.countDocuments(query)
+        ])
+
+        const usersWithCounts = await Promise.all(
+            users.map(async (u) => ({
+                ...u,
+                id: u._id,
+                inquiryCount: await inquiryModel.countDocuments({
+                    $or: [{ userId: u._id }, { userEmail: u.email }]
+                })
+            }))
+        )
+
+        res.status(200).json({
+            success: true,
+            users: usersWithCounts,
+            total,
+            currentPage: page,
+            totalPages: Math.max(1, Math.ceil(total / limit))
+        })
+    } catch (error) {
+        console.error('Error fetching admin users:', error)
+        res.status(500).json({ success: false, message: error.message })
+    }
+}
+
+// Admin: single user profile + their inquiries
+const getAdminUserDetail = async (req, res) => {
+    try {
+        const { id } = req.params
+        const user = await userModel
+            .findById(id)
+            .select('-password -verificationToken -verificationTokenExpiry -resetPasswordToken -resetPasswordExpiry -cartData')
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' })
+        }
+
+        const inquiries = await inquiryModel
+            .find({
+                $or: [{ userId: user._id }, { userEmail: user.email }]
+            })
+            .select('-messages')
+            .sort({ lastActivityAt: -1, updatedAt: -1, createdAt: -1 })
+
+        const inquiryList = inquiries.map((inv) => {
+            const o = inv.toObject()
+            const lastAuthor = o.lastMessageAuthor || ''
+            return {
+                _id: o._id,
+                status: o.status,
+                displayStatus:
+                    o.status === 'completed' || o.status === 'cancelled'
+                        ? o.status
+                        : lastAuthor === 'admin'
+                          ? 'replied'
+                          : 'pending',
+                totalAmount: o.totalAmount,
+                productCount: Array.isArray(o.products) ? o.products.length : 0,
+                lastMessageBody: o.lastMessageBody || (o.message ? String(o.message).slice(0, 160) : ''),
+                createdAt: o.createdAt,
+                lastActivityAt: o.lastActivityAt || o.updatedAt,
+                hasUnreadUserMessageForAdmin: Boolean(o.hasUnreadUserMessageForAdmin)
+            }
+        })
+
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar || '',
+                isVerified: user.isVerified,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+                inquiryCount: inquiryList.length
+            },
+            inquiries: inquiryList
+        })
+    } catch (error) {
+        console.error('Error fetching admin user detail:', error)
+        res.status(500).json({ success: false, message: error.message })
+    }
+}
+
+export {
+    loginUser,
+    registerUser,
+    adminLogin,
+    getUserProfile,
+    verifyEmail,
+    resendVerificationEmail,
+    forgotPassword,
+    resetPassword,
+    updateUserAvatar,
+    logoutUser,
+    getAdminUsers,
+    getAdminUserDetail
+}

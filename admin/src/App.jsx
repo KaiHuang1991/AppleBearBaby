@@ -6,6 +6,8 @@ import Add from '../pages/Add'
 import List from '../pages/List'
 import Inquiries from '../pages/Inquiries'
 import InquiryThread from '../pages/InquiryThread'
+import Users from '../pages/Users'
+import UserDetail from '../pages/UserDetail'
 import Blogs from '../pages/Blogs'
 import AddBlog from '../pages/AddBlog'
 import Categories from '../pages/Categories'
@@ -38,6 +40,8 @@ const App = () => {
                 <Route path='/list' element={<List token = {token} backendUrl={backendUrl}/>} />
                 <Route path='/inquiries' element={<Inquiries token = {token}/>} />
                 <Route path='/inquiry/:id' element={<InquiryThread token={token} />} />
+                <Route path='/users' element={<Users token={token} />} />
+                <Route path='/users/:id' element={<UserDetail token={token} />} />
                 <Route path='/categories' element={<Categories token={token} backendUrl={backendUrl} />} />
                 <Route path='/hero' element={<Hero token={token} backendUrl={backendUrl} />} />
                 <Route path='/videos' element={<Videos token={token} backendUrl={backendUrl} />} />

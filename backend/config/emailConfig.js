@@ -226,5 +226,58 @@ export const sendPasswordResetEmail = async (email, name, resetToken) => {
   }
 };
 
-export default { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail };
+// 新用户注册通知收件人（发件为 EMAIL_USER，避免同 QQ 自发自收）
+const REGISTRATION_NOTIFY_EMAIL = 'applebearh@gmail.com';
+
+// 新用户注册时通知管理员
+export const sendRegistrationNotifyEmail = async ({ name, email, userId, createdAt }) => {
+  try {
+    const transporter = createTransporter();
+    await transporter.verify();
+
+    const registeredAt = createdAt
+      ? new Date(createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+      : new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
+    const mailOptions = {
+      from: `"Apple Bear Baby" <${process.env.EMAIL_USER}>`,
+      to: REGISTRATION_NOTIFY_EMAIL,
+      replyTo: email,
+      subject: '🆕 新用户注册 - Apple Bear Baby',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="font-family: Arial, sans-serif; background:#f5f5f5; margin:0; padding:24px;">
+          <div style="max-width:560px; margin:0 auto; background:#fff; border-radius:8px; padding:32px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <h2 style="color:#2196F3; margin-top:0;">新用户注册通知</h2>
+            <p style="color:#666;">有用户刚刚在网站完成注册（待邮箱验证）：</p>
+            <table style="width:100%; border-collapse:collapse; margin:20px 0;">
+              <tr><td style="padding:8px 0; color:#888;">姓名</td><td style="padding:8px 0;"><strong>${name}</strong></td></tr>
+              <tr><td style="padding:8px 0; color:#888;">邮箱</td><td style="padding:8px 0;"><a href="mailto:${email}">${email}</a></td></tr>
+              <tr><td style="padding:8px 0; color:#888;">用户 ID</td><td style="padding:8px 0; font-family:monospace; font-size:13px;">${userId}</td></tr>
+              <tr><td style="padding:8px 0; color:#888;">注册时间</td><td style="padding:8px 0;">${registeredAt}</td></tr>
+            </table>
+            <p style="color:#999; font-size:12px; margin-bottom:0;">© Apple Bear Baby</p>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Registration notify email sent:', info.messageId, 'to:', REGISTRATION_NOTIFY_EMAIL);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending registration notify email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export default {
+  sendVerificationEmail,
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
+  sendRegistrationNotifyEmail
+};
 

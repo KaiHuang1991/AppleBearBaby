@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useRef, useState } from
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { createHttpClient, createShopApi } from "@applebear/api";
+import { resolveBackendUrl } from "../src/resolveBackendUrl.js";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
 export const ShopContext = createContext();
@@ -116,7 +117,7 @@ const ShopContextProvider = (props) => {
   const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0)
   const prevCustomerInquiryUnreadRef = useRef(null)
   const navigate = useNavigate()
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+  const backendUrl = resolveBackendUrl()
   const httpClient = useMemo(
     () =>
       createHttpClient({
