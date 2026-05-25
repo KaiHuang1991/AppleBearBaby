@@ -1,7 +1,29 @@
 import React from 'react'
 import { assets } from '../src/assets/assets'
 import { useState, useEffect, useContext } from 'react'
+import { Link } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
+
+const isInternalLink = (url) => {
+  if (!url) return false
+  if (url.startsWith('/')) return true
+  try {
+    const parsed = new URL(url, window.location.origin)
+    return parsed.origin === window.location.origin
+  } catch {
+    return false
+  }
+}
+
+const getInternalPath = (url) => {
+  if (url.startsWith('/')) return url
+  try {
+    const parsed = new URL(url)
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return url
+  }
+}
 
 const Hero = () => {
   const { api } = useContext(ShopContext)
@@ -103,6 +125,13 @@ const Hero = () => {
     )
 
     if (currentSlideData.linkUrl) {
+      if (isInternalLink(currentSlideData.linkUrl)) {
+        return (
+          <Link to={getInternalPath(currentSlideData.linkUrl)} className="block w-full">
+            {imgElement}
+          </Link>
+        )
+      }
       return (
         <a
           href={currentSlideData.linkUrl}
@@ -144,15 +173,25 @@ const Hero = () => {
                 </div>
               )}
               {currentSlideData.linkUrl && (
-                <a 
-                  href={currentSlideData.linkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-7 py-3 rounded-full text-base font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform shadow-lg shadow-orange-500/30"
-                >
-                  {currentSlideData.buttonText || 'View All Products'}
-                  <span>→</span>
-                </a>
+                isInternalLink(currentSlideData.linkUrl) ? (
+                  <Link
+                    to={getInternalPath(currentSlideData.linkUrl)}
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-7 py-3 rounded-full text-base font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform shadow-lg shadow-orange-500/30"
+                  >
+                    {currentSlideData.buttonText || 'View All Products'}
+                    <span>→</span>
+                  </Link>
+                ) : (
+                  <a
+                    href={currentSlideData.linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-7 py-3 rounded-full text-base font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform shadow-lg shadow-orange-500/30"
+                  >
+                    {currentSlideData.buttonText || 'View All Products'}
+                    <span>→</span>
+                  </a>
+                )
               )}
             </div>
           </div>

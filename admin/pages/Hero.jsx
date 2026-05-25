@@ -335,14 +335,14 @@ const Hero = ({ token, backendUrl: propBackendUrl }) => {
                 Link URL (Optional)
               </label>
               <input
-                type="url"
+                type="text"
                 value={formData.linkUrl}
                 onChange={(e) => setFormData({ ...formData, linkUrl: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="https://example.com/product"
+                placeholder="/collection?search=bottle"
               />
               <p className="text-xs text-gray-500 mt-1">
-                The image will be clickable and redirect to this URL
+                Internal paths (e.g. /collection?search=bottle) or full URLs. Search links show matching wholesale products.
               </p>
             </div>
 

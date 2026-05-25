@@ -3,11 +3,12 @@ import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets'
 import Title from '../componets/Title'
 import ProductItem from '../componets/ProductItem'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const Collection = () => {
   const { products, search, setSearch, showSearch, setShowSearch, categoryTree, loadingCategories, getProductCategoryIds, categories } = useContext(ShopContext)
   const location = useLocation()
+  const navigate = useNavigate()
   const searchInputRef = useRef(null)
   const [showFilter, setShowFilter] = useState(false)
   const [filterProducts, setFilterProducts] = useState([])
@@ -146,10 +147,34 @@ const Collection = () => {
 
     setSelectedCategoryIds(uniqueIds)
 
-    if (uniqueIds.length) {
+    const searchFromUrl = (params.get('search') || params.get('q') || '').trim()
+    setSearch(prev => (prev.trim() === searchFromUrl ? prev : searchFromUrl))
+
+    if (uniqueIds.length || searchFromUrl) {
       setShowFilter(true)
     }
-  }, [location.search])
+  }, [location.search, setSearch])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const urlSearch = (params.get('search') || params.get('q') || '').trim()
+    const normalizedSearch = search.trim()
+    if (urlSearch === normalizedSearch) return
+
+    const timer = setTimeout(() => {
+      const nextParams = new URLSearchParams(location.search)
+      if (normalizedSearch) {
+        nextParams.set('search', normalizedSearch)
+      } else {
+        nextParams.delete('search')
+        nextParams.delete('q')
+      }
+      const query = nextParams.toString()
+      navigate(`/collection${query ? `?${query}` : ''}`, { replace: true })
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [search, location.search, navigate])
 
   useEffect(() => {
     if (!selectedCategoryIds.length || categoryMap.size === 0) return
