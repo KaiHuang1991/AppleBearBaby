@@ -98,6 +98,54 @@ body {
   animation: gentle-sparkle 3s ease-in-out infinite;
 }
 
+/* Hero carousel — crossfade + overlay */
+.hero-carousel {
+  height: 650px;
+}
+
+@keyframes hero-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-image-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.02);
+  }
+}
+
+.hero-slide-layer {
+  transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-slide-layer.is-active .hero-slide-image {
+  animation: hero-image-zoom 7s ease-out forwards;
+}
+
+.hero-slide-content {
+  animation: hero-content-in 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide-layer {
+    transition-duration: 0.01ms;
+  }
+
+  .hero-slide-layer.is-active .hero-slide-image,
+  .hero-slide-content {
+    animation: none;
+  }
+}
+
 /* Cute background patterns */
 .cartoon-dots {
   background-image: radial-gradient(circle, #2196f3 1px, transparent 1px);

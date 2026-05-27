@@ -7,10 +7,7 @@ import crypto from 'crypto'
 import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetEmail, sendRegistrationNotifyEmail } from '../config/emailConfig.js'
 import { v2 as cloudinary } from 'cloudinary'
 import fs from 'fs/promises'
-
-const createToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET)
-}
+import { createToken, setAuthCookie, buildAuthPayload } from '../utils/authHelpers.js'
 // route for user login
 const loginUser = async (req, res) => {
     try {
@@ -18,6 +15,14 @@ const loginUser = async (req, res) => {
         const user = await userModel.findOne({ email })
         if (!user) {
             return res.json({ success: false, message: "User doesn't exist" })
+        }
+        if (!user.password) {
+            const hint = user.authProvider === 'google'
+                ? 'Please sign in with Google'
+                : user.authProvider === 'facebook'
+                  ? 'Please sign in with Facebook'
+                  : 'Please use social sign-in for this account'
+            return res.json({ success: false, message: hint })
         }
         const isMatch = await bcrypt.compare(password, user.password)
         if (isMatch) {
@@ -32,18 +37,8 @@ const loginUser = async (req, res) => {
             }
             
             const token = createToken(user._id)
-            const userId = user._id
-            
-            // Set HttpOnly cookie for token (7 days expiry)
-            res.cookie('token', token, {
-                httpOnly: true, // Prevents JavaScript access (XSS protection)
-                secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-                sameSite: 'lax', // CSRF protection
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-                path: '/'
-            })
-            
-            res.json({ success: true, token, userId, userName: user.name, userEmail: user.email, avatar: user.avatar || '', joinDate: user.createdAt, isVerified: true })
+            setAuthCookie(res, token)
+            res.json(buildAuthPayload(user, token))
         }
         else {
             res.json({ success: false, message: "Invalid Credentials" })
@@ -82,6 +77,7 @@ const registerUser = async (req, res) => {
             name,
             email,
             password: hashedPassword,
+            authProvider: 'local',
             isVerified: false,
             verificationToken,
             verificationTokenExpiry
@@ -278,6 +274,13 @@ const forgotPassword = async (req, res) => {
             return res.json({
                 success: false,
                 message: 'No account found with this email'
+            });
+        }
+
+        if (!user.password) {
+            return res.json({
+                success: false,
+                message: 'This account uses Google or Facebook sign-in. Please log in with that provider.'
             });
         }
         

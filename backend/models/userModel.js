@@ -5,7 +5,10 @@ const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String, default: '' },
+    authProvider: { type: String, enum: ['local', 'google', 'facebook'], default: 'local' },
+    googleId: { type: String, sparse: true, unique: true },
+    facebookId: { type: String, sparse: true, unique: true },
     cartData: { type: Object, default: {} },
     reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'review' }],
     isVerified: { type: Boolean, default: false },

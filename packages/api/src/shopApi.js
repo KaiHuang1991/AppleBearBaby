@@ -11,6 +11,8 @@ export function createShopApi(client) {
     userForgotPassword: (body) => client.post('/api/user/forgot-password', body),
     userRegister: (body) => client.post('/api/user/register', body),
     userLogin: (body) => client.post('/api/user/login', body),
+    userGoogleAuth: (body) => client.post('/api/user/auth/google', body),
+    userFacebookAuth: (body) => client.post('/api/user/auth/facebook', body),
     userVerifyEmail: (verifyToken) => client.get(`/api/user/verify-email/${verifyToken}`),
     userResetPassword: (resetToken, body) =>
       client.post(`/api/user/reset-password/${resetToken}`, body),

@@ -1,11 +1,13 @@
-import React, { useContext, useEffect } from 'react'
+import React, { useContext, useEffect, useCallback, useRef } from 'react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
 import { toast } from 'react-toastify'
+import SocialLogin from '../componets/SocialLogin'
 
 const Login = () => {
   const [currentState,setCurrentState] =useState('Login')
-  const {token,setToken,navigate,api} =useContext(ShopContext)
+  const {token, navigate, api, completeLogin} = useContext(ShopContext)
   const [name,setName] =useState('')
   const [password,setPassword] =useState('')
   const [email,setEmail] =useState('')
@@ -14,6 +16,13 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
   const [sendingResetEmail, setSendingResetEmail] = useState(false)
+  const [searchParams] = useSearchParams()
+  const oauthHandledRef = useRef(false)
+
+  const handleOAuthSuccess = useCallback((data) => {
+    completeLogin(data, { redirectTo: '/' })
+    toast.success('Signed in successfully')
+  }, [completeLogin])
   
   const handleResendVerification = async () => {
     try {
@@ -86,23 +95,7 @@ const Login = () => {
       }else{
         const response = await api.userLogin({email,password})
         if(response.data.success){
-          setToken(response.data.token)
-          // Token is now stored in HttpOnly cookie, but keep user info in localStorage
-          localStorage.setItem("userId",response.data.userId)
-          localStorage.setItem("userName",response.data.userName)
-          localStorage.setItem("userEmail",email)
-          // Don't store token in localStorage anymore - it's in HttpOnly cookie
-          localStorage.setItem("isVerified", true)
-          if (response.data.avatar) {
-            localStorage.setItem('userAvatar', response.data.avatar)
-          } else {
-            localStorage.removeItem('userAvatar')
-          }
-          if (response.data.joinDate) {
-            localStorage.setItem('joinDate', response.data.joinDate)
-          } else {
-            localStorage.removeItem('joinDate')
-          }
+          completeLogin({ ...response.data, userEmail: email }, { redirectTo: '/' })
         }else{
           // Check if user needs email verification
           if (response.data.isVerified === false) {
@@ -120,12 +113,54 @@ const Login = () => {
       toast.error(error.message)
     }
   }
-  useEffect(()=>{
-    if(token){
-      navigate('/')
-      window.location.reload()
+  // Already logged in — leave login page
+  useEffect(() => {
+    if (token) {
+      navigate('/', { replace: true })
     }
-  },[token])
+  }, [token, navigate])
+
+  // After server-side Google OAuth redirect (session cookie set on backend)
+  useEffect(() => {
+    const oauth = searchParams.get('oauth')
+    const oauthError = searchParams.get('oauth_error')
+    if (!oauth && !oauthError) return
+
+    if (oauthError) {
+      toast.error(decodeURIComponent(oauthError))
+      navigate('/login', { replace: true })
+      return
+    }
+
+    if (oauth !== 'google_success' || oauthHandledRef.current) return
+    oauthHandledRef.current = true
+
+    api
+      .userProfile()
+      .then((res) => {
+        if (res.data?.success && res.data.user) {
+          const u = res.data.user
+          completeLogin(
+            {
+              userId: u._id,
+              userName: u.name,
+              userEmail: u.email,
+              avatar: u.avatar || '',
+              joinDate: u.createdAt
+            },
+            { redirectTo: '/' }
+          )
+          toast.success('Signed in successfully')
+        } else {
+          oauthHandledRef.current = false
+          toast.error('Login succeeded but profile could not be loaded')
+        }
+      })
+      .catch(() => {
+        oauthHandledRef.current = false
+        toast.error('Login succeeded but session could not be verified')
+      })
+  }, [searchParams, api, completeLogin, navigate])
   return (
     <div className='relative pt-28'>
       <form  onSubmit={onSubmitHandler} className='flex flex-col items-center w-[%90] sm:max-w-96 m-auto mt-14 gap-4 text-gray-800'>
@@ -175,6 +210,10 @@ const Login = () => {
         </div>
         <button className='bg-black text-white font-light px-8 py-2 mt-4'>{currentState==="Login"?'Sign In':'Sign Up'}</button>
       </form>
+
+      {currentState === 'Login' && (
+        <SocialLogin api={api} onAuthSuccess={handleOAuthSuccess} />
+      )}
       
       {/* Forgot Password Modal */}
       {showForgotPassword && (

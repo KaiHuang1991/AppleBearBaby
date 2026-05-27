@@ -19,6 +19,7 @@
     "express": "^5.1.0",
     "google-auth-library": "^10.1.0",
     "googleapis": "^150.0.1",
+    "https-proxy-agent": "^9.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.1",
     "multer": "^2.0.0",

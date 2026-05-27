@@ -103,6 +103,33 @@ const ShopContextProvider = (props) => {
     }
   }
 
+  const navigate = useNavigate()
+
+  /** Apply login response (email or OAuth). Cookie holds the session; token state is boolean. */
+  const completeLogin = (data, { redirectTo = '/' } = {}) => {
+    setToken(true)
+    if (data.userId != null) {
+      localStorage.setItem('userId', String(data.userId))
+    }
+    localStorage.setItem('isVerified', 'true')
+    cacheUserInfo({
+      name: data.userName,
+      email: data.userEmail,
+      avatar: data.avatar,
+      joinDate: data.joinDate,
+      createdAt: data.joinDate
+    })
+    setUser({
+      name: data.userName || '',
+      email: data.userEmail || '',
+      avatar: data.avatar || '',
+      createdAt: data.joinDate || null
+    })
+    if (redirectTo) {
+      navigate(redirectTo, { replace: true })
+    }
+  }
+
   const [cartItems, setCartItems] = useState({})
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
@@ -116,7 +143,6 @@ const ShopContextProvider = (props) => {
   const [user, setUser] = useState(getCachedUser)
   const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0)
   const prevCustomerInquiryUnreadRef = useRef(null)
-  const navigate = useNavigate()
   const backendUrl = resolveBackendUrl()
   const httpClient = useMemo(
     () =>
@@ -833,7 +859,8 @@ const ShopContextProvider = (props) => {
     getCategoryPathByIds, getProductCategoryPath, getProductCategoryIds,
     updateUserAvatar,
     resendInquiry,
-    logout
+    logout,
+    completeLogin
   }
   return (
     <ShopContext.Provider value={value}>

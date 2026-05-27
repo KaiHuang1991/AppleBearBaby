@@ -16,6 +16,7 @@ import attributeRoute from "./routes/attributeRoute.js";
 import heroRoute from "./routes/heroRoute.js";
 import videoRoute from "./routes/videoRoute.js";
 import chatbotRoute from "./routes/chatbotRoute.js";
+import { getGoogleOAuthRedirectUri } from "./utils/googleOAuthClient.js";
 
 // App Config
 
@@ -121,6 +122,9 @@ const startServer = async () => {
         app.listen(port, () => {
             console.log(`🚀 Server started on port ${port}`)
             console.log(`📡 API available at http://localhost:${port}`)
+            if (process.env.GOOGLE_CLIENT_ID) {
+                console.log(`🔐 Google OAuth redirect URI (add to Cloud Console): ${getGoogleOAuthRedirectUri()}`)
+            }
         })
     } catch (error) {
         console.error('❌ Failed to start server:', error.message)

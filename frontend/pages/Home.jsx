@@ -15,7 +15,7 @@ const Home = () => {
       <ContactSidebar />
       <ScrollToTop />
       {/* Hero Section - Full Screen Width */}
-      <div className=' w-full h-full overflow-hidden '>
+      <div className='w-full'>
         <Hero />
       </div>
       
