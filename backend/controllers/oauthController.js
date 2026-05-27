@@ -2,10 +2,11 @@ import crypto from 'crypto'
 import userModel from '../models/userModel.js'
 import { createToken, setAuthCookie, buildAuthPayload } from '../utils/authHelpers.js'
 import {
-    createGoogleOAuthClient,
     formatGoogleNetworkError,
     getBackendPublicUrl,
-    getGoogleOAuthRedirectUri
+    getGoogleOAuthRedirectUri,
+    googleExchangeCodeAndVerify,
+    googleVerifyIdTokenCredential
 } from '../utils/googleOAuthClient.js'
 import { sendRegistrationNotifyEmail } from '../config/emailConfig.js'
 
@@ -149,17 +150,7 @@ export const googleAuthCallback = async (req, res) => {
         }
 
         const redirectUri = getGoogleOAuthRedirectUri(req)
-        const oauth2Client = createGoogleOAuthClient(redirectUri)
-        const { tokens } = await oauth2Client.getToken(String(code))
-        if (!tokens.id_token) {
-            return redirectLoginError(res, 'Google did not return an ID token')
-        }
-
-        const ticket = await oauth2Client.verifyIdToken({
-            idToken: tokens.id_token,
-            audience: clientId
-        })
-        const payload = ticket.getPayload()
+        const payload = await googleExchangeCodeAndVerify(redirectUri, code, clientId)
         if (!payload?.sub) {
             return redirectLoginError(res, 'Invalid Google profile')
         }
@@ -191,12 +182,10 @@ export const googleAuth = async (req, res) => {
             return res.json({ success: false, message: 'Google sign-in is not configured' })
         }
 
-        const client = createGoogleOAuthClient()
-        const ticket = await client.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID
-        })
-        const payload = ticket.getPayload()
+        const payload = await googleVerifyIdTokenCredential(
+            credential,
+            process.env.GOOGLE_CLIENT_ID
+        )
         if (!payload?.sub) {
             return res.json({ success: false, message: 'Invalid Google token' })
         }

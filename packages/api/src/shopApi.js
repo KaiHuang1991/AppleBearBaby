@@ -58,6 +58,7 @@ export function createShopApi(client) {
     inquiriesUserThreadMessage: (inquiryId, body) =>
       client.post(`/api/inquiries/user/thread/${inquiryId}/messages`, body),
     inquiriesUserUnreadCount: () => client.get('/api/inquiries/user/unread-count'),
+    inquiriesUserStats: () => client.get('/api/inquiries/user/stats'),
     inquiriesUserResend: (inquiryId, body) =>
       client.post(`/api/inquiries/user/${inquiryId}/resend`, body),
 

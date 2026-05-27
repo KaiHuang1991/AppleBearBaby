@@ -5,6 +5,7 @@ import {
   getAllInquiries,
   getAdminInquiryUnreadCount,
   getUserInquiryUnreadCount,
+  getUserInquiryStats,
   getUserInquiries,
   getInquiryById,
   getAdminInquiryThread,
@@ -48,6 +49,7 @@ router.put('/email-status/:id', updateInquiryStatus) // Public route for updatin
 router.get('/user/thread/:id', authUser, getInquiryById)
 router.post('/user/thread/:id/messages', authUser, postUserInquiryMessage)
 router.get('/user/unread-count', authUser, getUserInquiryUnreadCount)
+router.get('/user/stats', authUser, getUserInquiryStats)
 
 // User routes (protected) - userId in URL is optional, will use authenticated user ID
 router.get('/user', authUser, getUserInquiries)

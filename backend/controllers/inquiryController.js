@@ -382,6 +382,39 @@ const createInquiry = async (req, res) => {
   }
 }
 
+// Profile stats: total inquiries + pending quotes (awaiting store reply)
+const getUserInquiryStats = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' })
+    }
+
+    const inquiries = await inquiryModel
+      .find({ userId })
+      .select('status lastMessageAuthor adminResponse message')
+
+    let pending = 0
+    for (const inv of inquiries) {
+      const h = hydrateInquiry(inv, { includeMessages: false })
+      if (h?.customerThreadStatus === 'pending') pending++
+    }
+
+    res.status(200).json({
+      success: true,
+      total: inquiries.length,
+      pending
+    })
+  } catch (error) {
+    console.error('Error fetching user inquiry stats:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching inquiry statistics',
+      error: error.message
+    })
+  }
+}
+
 // Get count of inquiries with unread admin replies (logged-in customer)
 const getUserInquiryUnreadCount = async (req, res) => {
   try {
@@ -955,6 +988,7 @@ export {
   createInquiry,
   getAdminInquiryUnreadCount,
   getUserInquiryUnreadCount,
+  getUserInquiryStats,
   getAllInquiries,
   getUserInquiries,
   getInquiryById,

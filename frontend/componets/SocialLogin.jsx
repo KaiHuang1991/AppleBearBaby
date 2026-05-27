@@ -5,7 +5,6 @@ const SocialLogin = ({ api, onAuthSuccess, disabled }) => {
   const facebookAppId = import.meta.env.VITE_FACEBOOK_APP_ID
   const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000').replace(/\/$/, '')
   const googleRedirectLoginUrl = `${backendUrl}/api/user/auth/google/start`
-  const googleCallbackUri = `${backendUrl}/api/user/auth/google/callback`
 
   const loadFacebookSdk = () => {
     if (!facebookAppId || document.getElementById('facebook-jssdk')) return
@@ -64,14 +63,6 @@ const SocialLogin = ({ api, onAuthSuccess, disabled }) => {
         <span className='text-sm text-gray-500'>or continue with</span>
         <hr className='flex-1 border-none h-px bg-gray-300' />
       </div>
-
-      <p className='text-xs text-blue-900 bg-blue-50 border border-blue-200 rounded px-3 py-2 mb-1 leading-relaxed'>
-        若 <strong>redirect_uri_mismatch</strong>，在 Google Console 的 <strong>Authorized redirect URIs</strong>{' '}
-        中<strong>全部添加</strong>（保存后等 2–5 分钟）：
-        <code className='block font-mono text-[11px] break-all mt-1'>{googleCallbackUri}</code>
-        <code className='block font-mono text-[11px] break-all mt-0.5'>http://127.0.0.1:4000/api/user/auth/google/callback</code>
-        诊断：<a className='underline' href={`${backendUrl}/api/user/auth/google/config`} target='_blank' rel='noreferrer'>打开 /api/user/auth/google/config</a>
-      </p>
 
       <div className='flex flex-col items-center gap-3'>
         <a
