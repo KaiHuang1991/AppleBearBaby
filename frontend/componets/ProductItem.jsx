@@ -17,10 +17,10 @@ const ProductItem = ({id,image,name,price}) => {
   }
 
   return ( 
-      <Link className='text-gray-700 cursor-pointer h-full'target='_blank' to={`/product/${id}`}>
-        <div className='w-full  cartoon-card p-4 transition-all duration-300 h-full flex flex-col'>
+      <Link className='catalog-product-item block min-w-0 max-w-full w-full text-gray-700 cursor-pointer h-full' target='_blank' to={`/product/${id}`}>
+        <div className='w-full min-w-0 max-w-full box-border cartoon-card p-4 transition-all duration-300 h-full flex flex-col overflow-hidden'>
             <div className='overflow-hidden rounded-xl mb-3 flex-shrink-0'>
-                <img className='product-item-img hover:scale-110 transition ease-in-out duration-300 w-full aspect-square object-cover' src={image[0]} alt="" />
+                <img className='product-item-img hover:scale-105 transition ease-in-out duration-300 w-full max-w-full aspect-square object-cover' src={image[0]} alt="" />
             </div>
             <div className='space-y-2 flex-1 flex flex-col'>
                 <p className='text-base font-medium text-gray-800 line-clamp-2 min-h-[3rem]'>

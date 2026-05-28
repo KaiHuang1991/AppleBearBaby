@@ -24,20 +24,27 @@ const getInternalPath = (url) => {
   }
 }
 
-const HERO_HEIGHT_PX = 650
+const heroCarouselClass =
+  'hero-carousel hero-carousel--fullbleed relative w-full overflow-hidden bg-transparent shadow-none'
 
-const SlideImage = ({ slide, isActive }) => {
+const SlideImage = ({ slide, isActive, variant = 'carousel' }) => {
+  const imgClass =
+    variant === 'mobile'
+      ? 'hero-slide-image block w-full h-auto max-w-full'
+      : 'hero-slide-image block h-full w-full object-contain object-center'
+
   const imgElement = (
     <img
-      className='hero-slide-image max-h-full max-w-full w-auto h-auto object-contain'
+      className={imgClass}
       src={slide.imageUrl}
-      alt={slide.title}
+      alt={slide.title || 'Hero banner'}
       loading={isActive ? 'eager' : 'lazy'}
       draggable={false}
     />
   )
 
-  const wrapClass = 'flex h-full w-full items-center justify-center'
+  const wrapClass =
+    variant === 'mobile' ? 'block w-full leading-[0]' : 'flex h-full w-full items-center justify-center'
 
   if (!slide.linkUrl) {
     return <div className={wrapClass}>{imgElement}</div>
@@ -70,6 +77,7 @@ const Hero = () => {
   const [autoPlay, setAutoPlay] = useState(true)
   const [autoPlayInterval, setAutoPlayInterval] = useState(3000)
   const [loading, setLoading] = useState(true)
+  const [slideDimensions, setSlideDimensions] = useState({})
 
   useEffect(() => {
     const fetchHeroConfig = async () => {
@@ -104,10 +112,21 @@ const Hero = () => {
   }, [api])
 
   useEffect(() => {
-    slides.forEach(slide => {
-      if (!slide?.imageUrl) return
+    slides.forEach((slide) => {
+      const url = slide?.imageUrl
+      if (!url) return
       const img = new Image()
-      img.src = slide.imageUrl
+      img.onload = () => {
+        if (!img.naturalWidth || !img.naturalHeight) return
+        setSlideDimensions((prev) => {
+          if (prev[url]) return prev
+          return {
+            ...prev,
+            [url]: { w: img.naturalWidth, h: img.naturalHeight },
+          }
+        })
+      }
+      img.src = url
     })
   }, [slides])
 
@@ -133,14 +152,17 @@ const Hero = () => {
   }, [])
 
   const currentSlideData = slides[currentSlide] || null
+  const currentDims = currentSlideData?.imageUrl
+    ? slideDimensions[currentSlideData.imageUrl]
+    : null
+  const carouselStyle = currentDims
+    ? { aspectRatio: `${currentDims.w} / ${currentDims.h}` }
+    : undefined
 
   if (loading) {
     return (
       <section className='w-full'>
-        <div
-          className='hero-carousel relative w-full overflow-hidden bg-slate-100 shadow-none sm:shadow-2xl flex items-center justify-center'
-          style={{ height: HERO_HEIGHT_PX }}
-        >
+        <div className={`${heroCarouselClass} hero-carousel--loading flex items-center justify-center`}>
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
         </div>
       </section>
@@ -155,7 +177,7 @@ const Hero = () => {
     if (!slide.linkUrl) return null
 
     const buttonClass =
-      'inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-7 py-3 rounded-full text-base font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform duration-300 shadow-lg shadow-orange-500/30'
+      'inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-5 py-2 sm:px-6 sm:py-2.5 lg:px-7 lg:py-3 rounded-full text-sm sm:text-base font-semibold hover:scale-[1.02] active:scale-[0.99] transition-transform duration-300 shadow-lg shadow-orange-500/30'
 
     if (isInternalLink(slide.linkUrl)) {
       return (
@@ -174,37 +196,51 @@ const Hero = () => {
     )
   }
 
-  return (
-    <section className='w-full'>
-      <div
-        className='hero-carousel relative w-full overflow-hidden bg-slate-100 shadow-none sm:shadow-2xl'
-        style={{ height: HERO_HEIGHT_PX }}
-      >
-        {slides.map((slide, index) => (
-          <div
-            key={slide._id || slide.imageUrl || index}
-            className={`hero-slide-layer absolute inset-0 ${
-              index === currentSlide ? 'is-active opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-            }`}
-            aria-hidden={index !== currentSlide}
-          >
-            <SlideImage slide={slide} isActive={index === currentSlide} />
-          </div>
-        ))}
+  const renderMobileHero = () => (
+    <div className='hero-carousel hero-carousel--mobile relative w-full overflow-hidden'>
+      {slides.map((slide, index) => (
+        <div
+          key={slide._id || slide.imageUrl || index}
+          className={index === currentSlide ? 'block w-full' : 'hidden'}
+          aria-hidden={index !== currentSlide}
+        >
+          <SlideImage slide={slide} isActive={index === currentSlide} variant='mobile' />
+        </div>
+      ))}
+    </div>
+  )
 
-        <div className='absolute inset-0 bg-gradient-to-b from-black/0 via-black/10 to-black/20 pointer-events-none z-20' />
+  const renderDesktopHero = () => (
+    <div
+      className={`${heroCarouselClass}${currentDims ? ' hero-carousel--sized' : ''}`}
+      style={carouselStyle}
+    >
+      {slides.map((slide, index) => (
+        <div
+          key={slide._id || slide.imageUrl || index}
+          className={`hero-slide-layer absolute inset-0 ${
+            index === currentSlide ? 'is-active opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+          }`}
+          aria-hidden={index !== currentSlide}
+        >
+          <SlideImage slide={slide} isActive={index === currentSlide} />
+        </div>
+      ))}
 
-        <div className='hidden sm:block absolute inset-x-0 bottom-0 px-8 py-10 z-30 pointer-events-none'>
-          <div key={currentSlide} className='hero-slide-content max-w-2xl md:max-w-3xl space-y-6 pointer-events-auto'>
-            <h2 className='text-white text-3xl md:text-4xl font-bold leading-tight drop-shadow-lg'>
+      <div className='absolute inset-0 bg-gradient-to-b from-black/0 via-black/10 to-black/20 pointer-events-none z-20' />
+
+      {/* Caption overlay: tablet only — desktop banners already include title/CTA in the image */}
+      <div className='hidden sm:block lg:hidden absolute inset-x-0 bottom-0 px-4 sm:px-6 py-3 sm:py-4 z-30 pointer-events-none bg-gradient-to-t from-black/55 via-black/25 to-transparent'>
+          <div key={currentSlide} className='hero-slide-content max-w-xl space-y-2 sm:space-y-3 pointer-events-auto'>
+            <h2 className='text-white text-lg sm:text-xl font-bold leading-snug drop-shadow-lg line-clamp-2'>
               {currentSlideData.title}
             </h2>
             {currentSlideData.features && currentSlideData.features.length > 0 && (
-              <div className='flex flex-wrap gap-3'>
+              <div className='flex flex-wrap gap-2'>
                 {currentSlideData.features.map((feature, idx) => (
                   <span
                     key={idx}
-                    className='bg-white/15 backdrop-blur-md text-white px-3 py-1 rounded-full text-sm font-medium border border-white/25 shadow-sm'
+                    className='bg-white/15 backdrop-blur-md text-white px-2.5 py-0.5 rounded-full text-xs font-medium border border-white/25 shadow-sm'
                   >
                     {'\u2713 '}{feature}
                   </span>
@@ -240,23 +276,29 @@ const Hero = () => {
           </>
         )}
 
-        {slides.length > 1 && (
-          <div className='hidden sm:flex absolute bottom-10 left-1/2 -translate-x-1/2 gap-3 z-40'>
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToSlide(index)}
-                className={`transition-all duration-500 ease-in-out rounded-full ${
-                  index === currentSlide
-                    ? 'w-8 sm:w-10 h-2 bg-white shadow-lg'
-                    : 'w-2 h-2 bg-white/50 hover:bg-white/80'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {slides.length > 1 && (
+        <div className='hidden sm:flex absolute bottom-3 sm:bottom-4 lg:bottom-5 left-1/2 -translate-x-1/2 gap-2 z-40'>
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`transition-all duration-500 ease-in-out rounded-full ${
+                index === currentSlide
+                  ? 'w-8 sm:w-10 h-2 bg-white shadow-lg'
+                  : 'w-2 h-2 bg-white/50 hover:bg-white/80'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <section className='w-full leading-[0]'>
+      <div className='lg:hidden'>{renderMobileHero()}</div>
+      <div className='hidden lg:block'>{renderDesktopHero()}</div>
     </section>
   )
 }

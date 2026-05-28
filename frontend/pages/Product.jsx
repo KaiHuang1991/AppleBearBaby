@@ -373,18 +373,18 @@ const Product = () => {
               </React.Fragment>
             ))}
             <span className='text-gray-400'>/</span>
-            <span className='font-medium text-gray-800 truncate max-w-xs sm:max-w-md'>{productData.name}</span>
+            <span className='font-medium text-gray-800 truncate max-w-[10rem] sm:max-w-md md:max-w-lg'>{productData.name}</span>
           </div>
         </div>
       </div>
       
       {/*Product Data*/}
-      <div className='flex gap-8 sm:gap-10 lg:gap-12 flex-col sm:flex-row lg:items-start px-4 sm:px-8 lg:px-0 pt-6 sm:pt-8 w-full max-w-screen-xl mx-auto'>
+      <div className='product-detail-row flex gap-6 md:gap-8 lg:gap-8 flex-col lg:flex-row lg:items-stretch px-4 sm:px-6 lg:px-12 pt-6 sm:pt-8 w-full max-w-screen-xl mx-auto'>
         {/*Product Images*/}
-        <div className='flex flex-col-reverse gap-3 sm:flex-row sm:items-stretch lg:flex-[1] lg:min-w-0 w-full mr-65'>
+        <div className='product-gallery flex flex-col-reverse gap-3 lg:flex-row lg:items-stretch w-full min-w-0 lg:flex-[1.05] lg:min-h-0'>
           {/* Thumbnail Images */}
           <div 
-            className='flex sm:flex-col overflow-x-auto sm:overflow-y-auto justify-between sm:justify-start gap-3 pb-2 sm:pb-0 sm:pr-2 w-full sm:w-28 lg:w-32 flex-shrink-0 thumbnail-column'
+            className='thumbnail-column flex lg:flex-col overflow-x-auto lg:overflow-hidden justify-start gap-3 pb-2 lg:pb-0 lg:pr-3 w-full lg:w-28 xl:w-32 flex-shrink-0'
             style={{ scrollbarWidth: 'none' }}
           >
             {
@@ -393,18 +393,18 @@ const Product = () => {
                   onClick={() => setImage(item)} 
                   src={item} 
                   key={itemIndex} 
-                  className={`w-[24%] sm:w-full aspect-square object-cover flex-shrink-0 cursor-pointer rounded-lg border-2 transition-all duration-200 shadow-sm ${
+                  className={`thumbnail-item w-[22%] min-w-[4.5rem] lg:w-full lg:flex-1 lg:min-h-0 aspect-square lg:aspect-auto object-cover flex-shrink-0 cursor-pointer rounded-lg border-2 transition-all duration-200 shadow-sm ${
                     image === item 
-                      ? 'border-blue-500 ring-2 ring-blue-200 scale-105 shadow-md' 
-                      : 'border-gray-200 hover:border-blue-300 hover:scale-105 hover:shadow-md'
+                      ? 'border-blue-500 ring-2 ring-blue-200 lg:scale-100 scale-105 shadow-md' 
+                      : 'border-gray-200 hover:border-blue-300 hover:scale-105 lg:hover:scale-100 hover:shadow-md'
                   }`}
                 />
               ))
             }
           </div>
           {/* Main Product Image */}
-          <div className='product-main-outer flex-1 rounded-xl shadow-lg'>
-            <div className='product-main-wrapper relative rounded-lg bg-white'>
+          <div className='product-main-outer min-w-0 flex-1 lg:h-full rounded-xl shadow-lg bg-white'>
+            <div className='product-main-wrapper relative rounded-lg bg-white w-full h-full'>
               <img 
                 src={image} 
                 className='product-main-img w-full h-full object-contain transition-transform duration-300 hover:scale-105' 
@@ -414,7 +414,7 @@ const Product = () => {
           </div>
         </div>
         {/*Product Info*/}
-        <div className='product-info-panel bg-white rounded-lg shadow-sm flex flex-col lg:flex-[1.7] lg:min-w-0'>
+        <div className='product-info-panel bg-white rounded-lg shadow-sm flex flex-col w-full min-w-0 lg:flex-1 lg:min-w-0 lg:self-stretch'>
           {/* Quick Info Tags */}
           <div className='bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 flex flex-wrap gap-2 items-center'>
             <span className='bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1'>

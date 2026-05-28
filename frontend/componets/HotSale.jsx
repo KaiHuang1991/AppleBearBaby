@@ -24,7 +24,7 @@ const HotSale = () => {
                 // 最后按日期排序（最新的优先）
                 return b.date - a.date
             })
-            .slice(0, 10) // 只取前10个
+            .slice(0, 8)
         
         setHotProducts(sorted)
     }, [products])
@@ -69,7 +69,7 @@ const HotSale = () => {
             </div>
             
             {/* Products grid */}
-            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6 gap-y-6 px-2 sm:px-0'>
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 gap-y-6 sm:gap-y-8 px-2 sm:px-4 w-full max-w-3xl lg:max-w-none mx-auto'>
                 {
                     hotProducts.map((item,index)=>(
                         <ProductItem key={index} id={item._id} image={item.image} name={item.name} price={item.price}/>

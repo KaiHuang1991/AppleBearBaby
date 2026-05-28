@@ -90,12 +90,12 @@ const OurFactory = () => {
     <div className='w-full relative'>
       <div className="absolute inset-0 cartoon-bg z-0"></div>
       <div className="absolute inset-0 cartoon-hearts opacity-10 z-0"></div>
-      <div className="absolute top-16 left-12 w-16 h-16 bg-blue-200/30 gentle-float z-0"></div>
-      <div className="absolute bottom-20 right-16 w-12 h-12 bg-cyan-200/30 gentle-bounce z-0"></div>
-      <div className='absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/0 via-white/40 to-transparent z-0'></div>
-      <div className='absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/0 via-white/40 to-transparent z-0'></div>
+      <div className="absolute top-8 left-8 w-12 h-12 bg-blue-200/30 gentle-float z-0 hidden sm:block"></div>
+      <div className="absolute bottom-12 right-10 w-10 h-10 bg-cyan-200/30 gentle-bounce z-0 hidden sm:block"></div>
+      <div className='absolute inset-x-0 top-0 h-4 sm:h-8 bg-gradient-to-b from-white/0 via-white/20 to-transparent z-0 pointer-events-none'></div>
+      <div className='absolute inset-x-0 bottom-0 h-8 sm:h-12 bg-gradient-to-t from-white/0 via-white/30 to-transparent z-0 pointer-events-none'></div>
       {/* Image Gallery Section - Full Width Continuous Scrolling with Photo Frame Effect */}
-      <div className='mb-8 sm:mb-10 relative w-full px-4 sm:px-8 z-10'>
+      <div className='mb-4 sm:mb-6 relative w-full px-4 sm:px-6 z-10 pt-2 sm:pt-3'>
         {isMobile ? (
           <div className='flex snap-x snap-mandatory overflow-x-auto gap-4 pb-6'>
             {factoryImages.map((image) => (
@@ -137,7 +137,7 @@ const OurFactory = () => {
                   className='flex-shrink-0 px-1'
                   style={{width: '33.333%'}}
                 >
-                  <div className='bg-white p-4 mt-5 sm:p-5 shadow-xl relative h-full flex flex-col justify-between'>
+                  <div className='bg-white p-3 sm:p-4 mt-2 sm:mt-3 shadow-xl relative h-full flex flex-col justify-between'>
                     <div className='relative'>
                       <img 
                         src={image.url}
@@ -177,7 +177,7 @@ const OurFactory = () => {
         </button>
 
         {/* Description Text */}
-        <div className='bg-white/70 backdrop-blur-lg border border-white/60 shadow-lg px-6 sm:px-10 md:px-14 py-8'>
+        <div className='bg-white/70 backdrop-blur-lg border border-white/60 shadow-lg px-4 sm:px-8 md:px-12 py-5 sm:py-6'>
           <p className='text-gray-700 text-base sm:text-lg md:text-xl leading-relaxed text-center'>
             From design to production, the entire production and management process is carried out strictly in accordance with the requirements of the national quality system, to ensure that every product meets international testing standards. Therefore, please rest assured that our products are safe for human use. Our service philosophy is to provide products with the most reasonable prices and the most comprehensive services.
           </p>

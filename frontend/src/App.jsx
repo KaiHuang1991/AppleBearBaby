@@ -44,7 +44,7 @@ const App = () => {
         </Routes>
       ) : ( 
         /* Other Pages - 80% Width Container */
-        <div className="w-[100%] mx-auto mt-0 h-auto sm:w-[80%]">
+        <div className="w-full mx-auto mt-0 h-auto lg:w-[80%]">
           <Routes>
             <Route path='/collection' element={<Collection />} />
             <Route path='/about' element={<About />} />

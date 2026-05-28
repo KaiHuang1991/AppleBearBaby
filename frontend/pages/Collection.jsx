@@ -16,7 +16,31 @@ const Collection = () => {
   const [sortType, setSortType] = useState('relevent')
   const [currentPage, setCurrentPage] = useState(1)
   const [expandedNodes, setExpandedNodes] = useState(() => new Set())
-  const itemsPerPage = 16
+  const resolveItemsPerPage = () => {
+    if (typeof window === 'undefined') return 5
+    if (window.matchMedia('(min-width: 1024px)').matches) return 16
+    if (window.matchMedia('(min-width: 640px)').matches) return 8
+    return 5
+  }
+
+  const [itemsPerPage, setItemsPerPage] = useState(resolveItemsPerPage)
+
+  useEffect(() => {
+    const lgQuery = window.matchMedia('(min-width: 1024px)')
+    const smQuery = window.matchMedia('(min-width: 640px)')
+    const syncItemsPerPage = () => {
+      if (lgQuery.matches) setItemsPerPage(16)
+      else if (smQuery.matches) setItemsPerPage(8)
+      else setItemsPerPage(5)
+    }
+    syncItemsPerPage()
+    lgQuery.addEventListener('change', syncItemsPerPage)
+    smQuery.addEventListener('change', syncItemsPerPage)
+    return () => {
+      lgQuery.removeEventListener('change', syncItemsPerPage)
+      smQuery.removeEventListener('change', syncItemsPerPage)
+    }
+  }, [])
   const selectedCategorySet = useMemo(() => new Set(selectedCategoryIds), [selectedCategoryIds])
   const categoryMap = useMemo(() => {
     const map = new Map()
@@ -204,6 +228,17 @@ const Collection = () => {
   }, [selectedCategoryIds, search, products, getProductCategoryIds])
 
   useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(filterProducts.length / itemsPerPage) || 1)
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage)
+    }
+  }, [itemsPerPage, filterProducts.length, currentPage])
+
+  useEffect(() => {
     applyFilter()
   }, [sortType])
 
@@ -228,7 +263,7 @@ const Collection = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   return (
-    <div className=' mt-0 h-auto flex flex-col sm:flex-row gap-1 sm:gap-10 pt-28 border-t border-blue-200 min-h-screen relative'>
+    <div className='mt-0 h-auto flex flex-col lg:flex-row gap-1 lg:gap-10 pt-28 border-t border-blue-200 min-h-screen relative'>
       {/* Blue/Cyan Background Pattern */}
       <div className="absolute inset-0 cartoon-bg"></div>
       <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
@@ -237,15 +272,15 @@ const Collection = () => {
       <div className="absolute top-32 left-10 w-12 h-12 bg-blue-200 rounded-full gentle-float opacity-40"></div>
       <div className="absolute bottom-40 right-20 w-8 h-8 bg-cyan-200 rounded-full gentle-bounce opacity-40"></div>
       
-      <div className='relative z-10 flex flex-col sm:flex-row gap-1 sm:gap-10 w-full'>
+      <div className='relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-10 w-full max-w-full box-border px-5 lg:px-10'>
       {/*filter options*/}
-      <div className='min-w-40'>
-        <p onClick = {()=>setShowFilter(!showFilter)} className='my-2 text-xl flex items-center cursor-pointer gap-2 text-blue-600'>
+      <div className='w-full lg:w-auto lg:min-w-40 lg:max-w-[14rem] shrink-0'>
+        <p onClick = {()=>setShowFilter(!showFilter)} className='my-2 text-xl flex items-center cursor-pointer gap-2 text-blue-600 lg:cursor-default'>
           Filters
-          <img className={`h-3 sm:hidden ${showFilter?'rotate-90':''}`} src={assets.dropdown_icon} alt="" />
+          <img className={`h-3 lg:hidden ${showFilter?'rotate-90':''}`} src={assets.dropdown_icon} alt="" />
         </p>
         {/* search input */}
-        <div className={`cartoon-card px-4 py-4 ${showFilter ? '' : 'hidden'} sm:block`}>
+        <div className={`cartoon-card px-4 py-4 ${showFilter ? '' : 'hidden'} lg:block`}>
           <label className='text-xs font-semibold text-blue-600 uppercase tracking-wide'>Search Products</label>
           <div className='mt-2 flex items-center gap-2 rounded-full border border-blue-200 bg-white pl-3 pr-2 py-2 shadow-sm focus-within:border-blue-500 transition-colors'>
             <img src={assets.search_icon} alt='Search' className='w-4 h-4 opacity-70'/>
@@ -260,7 +295,7 @@ const Collection = () => {
           </div>
         </div>
         {/*category filter*/}
-        <div className={`cartoon-card pl-5 pr-4 py-3 mt-6 ${showFilter ? '' : 'hidden'} sm:block`}>
+        <div className={`cartoon-card pl-5 pr-4 py-3 mt-6 ${showFilter ? '' : 'hidden'} lg:block`}>
           <p className='mb-3 text-sm font-medium text-blue-600'>CATEGORIES</p>
           <button
             type='button'
@@ -281,18 +316,18 @@ const Collection = () => {
         </div>
       </div>
       {/*right side*/}
-      <div className='flex-1'>
-        <div className='flex justify-between text-base sm:text-2xl mb-4'>
+      <div className='flex-1 min-w-0 w-full'>
+        <div className='flex flex-wrap items-center justify-between gap-3 text-base lg:text-2xl mb-4'>
           <Title text1="WHOLESALE" text2="CATALOG"/>
           {/*product sort*/}
-          <select onChange={(e)=>setSortType(e.target.value)} className='cartoon-border text-sm px-2 bg-white'>
+          <select onChange={(e)=>setSortType(e.target.value)} className='cartoon-border text-sm px-2 py-1.5 bg-white max-w-full shrink-0'>
             <option value={"relevent"}>Sort By: Relevent</option>
             <option value="low-high">Sort By: Low-High</option>
             <option value="high-low">Sort By: High-Low</option>
           </select>
         </div>
          {/*map products*/}
-         <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10 gap-y-15 pr-4'>
+         <div className='catalog-product-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-10 gap-y-6 lg:gap-y-15 w-full min-w-0 max-w-full sm:max-w-none lg:max-w-none mx-auto sm:mx-0 box-border'>
           {
             currentProducts.map((product,productIndex)=>(
               <ProductItem key={productIndex} id={product._id} image={product.image} name={product.name} price={product.price} />
@@ -300,63 +335,89 @@ const Collection = () => {
           }
         </div>
        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className='flex justify-center items-center gap-2 mt-10 mb-6'>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className='px-4 py-2 rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors'
-            >
-              Previous
-            </button>
-            
-            <div className='flex gap-2'>
-              {[...Array(totalPages)].map((_, index) => {
-                const pageNumber = index + 1
-                // Show first, last, current, and adjacent pages
-                if (
-                  pageNumber === 1 ||
-                  pageNumber === totalPages ||
-                  (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                ) {
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => handlePageChange(pageNumber)}
-                      className={`px-4 py-2 rounded-md font-semibold transition-colors ${
-                        currentPage === pageNumber
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-blue-300 text-blue-600 hover:bg-blue-50'
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  )
-                } else if (
-                  pageNumber === currentPage - 2 ||
-                  pageNumber === currentPage + 2
-                ) {
-                  return <span key={pageNumber} className='px-2 py-2'>...</span>
-                }
-                return null
-              })}
-            </div>
-
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className='px-4 py-2 rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors'
-            >
-              Next
-            </button>
-          </div>
-        )}
-
         {/* Results info */}
-        <div className='text-center text-sm text-gray-600 mb-4'>
+        <div className='text-center text-sm text-gray-600 mt-8 mb-3 px-1'>
           Showing {startIndex + 1} - {Math.min(endIndex, filterProducts.length)} of {filterProducts.length} products
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <>
+            {/* Phone / tablet: compact controls — always fit within content width */}
+            <div className='catalog-pagination lg:hidden flex flex-wrap justify-center items-center gap-2 w-full max-w-full mb-6 px-1'>
+              <button
+                type='button'
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className='px-3 py-2 text-sm rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
+              >
+                Previous
+              </button>
+              <span className='text-sm font-medium text-gray-600 px-1 shrink-0'>
+                Page {currentPage} / {totalPages}
+              </span>
+              <button
+                type='button'
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className='px-3 py-2 text-sm rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
+              >
+                Next
+              </button>
+            </div>
+
+            {/* Desktop: full page numbers */}
+            <div className='catalog-pagination hidden lg:flex flex-wrap justify-center items-center gap-2 w-full max-w-full mb-6'>
+              <button
+                type='button'
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className='px-4 py-2 rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
+              >
+                Previous
+              </button>
+              <div className='flex flex-wrap justify-center gap-2'>
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        type='button'
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`px-4 py-2 rounded-md font-semibold transition-colors shrink-0 ${
+                          currentPage === pageNumber
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-blue-300 text-blue-600 hover:bg-blue-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    )
+                  }
+                  if (pageNumber === currentPage - 2 || pageNumber === currentPage + 2) {
+                    return <span key={pageNumber} className='px-2 py-2 shrink-0'>...</span>
+                  }
+                  return null
+                })}
+              </div>
+              <button
+                type='button'
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className='px-4 py-2 rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {totalPages <= 1 && <div className='mb-6' />}
 
       </div>
       </div>

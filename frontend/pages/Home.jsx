@@ -11,11 +11,11 @@ import ScrollToTop from '../componets/ScrollToTop'
 
 const Home = () => {
   return (
-    <div className='relative bg-white top-[85.5px] mt-0 h-auto'>
+    <div className='relative bg-white pt-[4.25rem] sm:pt-[4.5rem] lg:pt-[4.75rem] overflow-x-hidden'>
       <ContactSidebar />
       <ScrollToTop />
-      {/* Hero Section - Full Screen Width */}
-      <div className='w-full'>
+      {/* Hero — edge-to-edge on all viewports */}
+      <div className='hero-fullbleed-wrap'>
         <Hero />
       </div>
       
@@ -23,7 +23,7 @@ const Home = () => {
       <div className='w-full overflow-hidden'>
         <OurFactory />
         
-        <div className="relative w-[90%]  sm:w-[80%] lg:w-[80%] mx-auto mt-10 sm:mt-16">
+        <div className="relative w-[90%] sm:w-[80%] lg:w-[80%] mx-auto mt-6 sm:mt-10 lg:mt-14">
           {/* Blue/Cyan Background Pattern */}
           <div className="absolute inset-0 cartoon-bg z-0"></div>
           <div className="absolute inset-0 cartoon-hearts opacity-10 z-0"></div>

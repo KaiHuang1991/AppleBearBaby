@@ -48,39 +48,39 @@ const NavBar = () => {
     }
   return (
     <>
-    <nav className="site-navbar fixed w-full bg-white/90 backdrop-blur-sm top-0 left-0 right-0 border-b-2 border-blue-500 " style={{zIndex: 9999}} aria-label="Main navigation">
-      <div className='flex items-center justify-between py-4 sm:py-5  px-4 sm:px-[7vw] md:px-[10vw] lg:px-[10vw]'>
-        <Link to='/' className='flex items-center gap-2 '>
-            <img draggable={false} src='../src/assets/icon.gif' className="w-28 sm:w-36 gentle-bounce pointer-events-none" alt="" />
-            <span className='text-xl sm:text-2xl gentle-float pointer-events-none'>🌟</span>
+    <nav className="site-navbar fixed w-full bg-white/90 backdrop-blur-sm top-0 left-0 right-0 border-b-2 border-blue-500" style={{zIndex: 9999}} aria-label="Main navigation">
+      <div className='flex items-center justify-between gap-3 py-3 sm:py-4 lg:py-5 px-4 sm:px-6 lg:px-[10vw] min-h-[4.25rem] lg:min-h-0'>
+        <Link to='/' className='flex items-center gap-2 shrink-0 min-w-0'>
+            <img draggable={false} src='../src/assets/icon.gif' className="w-24 sm:w-28 lg:w-36 gentle-bounce pointer-events-none" alt="" />
+            <span className='text-lg sm:text-xl lg:text-2xl gentle-float pointer-events-none'>🌟</span>
         </Link>
-        <ul className="hidden sm:flex gap-5 text-base text-gray-700 ">
-            <NavLink to='/' className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-300 ">
-                <span className='font-semibold pointer-events-none'>HOME</span>
+        <ul className="hidden lg:flex flex-1 justify-center gap-3 xl:gap-5 text-sm xl:text-base text-gray-700 min-w-0 px-2">
+            <NavLink to='/' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap'>HOME</span>
                 <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
             </NavLink>
-            <NavLink to='/collection' className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-300 ">
-                <span className='font-semibold pointer-events-none'>WHOLESALE</span>
+            <NavLink to='/collection' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap'>WHOLESALE</span>
                 <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
             </NavLink> 
-            <NavLink to='/about' className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-300 ">
-                <span className='font-semibold pointer-events-none'>ABOUT</span>
+            <NavLink to='/about' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap'>ABOUT</span>
                 <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
             </NavLink>
-            <NavLink to='/contact' className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-300 ">
-                <span className='font-semibold pointer-events-none'>CONTACT</span>
+            <NavLink to='/contact' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap'>CONTACT</span>
                 <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
             </NavLink>
-            <NavLink to='/blogs' className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-300 ">
-                <span className='font-semibold pointer-events-none'>BLOG</span>
+            <NavLink to='/blogs' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap'>BLOG</span>
                 <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
             </NavLink>
-            <NavLink to='/videos' className="flex flex-col items-center gap-2 hover:scale-105 transition-transform duration-300 ">
-                <span className='font-semibold pointer-events-none'>VIDEOS</span>
+            <NavLink to='/videos' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap'>VIDEOS</span>
                 <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
             </NavLink>
         </ul>
-        <div className='flex items-center gap-3 sm:gap-6 '>
+        <div className='flex items-center gap-2 sm:gap-3 lg:gap-6 shrink-0'>
             {/* <img onClick={()=>{setShowSearch(true)}} src={assets.search_icon} alt="" className='w-5 cursor-pointer hover:scale-110 transition-transform duration-300' /> */}
             <div className='relative dropdown-container'>
                 {token ? (
@@ -94,7 +94,7 @@ const NavBar = () => {
                     className="profile-trigger flex items-center gap-2 cursor-pointer bg-transparent border-0 p-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 rounded-lg"
                   >
                     {displayName ? (
-                      <span className="hidden sm:inline-block text-sm font-medium text-gray-700 pointer-events-none">
+                      <span className="hidden lg:inline-block max-w-[8rem] xl:max-w-[12rem] truncate text-sm font-medium text-gray-700 pointer-events-none">
                         {displayName}
                       </span>
                     ) : null}
@@ -165,7 +165,7 @@ const NavBar = () => {
             <button
               type='button'
               onClick={()=>{setVisiable(true)}}
-              className='sm:hidden inline-flex items-center justify-center p-2 rounded-full hover:bg-blue-50 transition-colors duration-200 cursor-pointer'
+              className='lg:hidden inline-flex items-center justify-center p-2 rounded-full hover:bg-blue-50 transition-colors duration-200 cursor-pointer shrink-0'
               aria-label='Open menu'
             >
               <svg className='w-5 h-5 text-blue-600' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' viewBox='0 0 24 24'>
@@ -173,8 +173,8 @@ const NavBar = () => {
               </svg>
             </button>
         </div>
-        {/*sidebar menu for small screens*/}
-        <div className={`fixed top-0 right-0 h-screen overflow-hidden bg-white/95 backdrop-blur-sm transition-all z-[60]  ${visiable?'w-full':'w-0'}`}>
+        {/* Sidebar menu — phone & tablet (< lg) */}
+        <div className={`lg:hidden fixed top-0 right-0 h-screen overflow-hidden bg-white/95 backdrop-blur-sm transition-all z-[60] ${visiable ? 'w-full max-w-sm' : 'w-0'}`}>
             <div className='flex flex-col text-gray-600 '>
                 <div onClick={()=>{setVisiable(false)}} className='flex items-center gap-4 p-3'>
                     <img className='h-4 rotate-180' src={assets.dropdown_icon} alt="" />

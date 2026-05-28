@@ -8,9 +8,9 @@ const LatestCollection = () => {
     const navigate = useNavigate()
     const {products} = useContext(ShopContext)
     const [latestProducts,setLatestProducts]=useState([])
-    useEffect(()=>{
-        setLatestProducts(products.slice(0,10))
-    },[products])
+    useEffect(() => {
+        setLatestProducts(products.slice(0, 8))
+    }, [products])
 
     const handleViewAllProducts = () => {
         navigate('/collection')
@@ -52,7 +52,7 @@ const LatestCollection = () => {
             </div>
             
             {/*Rendring Products*/}
-            <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 gap-y-6 sm:gap-y-8 px-2 sm:px-0'>
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 gap-y-6 sm:gap-y-8 px-2 sm:px-4 w-full max-w-3xl lg:max-w-none mx-auto'>
                 {
                     latestProducts.map((product,productIndex)=>(
                        <div key={productIndex} >
