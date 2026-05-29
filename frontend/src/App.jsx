@@ -22,6 +22,7 @@ import Footer from '../componets/Footer'
 import SearchBar from '../componets/SearchBar'
 import ScrollToTop from '../componets/ScrollToTop'
 import SiteSeo from '../componets/SiteSeo'
+import GoogleAds from '../componets/GoogleAds'
 import AiChatWidget from '../componets/AiChatWidget'
 import { ToastContainer } from 'react-toastify'
 
@@ -32,6 +33,7 @@ const App = () => {
   return (
     <div>
       <ScrollToTop />
+      <GoogleAds />
       <SiteSeo />
       <NavBar />
       <ToastContainer />

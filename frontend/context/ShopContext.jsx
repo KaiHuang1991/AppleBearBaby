@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { createHttpClient, createShopApi } from "@applebear/api";
 import { resolveBackendUrl } from "../src/resolveBackendUrl.js";
+import { trackGoogleAdsPurchase } from "../src/googleAds.js";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
 export const ShopContext = createContext();
@@ -254,6 +255,16 @@ const ShopContextProvider = (props) => {
             throw new Error(emailResponse.data.error || emailResponse.data.details || 'Email sending failed')
           }
         }
+
+        const inquiryTotal = cartItems.reduce((sum, item) => {
+          const product = products.find((p) => p._id === item._id)
+          return sum + (product ? product.price * item.quantity : 0)
+        }, 0)
+
+        trackGoogleAdsPurchase({
+          value: inquiryTotal > 0 ? inquiryTotal : 1.0,
+          transactionId: inquiryResponse.data.inquiry?._id,
+        })
 
         setCartItems({})
         try {

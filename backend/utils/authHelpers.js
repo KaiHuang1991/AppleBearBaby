@@ -14,7 +14,7 @@ export const setAuthCookie = (res, token) => {
     })
 }
 
-export const buildAuthPayload = (user, token) => ({
+export const buildAuthPayload = (user, token, { isNewUser = false } = {}) => ({
     success: true,
     token,
     userId: user._id?.toString?.() ?? user._id,
@@ -22,5 +22,6 @@ export const buildAuthPayload = (user, token) => ({
     userEmail: user.email,
     avatar: user.avatar || '',
     joinDate: user.createdAt,
-    isVerified: true
+    isVerified: true,
+    isNewUser: Boolean(isNewUser)
 })

@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
 import { toast } from 'react-toastify'
 import SocialLogin from '../componets/SocialLogin'
+import { trackGoogleAdsSignup } from '../src/googleAds'
 
 const Login = () => {
   const [currentState,setCurrentState] =useState('Login')
@@ -20,6 +21,9 @@ const Login = () => {
   const oauthHandledRef = useRef(false)
 
   const handleOAuthSuccess = useCallback((data) => {
+    if (data.isNewUser) {
+      trackGoogleAdsSignup({ transactionId: data.userId })
+    }
     completeLogin(data, { redirectTo: '/' })
     toast.success('Signed in successfully')
   }, [completeLogin])
@@ -78,6 +82,7 @@ const Login = () => {
       if(currentState === "Sign Up"){
         const response = await api.userRegister({name,email,password})
         if(response.data.success){
+          trackGoogleAdsSignup({ transactionId: response.data.userId })
           // Don't set token or save user info - user needs to verify email first
           setName('')
           setEmail('')
@@ -134,12 +139,16 @@ const Login = () => {
 
     if (oauth !== 'google_success' || oauthHandledRef.current) return
     oauthHandledRef.current = true
+    const isNewUser = searchParams.get('new') === '1'
 
     api
       .userProfile()
       .then((res) => {
         if (res.data?.success && res.data.user) {
           const u = res.data.user
+          if (isNewUser) {
+            trackGoogleAdsSignup({ transactionId: u._id })
+          }
           completeLogin(
             {
               userId: u._id,

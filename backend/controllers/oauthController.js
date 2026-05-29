@@ -16,10 +16,10 @@ const redirectLoginError = (res, message) => {
     res.redirect(`${frontendUrl()}/login?oauth_error=${encodeURIComponent(message)}`)
 }
 
-const respondWithAuth = (res, user) => {
+const respondWithAuth = (res, user, { isNewUser = false } = {}) => {
     const token = createToken(user._id)
     setAuthCookie(res, token)
-    return res.json(buildAuthPayload(user, token))
+    return res.json(buildAuthPayload(user, token, { isNewUser }))
 }
 
 const findOrCreateOAuthUser = async ({ provider, providerId, email, name, avatar }) => {
@@ -31,7 +31,7 @@ const findOrCreateOAuthUser = async ({ provider, providerId, email, name, avatar
             user.avatar = avatar
             await user.save()
         }
-        return user
+        return { user, isNewUser: false }
     }
 
     if (email) {
@@ -48,7 +48,7 @@ const findOrCreateOAuthUser = async ({ provider, providerId, email, name, avatar
             if (avatar && !user.avatar) user.avatar = avatar
             if (user.authProvider === 'local') user.authProvider = provider
             await user.save()
-            return user
+            return { user, isNewUser: false }
         }
     }
 
@@ -74,7 +74,7 @@ const findOrCreateOAuthUser = async ({ provider, providerId, email, name, avatar
         createdAt: saved.createdAt
     }).catch((err) => console.error('OAuth registration notify failed:', err))
 
-    return saved
+    return { user: saved, isNewUser: true }
 }
 
 export const googleOAuthConfig = (req, res) => {
@@ -155,7 +155,7 @@ export const googleAuthCallback = async (req, res) => {
             return redirectLoginError(res, 'Invalid Google profile')
         }
 
-        const user = await findOrCreateOAuthUser({
+        const { user, isNewUser } = await findOrCreateOAuthUser({
             provider: 'google',
             providerId: payload.sub,
             email: payload.email,
@@ -165,7 +165,8 @@ export const googleAuthCallback = async (req, res) => {
 
         const token = createToken(user._id)
         setAuthCookie(res, token)
-        res.redirect(`${frontendUrl()}/login?oauth=google_success`)
+        const newQuery = isNewUser ? '&new=1' : ''
+        res.redirect(`${frontendUrl()}/login?oauth=google_success${newQuery}`)
     } catch (error) {
         console.error('Google OAuth callback error:', error)
         redirectLoginError(res, formatGoogleNetworkError(error))
@@ -190,7 +191,7 @@ export const googleAuth = async (req, res) => {
             return res.json({ success: false, message: 'Invalid Google token' })
         }
 
-        const user = await findOrCreateOAuthUser({
+        const { user, isNewUser } = await findOrCreateOAuthUser({
             provider: 'google',
             providerId: payload.sub,
             email: payload.email,
@@ -198,7 +199,7 @@ export const googleAuth = async (req, res) => {
             avatar: payload.picture || ''
         })
 
-        return respondWithAuth(res, user)
+        return respondWithAuth(res, user, { isNewUser })
     } catch (error) {
         console.error('Google auth error:', error)
         res.json({ success: false, message: formatGoogleNetworkError(error) })
@@ -235,7 +236,7 @@ export const facebookAuth = async (req, res) => {
             return res.json({ success: false, message: profile.error.message || 'Failed to load Facebook profile' })
         }
 
-        const user = await findOrCreateOAuthUser({
+        const { user, isNewUser } = await findOrCreateOAuthUser({
             provider: 'facebook',
             providerId: profile.id,
             email: profile.email,
@@ -243,7 +244,7 @@ export const facebookAuth = async (req, res) => {
             avatar: profile.picture?.data?.url || ''
         })
 
-        return respondWithAuth(res, user)
+        return respondWithAuth(res, user, { isNewUser })
     } catch (error) {
         console.error('Facebook auth error:', error)
         res.json({ success: false, message: error.message || 'Facebook sign-in failed' })
