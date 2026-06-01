@@ -1,6 +1,6 @@
 import inquiryModel from '../models/inquiryModel.js'
 import productModel from '../models/productModel.js'
-import nodemailer from 'nodemailer'
+import { sendInquiryNotificationEmail } from '../utils/inquiryEmail.js'
 
 const buildThreadMessages = (inquiry) => {
   const raw = inquiry.toObject ? inquiry.toObject() : { ...inquiry }
@@ -193,135 +193,31 @@ const buildInquiryProducts = async (items = []) => {
   return { normalizedProducts, totalAmount }
 }
 
-const ensureEmailConfiguration = () => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.error('Email configuration missing:', {
-      EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'missing',
-      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'set' : 'missing'
-    })
-    return false
-  }
-  return true
-}
-
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: 'smtp.qq.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
-    },
-    logger: true,
-    debug: true,
-    connectionTimeout: 10000,
-    socketTimeout: 10000
+const sendInquiryUpdateEmail = async (inquiry, attachments = []) => {
+  return sendInquiryNotificationEmail({
+    userEmail: inquiry.userEmail,
+    userName: inquiry.userName,
+    userPhone: inquiry.userPhone,
+    message: inquiry.message,
+    products: inquiry.products || [],
+    totalAmount: inquiry.totalAmount || 0,
+    attachments,
+    subject: `Inquiry Update - ${inquiry.userName || inquiry.userEmail}`
   })
-}
-
-const formatInquiryEmailHtml = (inquiry, currency = '$') => {
-  const safeMessage = (inquiry.message || '').replace(/\n/g, '<br/>')
-  const productRows = inquiry.products.map(product => `
-    <tr>
-      <td style="padding:8px;border:1px solid #e5e7eb;">${product.productName}</td>
-      <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;">${product.size}</td>
-      <td style="padding:8px;border:1px solid #e5e7eb;text-align:center;">${product.quantity}</td>
-      <td style="padding:8px;border:1px solid #e5e7eb;text-align:right;">${currency}${(product.price || 0).toFixed(2)}</td>
-    </tr>
-  `).join('')
-
-  return `
-    <div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
-      <h2 style="background:#1d4ed8;color:#fff;padding:16px 24px;margin:0;border-radius:12px 12px 0 0;">
-        Inquiry Update from ${inquiry.userName || inquiry.userEmail}
-      </h2>
-      <div style="padding:24px;background:#ffffff;border:1px solid #e5e7eb;border-top:none;">
-        <p style="margin:0 0 12px 0;">You have received an updated inquiry.</p>
-        <div style="margin-bottom:16px;">
-          <p style="margin:4px 0;"><strong>Name:</strong> ${inquiry.userName || 'N/A'}</p>
-          <p style="margin:4px 0;"><strong>Email:</strong> ${inquiry.userEmail}</p>
-          ${inquiry.userPhone ? `<p style="margin:4px 0;"><strong>Phone:</strong> ${inquiry.userPhone}</p>` : ''}
-        </div>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-          <thead>
-            <tr style="background:#eff6ff;">
-              <th style="padding:8px;border:1px solid #e5e7eb;text-align:left;">Product</th>
-              <th style="padding:8px;border:1px solid #e5e7eb;text-align:center;">Size</th>
-              <th style="padding:8px;border:1px solid #e5e7eb;text-align:center;">Quantity</th>
-              <th style="padding:8px;border:1px solid #e5e7eb;text-align:right;">Unit Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${productRows}
-          </tbody>
-        </table>
-        <p style="font-size:16px;font-weight:600;margin:12px 0;color:#1f2937;">
-          Total Amount: ${currency}${(inquiry.totalAmount || 0).toFixed(2)}
-        </p>
-        ${safeMessage ? `<div style="margin-top:16px;padding:16px;border-left:4px solid #3b82f6;background:#eff6ff;">
-          <strong>Message:</strong><br/>${safeMessage}
-        </div>` : ''}
-      </div>
-    </div>
-  `
-}
-
-const sendInquiryUpdateEmail = async (inquiry) => {
-  if (!ensureEmailConfiguration()) {
-    return {
-      success: true,
-      skipped: true,
-      message: 'Email configuration missing. Inquiry saved, email not sent.'
-    }
-  }
-
-  const transporter = createTransporter()
-
-  try {
-    await transporter.verify()
-  } catch (verifyError) {
-    console.error('SMTP verification failed:', verifyError)
-    return {
-      success: false,
-      message: verifyError.message || 'SMTP verification failed'
-    }
-  }
-
-  const html = formatInquiryEmailHtml(inquiry)
-  
-  // 检查必需的邮箱配置
-  if (!process.env.INQUIRY_RECEIVER_EMAIL) {
-    console.error('错误: INQUIRY_RECEIVER_EMAIL未在.env文件中设置');
-    return {
-      success: false,
-      message: 'Email configuration missing. Please set INQUIRY_RECEIVER_EMAIL in .env file.'
-    };
-  }
-  
-  const mailOptions = {
-    from: `"AppleBear" <${process.env.EMAIL_USER}>`,
-    to: process.env.INQUIRY_RECEIVER_EMAIL,
-    replyTo: inquiry.userEmail,
-    subject: `Inquiry Update - ${inquiry.userName || inquiry.userEmail}`,
-    html
-  }
-
-  try {
-    await transporter.sendMail(mailOptions)
-    return { success: true, message: 'Email sent successfully' }
-  } catch (error) {
-    console.error('Failed to send inquiry email:', error)
-    return { success: false, message: error.message || 'Failed to send inquiry email' }
-  }
 }
 
 // Create new inquiry
 const createInquiry = async (req, res) => {
   try {
-    // Try to get userId from authenticated user first, fallback to body
-    const userId = req.user?.id || req.body.userId || null
-    const { userEmail, userName, userPhone, products, message, emailStatus } = req.body
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please log in to save an inquiry record'
+      })
+    }
+
+    const { userEmail, userName, userPhone, products, message, attachments = [] } = req.body
 
     // Validate required fields
     if (!userEmail) {
@@ -332,23 +228,22 @@ const createInquiry = async (req, res) => {
     }
 
     const { normalizedProducts, totalAmount } = await buildInquiryProducts(products)
+    const bodyText = (message || '').trim()
 
-    if (!normalizedProducts.length) {
+    if (!normalizedProducts.length && !bodyText) {
       return res.status(400).json({
         success: false,
-        message: 'Unable to create inquiry with provided products'
+        message: 'Please provide an inquiry message or select products'
       })
     }
 
-    const bodyText = (message || '').trim()
     const now = new Date()
-    const notifyByEmail = process.env.INQUIRY_NOTIFY_ON_CREATE === 'true'
     const initialMessages = bodyText
       ? [{ author: 'user', body: bodyText, createdAt: now }]
       : []
 
     const newInquiry = new inquiryModel({
-      userId, // Use authenticated userId if available
+      userId,
       userEmail,
       userName: userName || '',
       userPhone: userPhone || '',
@@ -362,15 +257,22 @@ const createInquiry = async (req, res) => {
       lastMessageAt: bodyText ? now : undefined,
       hasUnreadAdminReply: false,
       hasUnreadUserMessageForAdmin: true,
-      emailStatus: notifyByEmail ? (emailStatus || 'pending') : 'skipped'
+      emailStatus: 'pending'
     })
 
     const savedInquiry = await newInquiry.save()
 
+    const emailResult = await sendInquiryUpdateEmail(savedInquiry, attachments)
+    savedInquiry.emailStatus = emailResult.success ? 'sent' : 'failed'
+    await savedInquiry.save()
+
     res.status(201).json({
       success: true,
-      message: 'Inquiry created successfully',
-      inquiry: savedInquiry
+      message: emailResult.success
+        ? 'Inquiry created successfully'
+        : 'Inquiry saved but email notification failed',
+      inquiry: savedInquiry,
+      emailResult
     })
   } catch (error) {
     console.error('Error creating inquiry:', error)

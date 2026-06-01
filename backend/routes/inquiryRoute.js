@@ -42,7 +42,7 @@ const optionalAuth = async (req, res, next) => {
   }
 }
 
-router.post('/create', optionalAuth, createInquiry) // Can be called with or without auth
+router.post('/create', authUser, createInquiry)
 router.put('/email-status/:id', updateInquiryStatus) // Public route for updating email status
 
 // User thread (must be before /user/:userId so "thread" is not captured as userId)

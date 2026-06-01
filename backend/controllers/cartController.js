@@ -1,5 +1,5 @@
 import userModel from "../models/userModel.js"
-import nodemailer from 'nodemailer' // 导入 Nodemailer
+import { sendInquiryNotificationEmail } from '../utils/inquiryEmail.js'
 //import googleapis from 'googleapis'
 // add products to cart
 const addToCart = async (req, res) => {
@@ -198,98 +198,41 @@ const clearCart = async (req, res) => {
 //     }
 // };
 const sendInquiry = async (req, res) => {
-    // Check if environment variables are set
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-        console.error('Email configuration missing:', {
-            EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'missing',
-            EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'set' : 'missing'
-        });
-        // For now, return success without sending email if email is not configured
-        console.log('Email not configured, but inquiry data received:', req.body);
-        return res.status(200).json({ 
-            message: '邮件发送成功',
-            note: 'Email configuration not set up - inquiry saved to database only'
-        });
+    const { email, name, number, cartItems = [], currency = '$', total = 0, message, attachments = [] } = req.body
+
+    if (!email) {
+        return res.status(400).json({
+            error: '邮件发送失败',
+            message: 'Email is required'
+        })
     }
 
-    // 配置 Nodemailer
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.qq.com', // QQ邮箱SMTP服务器
-        port: 465,           // SSL端口
-        secure: true,        // 启用SSL
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD, // QQ邮箱授权码
-        },
-        logger: true,        // 启用日志
-        debug: true,         // 详细调试信息
-        connectionTimeout: 10000, // 连接超时10秒
-        socketTimeout: 10000,     // 套接字超时10秒
-    });
-    
-    try {
-        await transporter.verify();
-        console.log('SMTP connection verified successfully.');
-    } catch (verifyError) {
-        console.error('SMTP verification failed:', verifyError);
+    if (!message || !String(message).trim()) {
+        return res.status(400).json({
+            error: '邮件发送失败',
+            message: 'Inquiry message is required'
+        })
+    }
+
+    const emailResult = await sendInquiryNotificationEmail({
+        userEmail: email,
+        userName: name,
+        userPhone: number,
+        message,
+        products: Array.isArray(cartItems) ? cartItems : [],
+        totalAmount: total,
+        currency,
+        attachments
+    })
+
+    if (!emailResult.success) {
         return res.status(500).json({
             error: '邮件发送失败',
-            details: verifyError.message,
-            hint: 'Please confirm EMAIL_USER/EMAIL_PASSWORD (QQ 授权码) and that SMTP service is enabled.'
-        });
+            details: emailResult.message
+        })
     }
-    const {email,name,number, cartItems, currency, total, message, attachments = [] } = req.body;
-    // 格式化邮件内容为 HTML
-    let emailContent = `<h2>购物车询价</h2><br> <h2>邮箱:${email}</h2>`;
-    if (name) emailContent += `<p>姓名: ${name}</p>`;
-    if (number) emailContent += `<p>电话: ${number}</p>`;
-    if (message) emailContent += `<div style="margin:12px 0;padding:12px;border-left:4px solid #1890ff;background:#f6fbff;"><strong>留言:</strong><br>${message.replace(/\n/g,'<br/>')}</div>`;
-    emailContent += `<ul>`;
-    cartItems.forEach(item => {
-        emailContent += 
-    `<li style = "display:flex;flex-direction:row;justify-content:space-evenly; align-items:center;">
-      <img src = "${item.image}" style = "width:150px; height:auto"/><br>
-      <p>产品: ${item.name}</p>
-      <p>价格: ${currency}${item.price}</p>
-      <p>尺码: ${item.size}</p>
-      <p>数量: ${item.quantity}</p>
-    </li>`;
-    });
-    emailContent += `</ul><h2 style="text-weight:700;">总价: ${currency}${total}</h2>`;
 
-    // 检查必需的邮箱配置
-    if (!process.env.INQUIRY_RECEIVER_EMAIL) {
-        console.error('错误: INQUIRY_RECEIVER_EMAIL未在.env文件中设置');
-        return res.status(500).json({
-            error: '邮件配置缺失',
-            message: 'Please set INQUIRY_RECEIVER_EMAIL in .env file.'
-        });
-    }
-    
-    const mailOptions = {
-        from: "AppleBear <" + process.env.EMAIL_USER + ">", // 发件人
-        to: [process.env.INQUIRY_RECEIVER_EMAIL], // 收件人（从环境变量读取）
-        subject: '新的购物车询价',
-        html: emailContent,
-        attachments: Array.isArray(attachments) ? attachments.map(a => ({
-            filename: a.filename || 'attachment',
-            content: a.content || '',
-            encoding: a.encoding || 'base64',
-            contentType: a.contentType || 'application/octet-stream'
-        })) : []
-    };
-
-    try {
-        await transporter.sendMail(mailOptions);
-        res.status(200).json({ message: '邮件发送成功' });
-    } catch (error) {
-        console.error('邮件发送失败:', error);
-        res.status(500).json({ 
-            error: '邮件发送失败', 
-            details: error.message, // 错误的具体信息
-            stack: error.stack // 错误堆栈，方便调试
-        });
-    }
+    return res.status(200).json({ message: '邮件发送成功' })
 }
 
 export { addToCart, updateCart, getUserCart, clearCart, sendInquiry }

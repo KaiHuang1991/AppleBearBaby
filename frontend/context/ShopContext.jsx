@@ -198,71 +198,54 @@ const ShopContextProvider = (props) => {
       const attachmentsJson = formData.get('attachments') || '[]'
       let attachments = []
       try { attachments = JSON.parse(attachmentsJson) } catch { attachments = [] }
-      // Get userId from formData or use authenticated user ID
-      const userId = formData.get('userId') || (user?._id ? user._id : null)
 
-      // First, create the inquiry in the database
-      const inquiryData = {
-        userId: userId || null,
-        userEmail: email,
-        userName: name,
-        userPhone: number,
-        products: cartItems,
-        message: message || `Inquiry from ${name} (${email})`
-      }
+      const attachmentPayload = attachments.map(a => ({
+        filename: a.name,
+        content: (a.base64 || '').split(',')[1] || '',
+        encoding: 'base64',
+        contentType: a.type || 'application/octet-stream'
+      }))
 
-      const inquiryResponse = await api.inquiriesCreate(inquiryData)
+      const mappedCartItems = cartItems.map(item => {
+        const product = products.find(p => p._id === item._id)
+        return {
+          name: product ? product.name : 'Unknown Product',
+          price: product ? product.price : 0,
+          size: item.size,
+          quantity: item.quantity,
+          image: product && product.image ? product.image[0] : ''
+        }
+      })
 
-      if (inquiryResponse.data.success) {
-        const sendLegacyEmail = import.meta.env.VITE_INQUIRY_SEND_EMAIL === 'true'
+      const total = cartItems.reduce((sum, item) => {
+        const product = products.find(p => p._id === item._id)
+        return sum + (product ? product.price * item.quantity : 0)
+      }, 0)
 
-        if (sendLegacyEmail) {
-          const emailData = {
-            email,
-            name,
-            number,
-            cartItems: cartItems.map(item => {
-              const product = products.find(p => p._id === item._id)
-              return {
-                name: product ? product.name : 'Unknown Product',
-                price: product ? product.price : 0,
-                size: item.size,
-                quantity: item.quantity,
-                image: product && product.image ? product.image[0] : ''
-              }
-            }),
-            currency: '$',
-            total: cartItems.reduce((sum, item) => {
-              const product = products.find(p => p._id === item._id)
-              return sum + (product ? product.price * item.quantity : 0)
-            }, 0),
-            message,
-            attachments: attachments.map(a => ({
-              filename: a.name,
-              content: (a.base64 || '').split(',')[1] || '',
-              encoding: 'base64',
-              contentType: a.type || 'application/octet-stream'
-            }))
-          }
+      const isLoggedIn = Boolean(token || user?._id)
 
-          const emailResponse = await api.cartSendInquiry(emailData)
-
-          if (emailResponse.data.message === '邮件发送成功') {
-            await updateInquiryEmailStatus(inquiryResponse.data.inquiry._id, 'sent')
-          } else {
-            await updateInquiryEmailStatus(inquiryResponse.data.inquiry._id, 'failed')
-            console.error('Email response:', emailResponse.data)
-            throw new Error(emailResponse.data.error || emailResponse.data.details || 'Email sending failed')
-          }
+      if (isLoggedIn) {
+        const inquiryData = {
+          userEmail: email,
+          userName: name,
+          userPhone: number,
+          products: cartItems,
+          message: message || `Inquiry from ${name || email}`,
+          attachments: attachmentPayload
         }
 
-        const inquiryTotal = cartItems.reduce((sum, item) => {
-          const product = products.find((p) => p._id === item._id)
-          return sum + (product ? product.price * item.quantity : 0)
-        }, 0)
+        const inquiryResponse = await api.inquiriesCreate(inquiryData)
+
+        if (!inquiryResponse.data.success) {
+          throw new Error(inquiryResponse.data.message || 'Failed to create inquiry')
+        }
+
+        if (inquiryResponse.data.emailResult?.success === false) {
+          console.warn('Inquiry saved but email failed:', inquiryResponse.data.emailResult)
+        }
 
         trackGoogleAdsPurchase({
-          value: inquiryTotal > 0 ? inquiryTotal : 1.0,
+          value: total > 0 ? total : 1.0,
           transactionId: inquiryResponse.data.inquiry?._id,
         })
 
@@ -272,12 +255,33 @@ const ShopContextProvider = (props) => {
         } catch (clearError) {
           console.warn('Failed to clear remote cart after inquiry:', clearError?.response?.data || clearError.message)
         }
+
         return inquiryResponse.data
-      } else {
-        throw new Error(inquiryResponse.data.message || 'Failed to create inquiry')
       }
+
+      const emailResponse = await api.cartSendInquiry({
+        email,
+        name,
+        number,
+        cartItems: mappedCartItems,
+        currency: '$',
+        total,
+        message,
+        attachments: attachmentPayload
+      })
+
+      if (emailResponse.data.message !== '邮件发送成功') {
+        throw new Error(emailResponse.data.error || emailResponse.data.details || 'Email sending failed')
+      }
+
+      trackGoogleAdsPurchase({
+        value: total > 0 ? total : 1.0,
+        transactionId: `guest-${Date.now()}`,
+      })
+
+      return { success: true, message: 'Inquiry sent successfully' }
     } catch (error) {
-      console.error('Inquiry creation failed:', error)
+      console.error('Inquiry submission failed:', error)
       if (error.response) {
         throw new Error(error.response.data.error || error.response.data.details || error.response.data.message || 'Request failed')
       }

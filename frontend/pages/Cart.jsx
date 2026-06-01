@@ -230,7 +230,6 @@ const Cart = () => {
                 formData.append("products", JSON.stringify(cartData))
                 formData.append("message", message)
                 formData.append("attachments", JSON.stringify(attachments))
-                formData.append("userId", localStorage.getItem('userId') || '')
                 
                 await sendInquiryEmail(formData)
                 toast.success('Inquiry sent successfully! We will contact you soon.')
