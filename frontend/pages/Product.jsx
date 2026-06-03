@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import RelatedProducts from '../componets/RelatedProducts'
 import SocialShare from '../componets/SocialShare'
+import { buildOgShareImages } from '../src/utils/ogCollage'
 import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets.js'
 import { toast } from 'react-toastify'
@@ -228,10 +229,29 @@ const Product = () => {
       }
     }
 
+    const normalizeImages = (rawImages = []) => {
+      const list = Array.isArray(rawImages) ? rawImages.filter(Boolean) : []
+      const seen = new Set()
+      const normalized = []
+      for (const src of list) {
+        let url = ensureAbsoluteUrl(src)
+        if (url.startsWith('http://')) {
+          url = url.replace(/^http:\/\//i, 'https://')
+        }
+        if (url && !seen.has(url)) {
+          seen.add(url)
+          normalized.push(url)
+        }
+      }
+      return normalized
+    }
+
     const canonical = typeof window !== 'undefined' ? window.location.href : ''
     const title = productData.name || 'Product'
     const description = stripHtml(productData.description || '').slice(0, 160)
-    const image = Array.isArray(productData.image) && productData.image.length ? ensureAbsoluteUrl(productData.image[0]) : ''
+    const sourceImages = normalizeImages(productData.image)
+    const images = buildOgShareImages(sourceImages)
+    const image = images[0] || ''
 
     // 生成关键词：产品名称、分类、属性值等组合
     const keywordsArray = []
@@ -272,6 +292,7 @@ const Product = () => {
       description, // 移除价格信息，价格已有专门的product:price meta标签
       keywords,
       image,
+      images,
       canonical,
       ogType: 'product',
       // 添加产品价格（用于结构化数据）
@@ -312,8 +333,16 @@ const Product = () => {
           <meta property="og:type" content={seoMeta.ogType} />
           <meta property="og:title" content={seoMeta.title} />
           <meta property="og:description" content={seoMeta.description} />
-          <meta property="og:image" content={seoMeta.image} />
+          {seoMeta.images.map((imgUrl) => (
+            <React.Fragment key={imgUrl}>
+              <meta property="og:image" content={imgUrl} />
+              <meta property="og:image:secure_url" content={imgUrl} />
+            </React.Fragment>
+          ))}
           <meta property="og:url" content={seoMeta.canonical} />
+          {import.meta.env.VITE_FACEBOOK_APP_ID ? (
+            <meta property="fb:app_id" content={import.meta.env.VITE_FACEBOOK_APP_ID} />
+          ) : null}
           {seoMeta.price && (
             <>
               <meta property="product:price:amount" content={seoMeta.price.toString()} />
@@ -450,7 +479,7 @@ const Product = () => {
             <h4 className='font-medium text-xl sm:text-xl'>{productData.name}</h4>
             {productData.modelNumber && String(productData.modelNumber).trim() ? (
               <p className='text-sm text-gray-600 mt-1'>
-                型号 <span className='font-semibold text-gray-800'>{String(productData.modelNumber).trim()}</span>
+                Model <span className='font-semibold text-gray-800'>{String(productData.modelNumber).trim()}</span>
               </p>
             ) : null}
           <div className='flex items-center gap-1 mt-2'>

@@ -16,6 +16,7 @@ import attributeRoute from "./routes/attributeRoute.js";
 import heroRoute from "./routes/heroRoute.js";
 import videoRoute from "./routes/videoRoute.js";
 import chatbotRoute from "./routes/chatbotRoute.js";
+import ogRoute from "./routes/ogRoute.js";
 import { getGoogleOAuthRedirectUri } from "./utils/googleOAuthClient.js";
 
 // App Config
@@ -30,12 +31,13 @@ app.use(express.urlencoded({ extended: true, limit: '12mb' }))
 app.use(cookieParser())
 
 // Configure CORS to support credentials (cookies) and multiple origins
+// VPS default: admin subdomain; local dev: localhost (see ALLOWED_ORIGINS in .env for production sites)
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL || 'https://admin.applebearbaby.net',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
-  'http://localhost:5175'
+  'http://localhost:5175',
 ]
 
 // 从环境变量读取允许的域名（生产环境）
@@ -102,6 +104,8 @@ app.use('/api/attributes', attributeRoute)
 app.use('/api/hero', heroRoute)
 app.use('/api/videos', videoRoute)
 app.use('/api/chatbot', chatbotRoute)
+// Open Graph HTML for social crawlers (Facebook, WhatsApp, etc.)
+app.use('/og', ogRoute)
 
 app.get('/',(req,res)=>{
    res.send("API Working")
@@ -133,7 +137,3 @@ const startServer = async () => {
 }
 
 startServer()
-
-
-
-

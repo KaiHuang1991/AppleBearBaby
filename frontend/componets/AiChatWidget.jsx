@@ -147,7 +147,7 @@ const AiChatWidget = () => {
                           <div className='min-w-0 flex-1'>
                             <div className='line-clamp-2 text-sm font-medium text-slate-800'>{p.name}</div>
                             {p.modelNumber ? (
-                              <div className='mt-0.5 text-xs text-slate-500'>型号 {p.modelNumber}</div>
+                              <div className='mt-0.5 text-xs text-slate-500'>Model {p.modelNumber}</div>
                             ) : null}
                             <div className='mt-1 text-sm font-semibold text-sky-600'>
                               {currency}

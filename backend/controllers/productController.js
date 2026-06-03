@@ -272,61 +272,72 @@ const updateProduct = async (req, res) => {
         }
 
 
+        let resolvedCategoryName = category || ''
+        let resolvedSubCategoryName = subCategory || ''
+        let resolvedThirdCategoryName = thirdCategory || ''
+        let resolvedCategoryId = categoryId || null
+        let resolvedSubCategoryId = subCategoryId || null
+        let resolvedThirdCategoryId = thirdCategoryId || null
+
+        if (resolvedCategoryId) {
+            const parentCategory = await categoryModel.findById(resolvedCategoryId)
+            if (!parentCategory) {
+                return res.status(400).json({ success: false, message: 'Selected parent category does not exist' })
+            }
+            resolvedCategoryId = parentCategory._id
+            resolvedCategoryName = parentCategory.name
+        }
+
+        if (resolvedSubCategoryId) {
+            const childCategory = await categoryModel.findById(resolvedSubCategoryId)
+            if (!childCategory) {
+                return res.status(400).json({ success: false, message: 'Selected sub category does not exist' })
+            }
+            resolvedSubCategoryId = childCategory._id
+            resolvedSubCategoryName = childCategory.name
+
+            if (childCategory.parent) {
+                resolvedCategoryId = childCategory.parent
+                const parent = await categoryModel.findById(childCategory.parent)
+                resolvedCategoryName = parent?.name || resolvedCategoryName
+            }
+        }
+
+        if (resolvedThirdCategoryId) {
+            const thirdCategoryDoc = await categoryModel.findById(resolvedThirdCategoryId)
+            if (!thirdCategoryDoc) {
+                return res.status(400).json({ success: false, message: 'Selected third category does not exist' })
+            }
+            resolvedThirdCategoryId = thirdCategoryDoc._id
+            resolvedThirdCategoryName = thirdCategoryDoc.name
+
+            if (thirdCategoryDoc.parent) {
+                resolvedSubCategoryId = thirdCategoryDoc.parent
+                const subParent = await categoryModel.findById(thirdCategoryDoc.parent)
+                resolvedSubCategoryName = subParent?.name || resolvedSubCategoryName
+
+                if (subParent?.parent) {
+                    resolvedCategoryId = subParent.parent
+                    const mainParent = await categoryModel.findById(subParent.parent)
+                    resolvedCategoryName = mainParent?.name || resolvedCategoryName
+                }
+            }
+        }
+
         currenctProduct.name = name
         if (modelNumberTrim !== undefined) {
             currenctProduct.modelNumber = modelNumberTrim
         }
         currenctProduct.description = description
         currenctProduct.price = Number(price)
-        currenctProduct.category = category
-        currenctProduct.subCategory = subCategory
-        currenctProduct.thirdCategory = thirdCategory
+        currenctProduct.category = resolvedCategoryName
+        currenctProduct.categoryId = resolvedCategoryId
+        currenctProduct.subCategory = resolvedSubCategoryName
+        currenctProduct.subCategoryId = resolvedSubCategoryId
+        currenctProduct.thirdCategory = resolvedThirdCategoryName
+        currenctProduct.thirdCategoryId = resolvedThirdCategoryId
         currenctProduct.sizes = Array.isArray(sizes) ? sizes : parseJsonField(sizes, [])
         currenctProduct.bestseller = bestseller === "true" ? true : false
-
-        if (categoryId) {
-            const parentCategory = await categoryModel.findById(categoryId)
-            if (!parentCategory) {
-                return res.status(400).json({ success: false, message: 'Selected parent category does not exist' })
-            }
-            currenctProduct.categoryId = parentCategory._id
-            currenctProduct.category = parentCategory.name
-        }
-
-        if (subCategoryId) {
-            const childCategory = await categoryModel.findById(subCategoryId)
-            if (!childCategory) {
-                return res.status(400).json({ success: false, message: 'Selected sub category does not exist' })
-            }
-            currenctProduct.subCategoryId = childCategory._id
-            currenctProduct.subCategory = childCategory.name
-            if (!currenctProduct.categoryId && childCategory.parent) {
-                currenctProduct.categoryId = childCategory.parent
-                const parent = await categoryModel.findById(childCategory.parent)
-                currenctProduct.category = parent?.name || currenctProduct.category
-            }
-        }
-
-        if (thirdCategoryId) {
-            const thirdCategory = await categoryModel.findById(thirdCategoryId)
-            if (!thirdCategory) {
-                return res.status(400).json({ success: false, message: 'Selected third category does not exist' })
-            }
-            currenctProduct.thirdCategoryId = thirdCategory._id
-            currenctProduct.thirdCategory = thirdCategory.name
-            
-            if (!currenctProduct.subCategoryId && thirdCategory.parent) {
-                currenctProduct.subCategoryId = thirdCategory.parent
-                const subParent = await categoryModel.findById(thirdCategory.parent)
-                currenctProduct.subCategory = subParent?.name || currenctProduct.subCategory
-                
-                if (subParent?.parent && !currenctProduct.categoryId) {
-                    currenctProduct.categoryId = subParent.parent
-                    const mainParent = await categoryModel.findById(subParent.parent)
-                    currenctProduct.category = mainParent?.name || currenctProduct.category
-                }
-            }
-        }
 
         if (attributesRaw !== undefined) {
             const attributeEntries = parseJsonField(attributesRaw, [])

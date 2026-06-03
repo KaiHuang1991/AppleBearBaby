@@ -20,6 +20,19 @@ upstream admin {
     keepalive 64;
 }
 
+map $http_user_agent $is_social_crawler {
+    default 0;
+    ~*facebookexternalhit 1;
+    ~*Facebot 1;
+    ~*Twitterbot 1;
+    ~*LinkedInBot 1;
+    ~*WhatsApp 1;
+    ~*Slackbot 1;
+    ~*TelegramBot 1;
+    ~*Discordbot 1;
+    ~*Pinterestbot 1;
+}
+
 # HTTP服务器 - 主配置
 server {
     listen 80;
@@ -32,6 +45,32 @@ server {
 
     # 客户端上传大小限制
     client_max_body_size 20M;
+
+    location ^~ /og/ {
+        proxy_pass http://backend/og/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ~ ^/product/([^/]+)/?$ {
+        if ($is_social_crawler = 1) {
+            rewrite ^/product/([^/]+)/?$ /og/product/$1 last;
+        }
+        proxy_pass http://frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
 
     # 前端应用
     location / {

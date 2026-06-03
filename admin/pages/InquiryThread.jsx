@@ -184,7 +184,7 @@ const InquiryThread = ({ token }) => {
                       <p className="font-medium text-gray-800 text-sm break-words">{product.productName}</p>
                     )}
                     <p className="text-xs text-gray-600 mt-0.5 break-words">
-                      {modelLabel ? <>型号 {modelLabel} · </> : null}
+                      {modelLabel ? <>Model {modelLabel} · </> : null}
                       Qty {product.quantity} · {product.size} · ${price.toFixed(2)}
                     </p>
                   </div>

@@ -287,13 +287,13 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       </div>
 
       <div className='w-full'>
-        <p className='mb-2'>产品型号（选填）</p>
+        <p className='mb-2'>Model (optional)</p>
         <input
           onChange={(e) => setModelNumber(e.target.value)}
           value={modelNumber}
           className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg'
           type='text'
-          placeholder='例如 8007E'
+          placeholder='e.g. 8007E'
         />
       </div>
 

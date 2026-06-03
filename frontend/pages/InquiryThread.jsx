@@ -161,7 +161,7 @@ const InquiryThread = () => {
                   <p className="font-medium text-gray-800 truncate">{product.productName}</p>
                 )}
                 <p className="text-xs text-gray-600">
-                  {modelLabel ? <>型号 {modelLabel} · </> : null}
+                  {modelLabel ? <>Model {modelLabel} · </> : null}
                   Qty {product.quantity} · {product.size} · {currency}
                   {product.price}
                 </p>
