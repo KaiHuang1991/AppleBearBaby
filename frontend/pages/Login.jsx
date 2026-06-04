@@ -21,11 +21,11 @@ const Login = () => {
   const oauthHandledRef = useRef(false)
 
   const handleOAuthSuccess = useCallback((data) => {
+    completeLogin(data, { redirectTo: '/' })
+    toast.success('Signed in successfully')
     if (data.isNewUser) {
       trackGoogleAdsSignup({ transactionId: data.userId })
     }
-    completeLogin(data, { redirectTo: '/' })
-    toast.success('Signed in successfully')
   }, [completeLogin])
   
   const handleResendVerification = async () => {
@@ -82,14 +82,13 @@ const Login = () => {
       if(currentState === "Sign Up"){
         const response = await api.userRegister({name,email,password})
         if(response.data.success){
-          trackGoogleAdsSignup({ transactionId: response.data.userId })
           // Don't set token or save user info - user needs to verify email first
           setName('')
           setEmail('')
           setPassword('')
           
-          // Show success message
           toast.success(response.data.message || "Registration successful! Please check your email to verify your account.")
+          trackGoogleAdsSignup({ transactionId: response.data.userId })
           
           // Navigate to verification page
           navigate('/awaiting-verification', { state: { email } })
@@ -146,9 +145,6 @@ const Login = () => {
       .then((res) => {
         if (res.data?.success && res.data.user) {
           const u = res.data.user
-          if (isNewUser) {
-            trackGoogleAdsSignup({ transactionId: u._id })
-          }
           completeLogin(
             {
               userId: u._id,
@@ -160,6 +156,9 @@ const Login = () => {
             { redirectTo: '/' }
           )
           toast.success('Signed in successfully')
+          if (isNewUser) {
+            trackGoogleAdsSignup({ transactionId: u._id })
+          }
         } else {
           oauthHandledRef.current = false
           toast.error('Login succeeded but profile could not be loaded')

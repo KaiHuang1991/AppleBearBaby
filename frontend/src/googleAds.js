@@ -5,8 +5,16 @@
 
 const GOOGLE_ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID?.trim()
 const PURCHASE_CONVERSION_LABEL = import.meta.env.VITE_GOOGLE_ADS_PURCHASE_CONVERSION?.trim()
+/**
+ * 提交潜在客户表单 — 必须与 Google Ads 后台标签完全一致（区分大小写）。
+ * 不要依赖 VPS .env 覆盖；错误标签会导致 Tag Assistant 显示「未检测到」。
+ */
+const LEAD_CONVERSION_LABEL = 'PPkhCIXD7bYcEJ7rk74p'
 const SIGNUP_CONVERSION_LABEL = import.meta.env.VITE_GOOGLE_ADS_SIGNUP_CONVERSION?.trim()
-const PURCHASE_CURRENCY = import.meta.env.VITE_GOOGLE_ADS_CURRENCY?.trim() || 'SGD'
+const PURCHASE_CURRENCY = import.meta.env.VITE_GOOGLE_ADS_CURRENCY?.trim() || 'USD'
+/** 询盘时是否同时上报「购买」；默认 false，避免盖掉「提交潜在客户表单」的测试验收 */
+const TRACK_PURCHASE_ON_INQUIRY =
+  import.meta.env.VITE_GOOGLE_ADS_TRACK_PURCHASE_ON_INQUIRY === 'true'
 
 let initialized = false
 
@@ -66,6 +74,35 @@ export function trackGoogleAdsPurchase({ value, currency = PURCHASE_CURRENCY, tr
   }
 
   trackGoogleAdsConversion(PURCHASE_CONVERSION_LABEL, payload)
+}
+
+/** Fire the configured “提交潜在客户表单” conversion (inquiry form submit). */
+export function trackGoogleAdsLeadForm({ transactionId } = {}) {
+  if (!LEAD_CONVERSION_LABEL || !GOOGLE_ADS_ID) return
+
+  const payload = {
+    value: 1.0,
+    currency: PURCHASE_CURRENCY,
+    transaction_id: String(transactionId || `lead-${Date.now()}`),
+  }
+
+  // 显式 send_to，与 Google Ads 后台「提交潜在客户表单」代码段一致
+  window.gtag('event', 'conversion', {
+    send_to: `${GOOGLE_ADS_ID}/${LEAD_CONVERSION_LABEL}`,
+    ...payload,
+  })
+}
+
+/**
+ * Inquiry form: fire lead + purchase after API success (Cart handleInquirySubmit).
+ * Use separate transaction_id per action — same id can make Ads count only the first hit.
+ */
+export function trackInquiryFormConversions({ value, currency = PURCHASE_CURRENCY, transactionId } = {}) {
+  const base = transactionId ? String(transactionId) : `guest-${Date.now()}`
+  trackGoogleAdsLeadForm({ transactionId: `lead-${base}` })
+  if (TRACK_PURCHASE_ON_INQUIRY) {
+    trackGoogleAdsPurchase({ value, currency, transactionId: `purchase-${base}` })
+  }
 }
 
 /** Fire the configured signup conversion (e.g. after user registers). */

@@ -3,7 +3,6 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { createHttpClient, createShopApi } from "@applebear/api";
 import { resolveBackendUrl } from "../src/resolveBackendUrl.js";
-import { trackGoogleAdsPurchase } from "../src/googleAds.js";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
 export const ShopContext = createContext();
@@ -244,11 +243,6 @@ const ShopContextProvider = (props) => {
           console.warn('Inquiry saved but email failed:', inquiryResponse.data.emailResult)
         }
 
-        trackGoogleAdsPurchase({
-          value: total > 0 ? total : 1.0,
-          transactionId: inquiryResponse.data.inquiry?._id,
-        })
-
         setCartItems({})
         try {
           await api.cartClear()
@@ -256,7 +250,13 @@ const ShopContextProvider = (props) => {
           console.warn('Failed to clear remote cart after inquiry:', clearError?.response?.data || clearError.message)
         }
 
-        return inquiryResponse.data
+        return {
+          ...inquiryResponse.data,
+          conversion: {
+            value: total > 0 ? total : 1.0,
+            transactionId: inquiryResponse.data.inquiry?._id,
+          },
+        }
       }
 
       const emailResponse = await api.cartSendInquiry({
@@ -274,12 +274,14 @@ const ShopContextProvider = (props) => {
         throw new Error(emailResponse.data.error || emailResponse.data.details || 'Email sending failed')
       }
 
-      trackGoogleAdsPurchase({
-        value: total > 0 ? total : 1.0,
-        transactionId: `guest-${Date.now()}`,
-      })
-
-      return { success: true, message: 'Inquiry sent successfully' }
+      return {
+        success: true,
+        message: 'Inquiry sent successfully',
+        conversion: {
+          value: total > 0 ? total : 1.0,
+          transactionId: `guest-${Date.now()}`,
+        },
+      }
     } catch (error) {
       console.error('Inquiry submission failed:', error)
       if (error.response) {

@@ -4,6 +4,7 @@ import Title from '../componets/Title'
 import { assets } from '../src/assets/assets'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { trackInquiryFormConversions } from '../src/googleAds'
 
 const Cart = () => {
   const { cartItems, currency, updateQuantity, sendInquiryEmail, token } = useContext(ShopContext)
@@ -45,6 +46,43 @@ const Cart = () => {
   }, [cartItems, token])
 
   const lineKey = (item) => `${item._id}__${item.size}`
+
+  const handleInquirySubmit = async (e) => {
+    e.preventDefault()
+
+    if (!message || message.trim() === '') {
+      toast.error('Please enter an inquiry message')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('email', email)
+      formData.append('name', name)
+      formData.append('number', number)
+      formData.append('products', JSON.stringify(cartData))
+      formData.append('message', message)
+      formData.append('attachments', JSON.stringify(attachments))
+
+      const result = await sendInquiryEmail(formData)
+
+      toast.success('Inquiry sent successfully! We will contact you soon.')
+      if (result?.conversion) {
+        trackInquiryFormConversions(result.conversion)
+      }
+
+      setEmail('')
+      setName('')
+      setNumber('')
+      setMessage('')
+      setAttachments([])
+    } catch (error) {
+      toast.error('Failed to send inquiry. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const commitCartQuantity = (item) => {
     const key = lineKey(item)
@@ -212,40 +250,7 @@ const Cart = () => {
           <div className='w-full'>
           <div className='w-full text-end'>
           <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              
-              // Validate message - must not be blank
-              if (!message || message.trim() === '') {
-                toast.error('Please enter an inquiry message')
-                return
-              }
-              
-              setLoading(true)
-              try {
-                const formData = new FormData()
-                formData.append("email", email)
-                formData.append("name", name)
-                formData.append("number", number)
-                formData.append("products", JSON.stringify(cartData))
-                formData.append("message", message)
-                formData.append("attachments", JSON.stringify(attachments))
-                
-                await sendInquiryEmail(formData)
-                toast.success('Inquiry sent successfully! We will contact you soon.')
-                
-                // Clear form
-                setEmail('')
-                setName('')
-                setNumber('')
-                setMessage('')
-                setAttachments([])
-              } catch (error) {
-                toast.error('Failed to send inquiry. Please try again.')
-              } finally {
-                setLoading(false)
-              }
-            }}
+            onSubmit={handleInquirySubmit}
             className='space-y-4 bg-white p-6 rounded-lg shadow-md'
           >
             <div>
@@ -293,7 +298,7 @@ const Cart = () => {
             </div>
             <div className='text-end'>
               <button
-                type="submit" 
+                type="submit"
                 disabled={loading}
                 className='bg-black text-white text-sm px-8 py-3 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed'
               >
