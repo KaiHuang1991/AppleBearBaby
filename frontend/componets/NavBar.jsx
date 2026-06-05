@@ -49,10 +49,9 @@ const NavBar = () => {
   return (
     <>
     <nav className="site-navbar fixed w-full bg-white/90 backdrop-blur-sm top-0 left-0 right-0 border-b-2 border-blue-500" style={{zIndex: 9999}} aria-label="Main navigation">
-      <div className='flex items-center justify-between gap-3 py-3 sm:py-4 lg:py-5 px-4 sm:px-6 lg:px-[10vw] min-h-[4.25rem] lg:min-h-0'>
+      <div className='navbar-inner flex items-center justify-between gap-3 py-3 sm:py-4 lg:py-5 px-4 sm:px-6 lg:px-[10vw] min-h-[4.25rem] lg:min-h-0'>
         <Link to='/' className='flex items-center gap-2 shrink-0 min-w-0'>
-            <img draggable={false} src='../src/assets/icon.gif' className="w-24 sm:w-28 lg:w-36 gentle-bounce pointer-events-none" alt="" />
-            <span className='text-lg sm:text-xl lg:text-2xl gentle-float pointer-events-none'>🌟</span>
+            <img draggable={false} src='../src/assets/logo.png' className="w-24 sm:w-28 lg:w-36 gentle-bounce pointer-events-none" alt="" />
         </Link>
         <ul className="hidden lg:flex flex-1 justify-center gap-3 xl:gap-5 text-sm xl:text-base text-gray-700 min-w-0 px-2">
             <NavLink to='/' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">

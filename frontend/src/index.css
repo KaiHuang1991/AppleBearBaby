@@ -4,6 +4,12 @@
 /* Global Font Size Settings */
 html {
   font-size: 17px; /* 增大基础字号从默认的 16px 到 17px */
+  --navbar-height: 5.25rem;
+}
+
+.side-cart-panel {
+  top: var(--side-cart-top, 84px) !important;
+  height: calc(100dvh - var(--side-cart-top, 84px)) !important;
 }
 
 body {

@@ -422,7 +422,7 @@ const Product = () => {
                   onClick={() => setImage(item)} 
                   src={item} 
                   key={itemIndex} 
-                  className={`thumbnail-item w-[22%] min-w-[4.5rem] lg:w-full lg:flex-1 lg:min-h-0 aspect-square lg:aspect-auto object-cover flex-shrink-0 cursor-pointer rounded-lg border-2 transition-all duration-200 shadow-sm ${
+                  className={`thumbnail-item w-[22%] min-w-[4.5rem] lg:w-full aspect-square object-cover flex-shrink-0 cursor-pointer rounded-lg border-2 transition-all duration-200 shadow-sm ${
                     image === item 
                       ? 'border-blue-500 ring-2 ring-blue-200 lg:scale-100 scale-105 shadow-md' 
                       : 'border-gray-200 hover:border-blue-300 hover:scale-105 lg:hover:scale-100 hover:shadow-md'

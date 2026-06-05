@@ -1,8 +1,12 @@
-import React, { useContext, useMemo, useState, useCallback } from 'react'
+import React, { useContext, useMemo, useState, useCallback, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ShopContext } from '../context/ShopContext'
+
+const NAVBAR_FALLBACK_HEIGHT = 84
 
 const SideCart = () => {
   const { isCartOpen, closeCart, cartItems, products, currency, updateQuantity, getCartAmount, navigate } = useContext(ShopContext)
+  const [navbarHeight, setNavbarHeight] = useState(NAVBAR_FALLBACK_HEIGHT)
   const [pendingMap, setPendingMap] = useState({})
   /** Local quantity text while typing; subtotal uses cart until blur / Enter commits. */
   const [draftQty, setDraftQty] = useState({})
@@ -95,18 +99,50 @@ const SideCart = () => {
 
   const subtotal = getCartAmount()
 
-  return (
+  useLayoutEffect(() => {
+    const navInner = document.querySelector('.navbar-inner')
+    const nav = navInner || document.querySelector('.site-navbar')
+    if (!nav) return
+
+    const syncNavbarHeight = () => {
+      const height = Math.round(nav.getBoundingClientRect().height)
+      if (height > 0) setNavbarHeight(height)
+    }
+
+    syncNavbarHeight()
+    const observer = new ResizeObserver(syncNavbarHeight)
+    observer.observe(nav)
+    window.addEventListener('resize', syncNavbarHeight)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', syncNavbarHeight)
+    }
+  }, [isCartOpen])
+
+  const panelStyle = {
+    '--side-cart-top': `${navbarHeight}px`,
+    top: `${navbarHeight}px`,
+    height: `calc(100dvh - ${navbarHeight}px)`,
+  }
+
+  return createPortal(
     <>
       {/* Backdrop */}
       {isCartOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-[999] transition-opacity duration-300"
+          className="fixed left-0 right-0 bottom-0 bg-black/40 z-[999] transition-opacity duration-300"
+          style={{ top: `${navbarHeight}px` }}
           onClick={closeCart}
         />
       )}
 
       {/* Panel */}
-      <div className={`fixed right-0 top-0 h-full w-[92%] sm:w-[420px] bg-white shadow-2xl z-[1000] transition-transform duration-300 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div
+        id="side-cart-panel"
+        className={`side-cart-panel fixed right-0 w-[92%] sm:w-[420px] bg-white shadow-2xl z-[1000] transition-transform duration-300 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={panelStyle}
+      >
         <div className='flex items-center justify-between p-4 border-b'>
           <h3 className='text-lg font-semibold'>Your Cart</h3>
           <button onClick={closeCart} className='text-gray-500 hover:text-gray-700'>✕</button>
@@ -195,7 +231,8 @@ const SideCart = () => {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }
 
