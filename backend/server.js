@@ -17,6 +17,7 @@ import heroRoute from "./routes/heroRoute.js";
 import videoRoute from "./routes/videoRoute.js";
 import chatbotRoute from "./routes/chatbotRoute.js";
 import ogRoute from "./routes/ogRoute.js";
+import sitemapRoute from "./routes/sitemapRoute.js";
 import { getGoogleOAuthRedirectUri } from "./utils/googleOAuthClient.js";
 
 // App Config
@@ -106,6 +107,8 @@ app.use('/api/videos', videoRoute)
 app.use('/api/chatbot', chatbotRoute)
 // Open Graph HTML for social crawlers (Facebook, WhatsApp, etc.)
 app.use('/og', ogRoute)
+// Dynamic sitemap + robots.txt (also proxied at site root by nginx)
+app.use('/', sitemapRoute)
 
 app.get('/',(req,res)=>{
    res.send("API Working")

@@ -51,6 +51,8 @@ if [ ! -f ".env" ]; then
     echo -e "${YELLOW}   请确保已创建并配置 .env 文件${NC}"
 fi
 npm install
+echo -e "${YELLOW}   生成 sitemap.xml...${NC}"
+npm run generate:sitemap || echo -e "${YELLOW}⚠️  sitemap 生成跳过（需配置 backend/.env 与 MongoDB）${NC}"
 cd ..
 echo -e "${GREEN}✅ 后端依赖安装完成${NC}"
 

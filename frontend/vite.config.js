@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { socialOgPreview } from './vite.socialOg.js'
+import { sitemapDev } from './vite.sitemapDev.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // npm workspaces hoists react/react-dom to repo root; Vite must resolve them explicitly
@@ -11,7 +12,7 @@ const repoNodeModules = path.resolve(__dirname, '../node_modules')
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), socialOgPreview()],
+  plugins: [react(), tailwindcss(), sitemapDev(), socialOgPreview()],
   resolve: {
     alias: {
       react: path.join(repoNodeModules, 'react'),
