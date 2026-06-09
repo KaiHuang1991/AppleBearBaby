@@ -1,67 +1,108 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { homeImages, factoryCarousel, galleryImages } from '../src/assets/galleryAssets'
-
-const SectionHeader = ({ eyebrow, title, subtitle, align = 'center' }) => (
-  <div className={`mb-10 md:mb-12 ${align === 'center' ? 'text-center' : ''}`}>
-    {eyebrow ? (
-      <p className='text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 mb-2'>{eyebrow}</p>
-    ) : null}
-    <h2 className='corp-section-title'>{title}</h2>
-    {subtitle ? (
-      <p className={`corp-section-subtitle mt-3 ${align === 'center' ? 'mx-auto' : ''}`}>{subtitle}</p>
-    ) : null}
-  </div>
-)
+import OemFlowSection from './OemFlowSection'
+import HomeSection, { SectionHeader } from './HomeSection'
 
 const StatItem = ({ value, label }) => (
-  <div className='text-center px-4 py-2'>
-    <p className='text-3xl md:text-4xl font-bold text-blue-600'>{value}</p>
-    <p className='text-sm text-slate-600 mt-1'>{label}</p>
+  <div className='home-stat-item'>
+    <p className='home-stat-value'>{value}</p>
+    <p className='home-stat-label'>{label}</p>
   </div>
 )
 
-const FeatureCard = ({ title, description }) => (
-  <div className='corp-feature-card h-full'>
-    <h3 className='font-semibold text-slate-800 mb-2'>{title}</h3>
-    <p className='text-sm text-slate-600 leading-relaxed'>{description}</p>
+const WhyChooseIcon = ({ type }) => {
+  const props = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }
+
+  switch (type) {
+    case 'service':
+      return (
+        <svg {...props} aria-hidden='true'>
+          <path d='M3 21h18' />
+          <path d='M5 21V7l8-4v18' />
+          <path d='M19 21V11l-6-4' />
+          <path d='M9 9v0' /><path d='M9 12v0' /><path d='M9 15v0' /><path d='M9 18v0' />
+        </svg>
+      )
+    case 'quality':
+      return (
+        <svg {...props} aria-hidden='true'>
+          <path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' />
+          <path d='M9 12l2 2 4-4' />
+        </svg>
+      )
+    case 'experience':
+      return (
+        <svg {...props} aria-hidden='true'>
+          <circle cx='12' cy='12' r='10' />
+          <path d='M12 6v6l4 2' />
+        </svg>
+      )
+    case 'team':
+      return (
+        <svg {...props} aria-hidden='true'>
+          <path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' />
+          <circle cx='9' cy='7' r='4' />
+          <path d='M22 21v-2a4 4 0 0 0-3-3.87' />
+          <path d='M16 3.13a4 4 0 0 1 0 7.75' />
+        </svg>
+      )
+    case 'equipment':
+      return (
+        <svg {...props} aria-hidden='true'>
+          <rect x='2' y='6' width='20' height='12' rx='2' />
+          <path d='M6 10h.01' /><path d='M10 10h.01' /><path d='M14 10h.01' />
+          <path d='M6 14h12' />
+          <path d='M12 6V3' />
+        </svg>
+      )
+    case 'support':
+      return (
+        <svg {...props} aria-hidden='true'>
+          <path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' />
+          <path d='M8 10h.01' /><path d='M12 10h.01' /><path d='M16 10h.01' />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
+const WhyChooseCard = ({ icon, title, description }) => (
+  <div className='home-why-card'>
+    <span className='home-why-icon'>
+      <WhyChooseIcon type={icon} />
+    </span>
+    <h3 className='home-why-title'>{title}</h3>
+    <p className='home-why-desc'>{description}</p>
   </div>
 )
 
 const CategoryCard = ({ image, badge, title, description, to }) => (
-  <Link to={to} className='group corp-feature-card p-0 overflow-hidden block h-full'>
+  <Link to={to} className='group home-category-card corp-feature-card p-0 overflow-hidden block h-full'>
     <div className='relative aspect-[4/3] overflow-hidden'>
       <img src={image} alt={title} className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300' />
       {badge ? (
-        <span className='absolute top-3 left-3 bg-white/95 text-xs font-semibold text-blue-700 px-2.5 py-1 rounded-md shadow-sm'>
-          {badge}
-        </span>
+        <span className='home-category-badge'>{badge}</span>
       ) : null}
     </div>
     <div className='p-5'>
-      <h3 className='font-semibold text-lg text-slate-800 mb-1'>{title}</h3>
+      <h3 className='font-semibold text-lg text-slate-800 mb-1 group-hover:text-blue-600 transition-colors'>{title}</h3>
       <p className='text-sm text-slate-600 leading-relaxed'>{description}</p>
     </div>
   </Link>
 )
 
 const WHY_CHOOSE = [
-  { title: 'One-Stop Service', description: 'From mold development to mass production, we handle everything in-house.' },
-  { title: 'Strict Quality Control', description: 'Rigorous inspection processes ensure every batch meets international standards.' },
-  { title: '20+ Years Experience', description: 'Trusted wholesale partner serving healthcare facilities and retailers worldwide.' },
-  { title: '50+ Team Members', description: 'Skilled workforce with professional engineers and QC specialists.' },
-  { title: 'Advanced Equipment', description: 'Modern injection molding and automated assembly production lines.' },
-  { title: '24h Online Support', description: 'Dedicated account managers respond to wholesale inquiries promptly.' },
+  { icon: 'service', title: 'One-Stop Service', description: 'From mold development to mass production, we handle everything in-house.' },
+  { icon: 'quality', title: 'Strict Quality Control', description: 'Rigorous inspection processes ensure every batch meets international standards.' },
+  { icon: 'experience', title: '20+ Years Experience', description: 'Trusted wholesale partner serving healthcare facilities and retailers worldwide.' },
+  { icon: 'team', title: '50+ Team Members', description: 'Skilled workforce with professional engineers and QC specialists.' },
+  { icon: 'equipment', title: 'Advanced Equipment', description: 'Modern injection molding and automated assembly production lines.' },
+  { icon: 'support', title: '24h Online Support', description: 'Dedicated account managers respond to wholesale inquiries promptly.' },
 ]
 
-const OEM_CAPABILITIES = [
-  { title: 'Custom Logo & Branding', description: 'Your brand identity on every product' },
-  { title: 'Custom Packaging', description: 'Unique packaging design and printing' },
-  { title: 'Mold Development', description: 'In-house mold manufacturing support' },
-  { title: 'Product Design', description: 'Industrial design and prototyping service' },
-  { title: 'Mass Production', description: 'Scalable, consistent manufacturing' },
-  { title: 'Quality Control', description: '100% inspection before shipment' },
-]
+const CERTIFICATIONS = ['ISO 9001', 'BPA Free', 'EN 14350']
 
 const PROCESS_STEPS = [
   { step: '01', title: 'Requirement Review', description: 'Understand your specs and goals' },
@@ -72,23 +113,19 @@ const PROCESS_STEPS = [
   { step: '06', title: 'Delivery', description: 'Safe packaging and on-time shipping' },
 ]
 
-const CERTIFICATIONS = ['ISO 9001', 'FDA', 'CE', 'BPA Free', 'LFGB', 'EN 14350']
-
 const galleryPreview = galleryImages.filter((img) => !factoryCarousel.includes(img)).slice(0, 12)
 
 const HomeLanding = () => {
   return (
     <>
       <section
-        className='home-hero relative flex items-center'
+        className='home-section home-section--hero home-hero relative flex items-center'
         style={{ backgroundImage: `url(${homeImages.hero})` }}
       >
-        <div className='absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/65 to-slate-900/40' />
+        <div className='home-section-bg home-hero-overlay' aria-hidden='true' />
         <div className='section-container relative z-10 py-16 md:py-24'>
-          <div className='max-w-2xl'>
-            <span className='inline-block bg-blue-600/90 text-white text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded mb-5'>
-              OEM / ODM Manufacturer
-            </span>
+          <div className='max-w-2xl home-hero-content'>
+            <span className='home-hero-badge'>OEM / ODM Manufacturer</span>
             <h1 className='text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5'>
               One-Stop Baby Bottle &amp; Sippy Cup Manufacturer
             </h1>
@@ -108,18 +145,18 @@ const HomeLanding = () => {
         </div>
       </section>
 
-      <section className='corp-stat-bar py-10 md:py-12'>
-        <div className='section-container grid grid-cols-1 sm:grid-cols-3 gap-6'>
-          <StatItem value='20+' label='Years Experience' />
-          <StatItem value='30+' label='Export Countries' />
-          <StatItem value='20+' label='Product Lines' />
-        </div>
-      </section>
+      <HomeSection variant='stats' innerClassName='home-stat-grid'>
+        <StatItem value='20+' label='Years Experience' />
+        <StatItem value='30+' label='Export Countries' />
+        <StatItem value='20+' label='Product Lines' />
+      </HomeSection>
 
-      <section className='section-container py-16 md:py-20'>
+      <HomeSection variant='categories'>
         <SectionHeader
+          index={1}
           eyebrow='Product Range'
-          title='Our Product Categories'
+          title='Our Product'
+          highlight='Categories'
           subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
         />
         <div className='grid md:grid-cols-3 gap-6 lg:gap-8'>
@@ -151,60 +188,58 @@ const HomeLanding = () => {
             <span aria-hidden='true'>→</span>
           </Link>
         </div>
-      </section>
+      </HomeSection>
 
-      <section className='section-alt py-16 md:py-20'>
-        <div className='section-container'>
-          <SectionHeader
-            eyebrow='Why Partner With Us'
-            title='Why Choose Applebear'
-            subtitle='One-stop baby product manufacturing with professional OEM/ODM experience.'
-          />
-          <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6'>
-            {WHY_CHOOSE.map((item) => (
-              <FeatureCard key={item.title} title={item.title} description={item.description} />
-            ))}
-          </div>
+      <HomeSection variant='why'>
+        <SectionHeader
+          index={2}
+          eyebrow='Why Partner With Us'
+          title='Why Choose'
+          highlight='Applebear'
+          subtitle='One-stop baby product manufacturing with professional OEM/ODM experience.'
+          dark
+        />
+        <div className='home-why-grid'>
+          {WHY_CHOOSE.map((item) => (
+            <WhyChooseCard key={item.title} icon={item.icon} title={item.title} description={item.description} />
+          ))}
         </div>
-      </section>
+      </HomeSection>
 
-      <section className='section-container py-16 md:py-20'>
+      <HomeSection variant='manufacturing'>
         <div className='grid lg:grid-cols-2 gap-10 lg:gap-14 items-center'>
-          <div className='relative'>
+          <div className='relative home-manufacturing-visual'>
             <img
               src={homeImages.manufacturing}
               alt='Applebear injection molding production line'
               className='corp-image w-full aspect-[4/3] object-cover'
             />
-            <div className='absolute bottom-4 left-4 bg-white rounded-lg shadow-lg px-4 py-3 border border-slate-100'>
+            <div className='home-manufacturing-badge'>
               <p className='text-xs text-slate-500 uppercase tracking-wide'>Est. 1998</p>
               <p className='font-bold text-slate-800'>20+ Years Manufacturing</p>
             </div>
           </div>
           <div>
             <SectionHeader
-              eyebrow='Why Partner With Us'
-              title='World-Class Manufacturing Capabilities'
+              index={3}
+              eyebrow='Capabilities'
+              title='World-Class Manufacturing'
+              highlight='Capabilities'
               subtitle='Our facility is equipped with advanced injection molding machines, automated assembly lines, and dedicated quality control — every product manufactured to international safety standards.'
               align='left'
             />
             <div className='grid grid-cols-2 gap-4 mb-8'>
-              <div className='corp-feature-card text-center py-5 px-3'>
-                <p className='text-2xl font-bold text-blue-600'>12,000㎡</p>
-                <p className='text-xs text-slate-600 mt-1'>Factory Area</p>
-              </div>
-              <div className='corp-feature-card text-center py-5 px-3'>
-                <p className='text-2xl font-bold text-blue-600'>7</p>
-                <p className='text-xs text-slate-600 mt-1'>Production Lines</p>
-              </div>
-              <div className='corp-feature-card text-center py-5 px-3'>
-                <p className='text-2xl font-bold text-blue-600'>50+</p>
-                <p className='text-xs text-slate-600 mt-1'>Skilled Workers</p>
-              </div>
-              <div className='corp-feature-card text-center py-5 px-3'>
-                <p className='text-2xl font-bold text-blue-600'>2.5M+</p>
-                <p className='text-xs text-slate-600 mt-1'>Monthly Output</p>
-              </div>
+              {[
+                { value: '12,000㎡', label: 'Factory Area' },
+                { value: '7', label: 'Production Lines' },
+                { value: '50+', label: 'Skilled Workers' },
+                { value: '2.5M+', label: 'Monthly Output' },
+              ].map((item) => (
+                <div key={item.label} className='home-metric-chip'>
+                  <p className='home-metric-value'>{item.value}</p>
+                  <p className='home-metric-label'>{item.label}</p>
+                </div>
+              ))}
             </div>
             <Link to='/about' className='corp-btn'>
               Learn About Our Factory
@@ -212,89 +247,75 @@ const HomeLanding = () => {
             </Link>
           </div>
         </div>
-      </section>
+      </HomeSection>
 
-      <section className='section-alt py-16 md:py-20'>
-        <div className='section-container'>
-          <SectionHeader
-            eyebrow='Factory Tour'
-            title='Inside Our Facility'
-            subtitle='Injection molding lines, automated assembly equipment, blow-molding machines, and clean-room standards — see how we manufacture at scale.'
-          />
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5'>
-            {factoryCarousel.map((src, idx) => (
-              <div key={idx} className='overflow-hidden rounded-xl border border-slate-200 aspect-[4/3] shadow-sm'>
-                <img src={src} alt={`Applebear production equipment ${idx + 1}`} className='w-full h-full object-cover hover:scale-105 transition-transform duration-300' />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className='section-container py-16 md:py-20'>
+      <HomeSection variant='factory'>
         <SectionHeader
-          eyebrow='Custom Development'
-          title='Full-Service OEM Capabilities'
-          subtitle='From concept to finished product, our OEM service covers every aspect of baby product development.'
+          index={4}
+          eyebrow='Factory Tour'
+          title='Inside Our'
+          highlight='Facility'
+          subtitle='Injection molding lines, automated assembly equipment, blow-molding machines, and clean-room standards — see how we manufacture at scale.'
+          dark
         />
-        <div className='grid lg:grid-cols-2 gap-8 items-stretch mb-10'>
-          <img src={homeImages.showroom} alt='Applebear product showroom' className='corp-image w-full h-full min-h-[240px] object-cover' />
-          <img src={homeImages.assembly} alt='Assembly and packaging line' className='corp-image w-full h-full min-h-[240px] object-cover' />
-        </div>
-        <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6'>
-          {OEM_CAPABILITIES.map((item) => (
-            <FeatureCard key={item.title} title={item.title} description={item.description} />
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5'>
+          {factoryCarousel.map((src, idx) => (
+            <div key={idx} className='home-factory-photo'>
+              <img src={src} alt={`Applebear production equipment ${idx + 1}`} className='w-full h-full object-cover' />
+            </div>
           ))}
         </div>
-        <div className='text-center mt-10'>
-          <Link to='/contact' className='corp-btn px-8'>
-            Learn About OEM Services
-            <span aria-hidden='true'>→</span>
-          </Link>
-        </div>
-      </section>
+      </HomeSection>
 
-      <section className='section-alt py-16 md:py-20'>
+      <OemFlowSection />
+
+      <HomeSection variant='process'>
         <SectionHeader
+          index={6}
           eyebrow='How We Work'
-          title='Our Production Process'
+          title='Our Production'
+          highlight='Process'
           subtitle='Every product goes through our standardized 6-step manufacturing process to ensure consistent quality and safety.'
         />
-        <div className='section-container grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4'>
+        <div className='home-process-grid'>
           {PROCESS_STEPS.map((item) => (
-            <div key={item.step} className='corp-feature-card text-center py-6 px-4'>
-              <p className='text-xs font-bold text-blue-600 tracking-wider mb-2'>STEP {item.step}</p>
+            <div key={item.step} className='home-process-card' data-step={item.step}>
+              <span className='home-process-num' aria-hidden='true'>{item.step}</span>
+              <p className='home-process-label'>STEP {item.step}</p>
               <h3 className='font-semibold text-slate-800 text-sm mb-2'>{item.title}</h3>
               <p className='text-xs text-slate-500 leading-relaxed'>{item.description}</p>
             </div>
           ))}
         </div>
-      </section>
+      </HomeSection>
 
-      <section className='section-container py-16 md:py-20'>
+      <HomeSection variant='quality'>
         <SectionHeader
+          index={7}
           eyebrow='Quality Assurance'
-          title='International Certifications'
+          title='International'
+          highlight='Certifications'
           subtitle='Our products meet the highest international safety standards for buyers and end consumers worldwide.'
         />
-        <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10'>
+        <div className='home-cert-row'>
           {CERTIFICATIONS.map((cert) => (
-            <div key={cert} className='corp-feature-card text-center py-5 px-3'>
-              <p className='font-semibold text-slate-800 text-sm'>{cert}</p>
+            <div key={cert} className='home-cert-badge'>
+              <span className='home-cert-icon' aria-hidden='true'>✓</span>
+              <p className='font-semibold text-slate-800'>{cert}</p>
             </div>
           ))}
         </div>
-        <div className='rounded-xl overflow-hidden border border-slate-200 shadow-sm max-w-4xl mx-auto mb-10'>
+        <div className='home-cert-hero-image'>
           <img src={homeImages.certifications} alt='Quality certifications and awards' className='w-full object-cover' />
         </div>
-        <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3'>
+        <div className='home-gallery-grid'>
           {galleryPreview.map((src, idx) => (
-            <div key={idx} className='overflow-hidden rounded-lg border border-slate-200 aspect-[4/3]'>
+            <div key={idx} className='home-gallery-thumb'>
               <img src={src} alt={`Facility photo ${idx + 1}`} className='w-full h-full object-cover' />
             </div>
           ))}
         </div>
-      </section>
+      </HomeSection>
     </>
   )
 }
