@@ -20,6 +20,7 @@ const productSchema = new mongoose.Schema({
     value: { type: String, trim: true, default: '' }
   }],
   date: { type: Number, required: true },
+  updatedAt: { type: Number },
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'review' }],
   averageRating: { type: Number, default: 0 },
 });

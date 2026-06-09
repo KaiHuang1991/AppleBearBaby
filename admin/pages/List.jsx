@@ -1,14 +1,154 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { backendUrl } from '../src/App.jsx'
 import { toast } from 'react-toastify'
 import { Link } from 'react-router-dom'
+
+const GRID_COLS = 'grid-cols-[1fr_3fr_1.2fr_0.8fr_1.2fr_0.6fr]'
+
+const formatModifiedTime = (item) => {
+  const ts = item.updatedAt || item.date
+  if (!ts) return '-'
+  return new Date(ts).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const SortArrows = ({ column, sortBy, sortOrder, onSort }) => {
+  const isActive = sortBy === column
+  return (
+    <span className='inline-flex flex-col leading-none ml-0.5'>
+      <button
+        type='button'
+        title='升序'
+        onClick={() => onSort(column, 'asc')}
+        className={`px-0.5 text-[10px] leading-[10px] hover:text-blue-600 ${
+          isActive && sortOrder === 'asc' ? 'text-blue-600' : 'text-gray-400'
+        }`}
+      >
+        ▲
+      </button>
+      <button
+        type='button'
+        title='降序'
+        onClick={() => onSort(column, 'desc')}
+        className={`px-0.5 text-[10px] leading-[10px] hover:text-blue-600 ${
+          isActive && sortOrder === 'desc' ? 'text-blue-600' : 'text-gray-400'
+        }`}
+      >
+        ▼
+      </button>
+    </span>
+  )
+}
+
+const CategoryFilter = ({ categories, value, onChange }) => {
+  const [open, setOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const ref = useRef(null)
+  const searchRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false)
+        setSearchQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    if (open && searchRef.current) {
+      searchRef.current.focus()
+    }
+  }, [open])
+
+  const filteredCategories = searchQuery.trim()
+    ? categories.filter(cat => cat.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : categories
+
+  const closeMenu = () => {
+    setOpen(false)
+    setSearchQuery('')
+  }
+
+  return (
+    <div className='relative inline-block' ref={ref}>
+      <button
+        type='button'
+        title='筛选类目'
+        onClick={() => setOpen(prev => !prev)}
+        className={`p-0.5 rounded hover:bg-gray-200 ${value ? 'text-blue-600' : 'text-gray-500'}`}
+      >
+        <svg width='14' height='14' viewBox='0 0 24 24' fill='currentColor' aria-hidden='true'>
+          <path d='M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z' />
+        </svg>
+      </button>
+      {open && (
+        <div className='absolute left-0 top-full z-20 mt-1 min-w-[200px] bg-white border border-gray-200 rounded-md shadow-lg text-sm font-normal'>
+          <div className='p-2 border-b border-gray-100 sticky top-0 bg-white'>
+            <input
+              ref={searchRef}
+              type='text'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder='搜索类目...'
+              className='w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500'
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className='max-h-52 overflow-y-auto py-1'>
+            <button
+              type='button'
+              className={`block w-full text-left px-3 py-1.5 hover:bg-gray-100 ${!value ? 'text-blue-600 font-medium' : ''}`}
+              onClick={() => {
+                onChange('')
+                closeMenu()
+              }}
+            >
+              全部类目
+            </button>
+            {filteredCategories.length > 0 ? (
+              filteredCategories.map(cat => (
+                <button
+                  key={cat}
+                  type='button'
+                  className={`block w-full text-left px-3 py-1.5 hover:bg-gray-100 truncate ${
+                    value === cat ? 'text-blue-600 font-medium' : ''
+                  }`}
+                  onClick={() => {
+                    onChange(cat)
+                    closeMenu()
+                  }}
+                >
+                  {cat}
+                </button>
+              ))
+            ) : (
+              <p className='px-3 py-2 text-gray-400 text-xs'>无匹配类目</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const List = ({ token, currency }) => {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [categoryOptions, setCategoryOptions] = useState([])
+  const [sortBy, setSortBy] = useState('updatedAt')
+  const [sortOrder, setSortOrder] = useState('desc')
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -16,18 +156,40 @@ const List = ({ token, currency }) => {
     totalPages: 1,
   })
   const limit = 20
-  
-  const fetchList = useCallback(async (targetPage = 1, overrideSearch) => {
+
+  const apiUrl = backendUrl || 'http://localhost:4000'
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await axios.get(`${apiUrl}/api/categories`)
+        if (data.success) {
+          const topLevel = (data.categories || [])
+            .filter(cat => !cat.parent)
+            .map(cat => cat.name)
+            .filter(Boolean)
+          setCategoryOptions(topLevel)
+        }
+      } catch (error) {
+        console.error('Failed to load categories', error)
+      }
+    }
+    fetchCategories()
+  }, [apiUrl])
+
+  const fetchList = useCallback(async (targetPage = 1) => {
     try {
       setLoading(true)
-      const apiUrl = backendUrl || 'http://localhost:4000'
       const response = await axios.get(apiUrl + '/api/product/list', {
         params: {
           page: targetPage,
           limit,
-          search: overrideSearch !== undefined ? overrideSearch : searchTerm || undefined,
+          search: searchTerm || undefined,
+          category: categoryFilter || undefined,
+          sortBy,
+          sortOrder,
         },
-        headers: { token }
+        headers: { token },
       })
       if (response.data.success && response.data.products) {
         setList(response.data.products)
@@ -52,13 +214,12 @@ const List = ({ token, currency }) => {
     } finally {
       setLoading(false)
     }
-  }, [token, limit, searchTerm])
-  
+  }, [token, limit, searchTerm, categoryFilter, sortBy, sortOrder, apiUrl])
+
   const removeProduct = async (id) => {
     try {
-      const confirmation = window.confirm("Are you Sure to Delete?")
+      const confirmation = window.confirm('Are you Sure to Delete?')
       if (confirmation) {
-        const apiUrl = backendUrl || 'http://localhost:4000'
         const response = await axios.post(apiUrl + '/api/product/remove', { id }, { headers: { token } })
         if (response.data.success) {
           toast.success(response.data.message)
@@ -70,35 +231,43 @@ const List = ({ token, currency }) => {
         } else {
           toast.error(response.data.message)
         }
-      } else {
-        return
       }
     } catch (error) {
       console.log(error)
       toast.error(error.message)
     }
   }
+
   useEffect(() => {
     fetchList(1)
   }, [fetchList])
-  
+
+  const handleSort = (column, order) => {
+    setSortBy(column)
+    setSortOrder(order)
+  }
+
+  const handleCategoryFilter = (category) => {
+    setCategoryFilter(category)
+  }
+
   const handlePageChange = async (pageNumber) => {
     if (pageNumber === pagination.page || pageNumber < 1 || pageNumber > pagination.totalPages) return
     await fetchList(pageNumber)
   }
-  
+
   const handleNext = () => {
     if (pagination.page < pagination.totalPages) {
       handlePageChange(pagination.page + 1)
     }
   }
-  
+
   const handlePrevious = () => {
     if (pagination.page > 1) {
       handlePageChange(pagination.page - 1)
     }
   }
-  
+
   const renderPagination = () => {
     if (!pagination || pagination.totalPages <= 1) return null
     const pages = []
@@ -107,7 +276,7 @@ const List = ({ token, currency }) => {
         pages.push(i)
       }
     }
-    
+
     return (
       <div className='flex flex-wrap items-center justify-center gap-2 mt-6'>
         <button
@@ -146,15 +315,15 @@ const List = ({ token, currency }) => {
       </div>
     )
   }
-  
-  if (loading) {
+
+  if (loading && list.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600'></div>
       </div>
     )
   }
-  
+
   return (
     <>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4'>
@@ -164,6 +333,11 @@ const List = ({ token, currency }) => {
             {pagination.total > 0
               ? `Showing ${(pagination.page - 1) * pagination.limit + 1} - ${Math.min(pagination.page * pagination.limit, pagination.total)} of ${pagination.total} products`
               : 'No products found'}
+            {categoryFilter && (
+              <span className='ml-2 text-blue-600'>
+                · 类目: {categoryFilter}
+              </span>
+            )}
           </p>
         </div>
         <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:min-w-[320px]'>
@@ -177,21 +351,18 @@ const List = ({ token, currency }) => {
           <div className='flex gap-2'>
             <button
               type='button'
-              onClick={() => {
-                setSearchTerm(searchInput.trim())
-                fetchList(1, searchInput.trim())
-              }}
+              onClick={() => setSearchTerm(searchInput.trim())}
               className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm'
             >
               Search
             </button>
-            {searchTerm && (
+            {(searchTerm || categoryFilter) && (
               <button
                 type='button'
                 onClick={() => {
                   setSearchInput('')
                   setSearchTerm('')
-                  fetchList(1, '')
+                  setCategoryFilter('')
                 }}
                 className='px-4 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-100 transition-colors text-sm'
               >
@@ -201,28 +372,49 @@ const List = ({ token, currency }) => {
           </div>
         </div>
       </div>
-      <div className='flex flex-col gap-2'>
-        <div className='hidden md:grid grid-cols-[1fr_3fr_1fr_1fr_1fr] items-center py-1 px-2 border bg-gray-100 text-sm'>
+      <div className={`flex flex-col gap-2 ${loading ? 'opacity-60 pointer-events-none' : ''}`}>
+        <div className={`hidden md:grid ${GRID_COLS} items-center py-1 px-2 border bg-gray-100 text-sm`}>
           <b>Image</b>
           <b>Name</b>
-          <b>Category</b>
+          <b className='flex items-center gap-0.5'>
+            Category
+            <CategoryFilter
+              categories={categoryOptions}
+              value={categoryFilter}
+              onChange={handleCategoryFilter}
+            />
+          </b>
           <b>Price</b>
+          <b className='flex items-center gap-0.5'>
+            修改时间
+            <SortArrows column='updatedAt' sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+          </b>
           <b className='text-center'>Action</b>
         </div>
-        {/* ----product List------- */}
         {list && list.length > 0 ? (
-          list.map((item, itemIndex) => (
-            <div className='grid grid-cols-[1fr_3fr_1fr_1fr_1fr] items-center gap-2 py-1 px-2 border bg-gray-100 text-sm' key={itemIndex}>
-              <Link to={`/single/${item._id}`} ><img className='w-20' src={item.image[0]} alt="" /></Link>
+          list.map((item) => (
+            <div
+              className={`grid ${GRID_COLS} items-center gap-2 py-1 px-2 border bg-gray-100 text-sm`}
+              key={item._id}
+            >
+              <Link to={`/single/${item._id}`}>
+                <img className='w-20' src={item.image[0]} alt='' />
+              </Link>
               <p>{item.name}</p>
               <p>{item.category}</p>
               <p>{currency}{item.price}</p>
-              <p onClick={() => { removeProduct(item._id) }} className='text-right md:text-center cursor-pointer text-lg'>X</p>
+              <p className='text-gray-600 text-xs whitespace-nowrap'>{formatModifiedTime(item)}</p>
+              <p
+                onClick={() => { removeProduct(item._id) }}
+                className='text-right md:text-center cursor-pointer text-lg'
+              >
+                X
+              </p>
             </div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-600">No products found</p>
+          <div className='text-center py-8'>
+            <p className='text-gray-600'>No products found</p>
           </div>
         )}
         {renderPagination()}

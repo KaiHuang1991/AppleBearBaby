@@ -140,7 +140,8 @@ const addProduct = async (req, res) => {
         sizes: parseJsonField(sizes, []),
         attributes: attributeValues,
         image: imagesUrl,
-        date: Date.now()
+        date: Date.now(),
+        updatedAt: Date.now()
     }
 
     const product = new productModel(productData)
@@ -374,6 +375,8 @@ const updateProduct = async (req, res) => {
             }
         }
 
+        currenctProduct.updatedAt = Date.now()
+
         await currenctProduct.save()
 
         res.json({ success: true, message: "product updated" })
@@ -392,6 +395,9 @@ const listProduct = async (req, res) => {
             limit: limitParam,
             search,
             all,
+            category,
+            sortBy: sortByParam,
+            sortOrder: sortOrderParam,
         } = req.query
 
         const filter = {}
@@ -400,20 +406,73 @@ const listProduct = async (req, res) => {
             filter.name = { $regex: search.trim(), $options: 'i' }
         }
 
+        if (category && typeof category === 'string' && category.trim()) {
+            filter.category = category.trim()
+        }
+
+        const sortBy = sortByParam === 'category' ? 'category' : 'updatedAt'
+        const sortOrder = sortOrderParam === 'asc' ? 'asc' : 'desc'
+        const order = sortOrder === 'asc' ? 1 : -1
+
+        const buildSortStage = () => {
+            if (sortBy === 'category') {
+                return { category: order, _id: order }
+            }
+            return { effectiveUpdatedAt: order, _id: order }
+        }
+
+        const buildListPipeline = (skip, limit) => {
+            const pipeline = [{ $match: filter }]
+            if (sortBy !== 'category') {
+                pipeline.push({
+                    $addFields: { effectiveUpdatedAt: { $ifNull: ['$updatedAt', '$date'] } },
+                })
+            }
+            pipeline.push(
+                { $sort: buildSortStage() },
+                { $skip: skip },
+                { $limit: limit },
+                {
+                    $project: {
+                        name: 1,
+                        price: 1,
+                        image: 1,
+                        category: 1,
+                        subCategory: 1,
+                        thirdCategory: 1,
+                        date: 1,
+                        updatedAt: 1,
+                        categoryId: 1,
+                        subCategoryId: 1,
+                        thirdCategoryId: 1,
+                        bestseller: 1,
+                    },
+                }
+            )
+            return pipeline
+        }
+
         if (all === 'true') {
-            const products = await productModel
-                .find(filter)
-                .sort({ date: -1, _id: -1 })
-                .populate('categoryId subCategoryId attributes.attribute')
-                .lean()
+            const allPipeline = [{ $match: filter }]
+            if (sortBy !== 'category') {
+                allPipeline.push({
+                    $addFields: { effectiveUpdatedAt: { $ifNull: ['$updatedAt', '$date'] } },
+                })
+            }
+            allPipeline.push({ $sort: buildSortStage() })
+
+            const products = await productModel.aggregate(allPipeline)
+            const populated = await productModel.populate(products, [
+                { path: 'categoryId subCategoryId attributes.attribute' },
+            ])
 
             return res.json({
                 success: true,
-                products,
+                products: populated,
                 pagination: {
                     page: 1,
-                    limit: products.length,
-                    total: products.length,
+                    limit: populated.length,
+                    total: populated.length,
                     totalPages: 1,
                     mode: 'all',
                 },
@@ -425,16 +484,8 @@ const listProduct = async (req, res) => {
         const limit = Math.min(parsedLimit, 100)
         const skip = (page - 1) * limit
 
-        const sort = { date: -1, _id: -1 }
-
         const [products, total] = await Promise.all([
-            productModel
-                .find(filter)
-                .sort(sort)
-                .skip(skip)
-                .limit(limit)
-                .select('name price image category subCategory thirdCategory date categoryId subCategoryId thirdCategoryId bestseller')
-                .lean(),
+            productModel.aggregate(buildListPipeline(skip, limit)),
             productModel.countDocuments(filter),
         ])
 
@@ -444,13 +495,7 @@ const listProduct = async (req, res) => {
 
         if (currentPage !== page && total > 0) {
             const correctedSkip = (currentPage - 1) * limit
-            paginatedProducts = await productModel
-                .find(filter)
-                .sort(sort)
-                .skip(correctedSkip)
-                .limit(limit)
-                .select('name price image category subCategory thirdCategory date categoryId subCategoryId thirdCategoryId bestseller')
-                .lean()
+            paginatedProducts = await productModel.aggregate(buildListPipeline(correctedSkip, limit))
         }
 
         res.json({
@@ -463,6 +508,7 @@ const listProduct = async (req, res) => {
                 totalPages,
                 mode: 'paginated',
             },
+            sort: { sortBy, sortOrder },
         })
     } catch (error) {
         console.log(error)
