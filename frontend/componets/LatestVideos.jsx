@@ -25,11 +25,8 @@ const LatestVideos = () => {
   const featured = videos[0]
 
   return (
-    <section className="my-16 sm:my-20">
-      <Title text1="WATCH" text2="OUR VIDEOS" />
-      <p className="w-3/4 m-auto text-xs sm:text-sm md:text-base text-gray-600 mt-4 text-center">
-        Product demos and factory highlights — click to play
-      </p>
+    <section className="my-14 md:my-20">
+      <Title text1="Watch" text2="Our Videos" subtitle="Product demos and factory highlights — click to play." />
 
       <div className="mt-8 grid md:grid-cols-2 gap-6 items-start">
         <div className="cartoon-card p-4">
@@ -53,11 +50,9 @@ const LatestVideos = () => {
       </div>
 
       <div className="text-center mt-8">
-        <Link
-          to="/videos"
-          className="cartoon-btn inline-block px-8 py-3 text-white font-semibold"
-        >
+        <Link to="/videos" className="corp-btn inline-flex px-8">
           View all videos
+          <span aria-hidden="true">→</span>
         </Link>
       </div>
     </section>

@@ -263,16 +263,8 @@ const Collection = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   return (
-    <div className='mt-0 h-auto flex flex-col lg:flex-row gap-1 lg:gap-10 pt-28 border-t border-blue-200 min-h-screen relative'>
-      {/* Blue/Cyan Background Pattern */}
-      <div className="absolute inset-0 cartoon-bg"></div>
-      <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
-      
-      {/* Subtle floating elements */}
-      <div className="absolute top-32 left-10 w-12 h-12 bg-blue-200 rounded-full gentle-float opacity-40"></div>
-      <div className="absolute bottom-40 right-20 w-8 h-8 bg-cyan-200 rounded-full gentle-bounce opacity-40"></div>
-      
-      <div className='relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-10 w-full max-w-full box-border px-5 lg:px-10'>
+    <div className='page-shell flex flex-col lg:flex-row gap-1 lg:gap-10 min-h-screen'>
+      <div className='relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-10 w-full max-w-full box-border section-container py-8'>
       {/*filter options*/}
       <div className='w-full lg:w-auto lg:min-w-40 lg:max-w-[14rem] shrink-0'>
         <p onClick = {()=>setShowFilter(!showFilter)} className='my-2 text-xl flex items-center cursor-pointer gap-2 text-blue-600 lg:cursor-default'>

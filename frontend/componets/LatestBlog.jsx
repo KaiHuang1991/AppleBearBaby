@@ -2,6 +2,9 @@ import React, { useState, useEffect, useContext } from 'react'
 import Title from './Title'
 import { useNavigate } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
+import { homeImages } from '../src/assets/galleryAssets'
+
+const blogFallbackImage = homeImages.showroom
 
 const LatestBlog = () => {
   const navigate = useNavigate()
@@ -87,11 +90,7 @@ const LatestBlog = () => {
         <div className="absolute inset-0 cartoon-bg rounded-3xl opacity-80"></div>
         <div className='relative z-10'>
           <div className='text-center py-8'>
-            <div className='flex items-center justify-center mb-4'>
-              <span className='text-3xl mr-4'>📝</span>
-              <Title text1="LATEST" text2="BLOG"/>
-              <span className='text-3xl ml-4'>📚</span>
-            </div>
+            <Title text1="Latest" text2="Blog"/>
             <div className='flex justify-center'>
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
             </div>
@@ -110,14 +109,11 @@ const LatestBlog = () => {
       
       <div className='relative z-10'>
         <div className='text-center py-8'>
-          <div className='flex items-center justify-center mb-4'>
-            <span className='text-3xl mr-4 gentle-bounce'>📝</span>
-            <Title text1="LATEST" text2="BLOG"/>
-            <span className='text-3xl ml-4 gentle-float'>📚</span>
-          </div>
-          <p className='w-3/4 m-auto text-xs sm:text-sm md:text-base text-gray-600 mt-4'>
-            Expert insights, tips, and guides for baby care professionals and parents. Stay updated with the latest in baby product trends and care practices.
-          </p>
+          <Title
+            text1="Latest"
+            text2="Blog"
+            subtitle="Expert insights, tips, and guides for baby care professionals and parents."
+          />
         </div>
         
         {/* Blog layout */}
@@ -138,7 +134,7 @@ const LatestBlog = () => {
                 >
                   <div className='h-44 w-full overflow-hidden rounded-2xl shadow-md'>
                     <img
-                      src={post.image || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop&crop=center'}
+                      src={post.image || blogFallbackImage}
                       alt={post.title}
                       className='h-full w-full object-cover'
                     />
@@ -189,7 +185,7 @@ const LatestBlog = () => {
                       <div className='flex flex-col lg:flex-row gap-8 items-center justify-center'>
                           <div className='w-full lg:w-1/2 h-72 rounded-2xl overflow-hidden shadow-lg'>
                           <img 
-                            src={post.image || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop&crop=center"} 
+                            src={post.image || blogFallbackImage} 
                             alt={post.title} 
                               className='w-full h-full object-cover hover:scale-105 transition-transform duration-300' 
                           />
@@ -238,15 +234,10 @@ const LatestBlog = () => {
         
         {/* Call to action */}
         <div className='text-center mt-8'>
-          <button 
-            className='cartoon-btn px-8 py-3 text-white font-bold text-lg'
-            onClick={handleViewAllBlogs}
-          >
-            View All Blog Posts 📖
+          <button type='button' className='corp-btn px-8' onClick={handleViewAllBlogs}>
+            View All Blog Posts
+            <span aria-hidden='true'>→</span>
           </button>
-          <p className='text-gray-600 mt-4 text-sm'>
-            <span className='text-blue-500 font-semibold'>🌟 New posts every week!</span> Stay updated with expert baby care advice
-          </p>
         </div>
       </div>
     </div>

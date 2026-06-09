@@ -1,11 +1,17 @@
 import React from 'react'
 
-const Title = ({text1,text2}) => {
+const Title = ({ text1, text2, align = 'center', subtitle, className = '' }) => {
+  const alignClass = align === 'left' ? 'text-left' : 'text-center'
+
   return (
-    <div className='inline-flex gap-2 items-center mb-3'>
-        <p className='text-lg text-gray-500'>{text1}<span className='ml-2 text-gray-700 font-medium'>{text2}</span></p>
-        <p className='w-8 sm:w-12 h-[1px] sm:h-[2px] bg-gray-700'></p>
-      
+    <div className={`mb-6 ${alignClass} ${className}`}>
+      <h2 className='corp-section-title'>
+        {text1}
+        {text2 ? <span className='text-blue-600'> {text2}</span> : null}
+      </h2>
+      {subtitle ? (
+        <p className={`corp-section-subtitle ${align === 'center' ? 'mx-auto' : ''}`}>{subtitle}</p>
+      ) : null}
     </div>
   )
 }

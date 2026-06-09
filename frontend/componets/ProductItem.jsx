@@ -28,15 +28,15 @@ const ProductItem = ({id,image,name,price}) => {
                 </p>
                 <div className='flex flex-col  flex-start justify-between sm:flex-row'>
                     <p className='text-base font-bold text-blue-600'>{currency}{price}</p>
-                    <span className='text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium sm:text-sm justify-center items-center'>
-                        💖 Best Value
+                    <span className='text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-medium border border-blue-100'>
+                        Best Value
                     </span>
                 </div>
                 <button 
                     className='w-full cartoon-btn py-2 text-white font-semibold text-sm mt-auto'
                     onClick={handleAddToCart}
                 >
-                    Add to Cart 🛒
+                    Add to Inquiry List
                 </button>
             </div>
         </div>

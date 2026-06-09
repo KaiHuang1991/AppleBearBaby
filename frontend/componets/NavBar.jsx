@@ -48,35 +48,35 @@ const NavBar = () => {
     }
   return (
     <>
-    <nav className="site-navbar fixed w-full bg-white/90 backdrop-blur-sm top-0 left-0 right-0 border-b-2 border-blue-500" style={{zIndex: 9999}} aria-label="Main navigation">
-      <div className='navbar-inner flex items-center justify-between gap-3 py-3 sm:py-4 lg:py-5 px-4 sm:px-6 lg:px-[10vw] min-h-[4.25rem] lg:min-h-0'>
+    <nav className="site-navbar fixed w-full bg-white/95 backdrop-blur-sm top-0 left-0 right-0 border-b border-slate-200 shadow-sm" style={{zIndex: 9999}} aria-label="Main navigation">
+      <div className='navbar-inner flex items-center justify-between gap-3 py-3 sm:py-3.5 lg:py-4 px-4 sm:px-6 lg:px-[10vw] min-h-[4.25rem] lg:min-h-0'>
         <Link to='/' className='flex items-center gap-2 shrink-0 min-w-0'>
-            <img draggable={false} src='../src/assets/logo.png' className="w-24 sm:w-28 lg:w-36 gentle-bounce pointer-events-none" alt="" />
+            <img draggable={false} src='../src/assets/logo.png' className="w-24 sm:w-28 lg:w-32 pointer-events-none" alt="Applebear" />
         </Link>
-        <ul className="hidden lg:flex flex-1 justify-center gap-3 xl:gap-5 text-sm xl:text-base text-gray-700 min-w-0 px-2">
-            <NavLink to='/' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
-                <span className='font-semibold pointer-events-none whitespace-nowrap'>HOME</span>
-                <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
+        <ul className="hidden lg:flex flex-1 justify-center gap-4 xl:gap-6 text-sm text-slate-600 min-w-0 px-2">
+            <NavLink to='/' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>HOME</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink>
-            <NavLink to='/collection' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
-                <span className='font-semibold pointer-events-none whitespace-nowrap'>WHOLESALE</span>
-                <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
+            <NavLink to='/collection' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>WHOLESALE</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink> 
-            <NavLink to='/about' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
-                <span className='font-semibold pointer-events-none whitespace-nowrap'>ABOUT</span>
-                <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
+            <NavLink to='/about' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>ABOUT</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink>
-            <NavLink to='/contact' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
-                <span className='font-semibold pointer-events-none whitespace-nowrap'>CONTACT</span>
-                <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
+            <NavLink to='/contact' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>CONTACT</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink>
-            <NavLink to='/blogs' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
-                <span className='font-semibold pointer-events-none whitespace-nowrap'>BLOG</span>
-                <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
+            <NavLink to='/blogs' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>BLOG</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink>
-            <NavLink to='/videos' className="flex flex-col items-center gap-1 xl:gap-2 hover:scale-105 transition-transform duration-300 shrink-0">
-                <span className='font-semibold pointer-events-none whitespace-nowrap'>VIDEOS</span>
-                <hr className="w-2/4 border-none h-[1.5px] bg-blue-500 invisible"/>
+            <NavLink to='/videos' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>VIDEOS</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink>
         </ul>
         <div className='flex items-center gap-2 sm:gap-3 lg:gap-6 shrink-0'>
@@ -138,7 +138,7 @@ const NavBar = () => {
                   onMouseEnter={() => setShowDropdown(true)}
                   onMouseLeave={() => setShowDropdown(false)}
                 >
-                    <div className="flex flex-col gap-2 w-44 py-3 px-5 cartoon-card text-gray-500 shadow-lg bg-white border border-gray-200">
+                    <div className="flex flex-col gap-2 w-44 py-3 px-5 bg-white text-gray-600 shadow-lg border border-slate-200 rounded-lg">
                         <button type="button" onClick={() => { navigate('/profile'); setShowDropdown(false) }} className='w-full text-left cursor-pointer hover:text-blue-600 transition-colors duration-300 bg-transparent border-0 p-0'>My Profile</button>
                         <button type="button" onClick={() => { navigate('/inquiries'); setShowDropdown(false) }} className='w-full flex cursor-pointer items-center justify-between gap-2 hover:text-blue-600 transition-colors duration-300 bg-transparent border-0 p-0'>
                           <span>Inquiries</span>
@@ -159,7 +159,7 @@ const NavBar = () => {
             </div>
             <button type='button' onClick={() => openCart()} className='relative cursor-pointer'>
                 <img draggable={false} id='cart-icon' src={assets.cart_icon} className='w-5 min-w-5 hover:scale-110 transition-transform duration-300 pointer-events-none' alt="" />
-                <span className='absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-blue-500 text-white aspect-square rounded-full text-[12px] gentle-bounce pointer-events-none'>{getCartCount()}</span>
+                <span className='absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-blue-600 text-white aspect-square rounded-full text-[11px] pointer-events-none'>{getCartCount()}</span>
             </button>
             <button
               type='button'

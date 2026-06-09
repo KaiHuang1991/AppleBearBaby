@@ -52,33 +52,18 @@ const Blogs = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative">
-        <div className="absolute inset-0 cartoon-bg"></div>
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 relative z-10"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative pt-28">
-      <div className="absolute inset-0 cartoon-bg"></div>
-      <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
-      
-      {/* Floating decorative elements */}
-      <div className="absolute top-32 left-10 w-12 h-12 bg-blue-300/40 rounded-full gentle-float"></div>
-      <div className="absolute bottom-40 right-20 w-8 h-8 bg-cyan-300/40 rounded-full gentle-bounce"></div>
-      
-      <div className="max-w-7xl mx-auto px-4 py-4 relative z-10">
-        {/* Header */}
+    <div className="page-shell bg-white">
+      <div className="section-container py-10 md:py-14">
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="text-4xl gentle-bounce">📝</span>
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent prata-regular">
-              Baby Care Blog
-            </h1>
-            <span className="text-4xl gentle-float">📚</span>
-          </div>
-          <p className="text-lg text-gray-700 max-w-2xl mx-auto mb-8">
+          <h1 className="corp-section-title">Baby Care Blog</h1>
+          <p className="corp-section-subtitle mx-auto">
             Expert advice on baby nursing, feeding, and essential products.
           </p>
           

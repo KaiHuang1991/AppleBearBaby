@@ -1,64 +1,162 @@
 import React from 'react'
-import Title from '../componets/Title'
-import {assets} from '../src/assets/assets'
-import NewsLetterBox from '../componets/NewsLetterBox'
+import { Link } from 'react-router-dom'
+import { assets } from '../src/assets/assets'
+
+const FeatureIcon = ({ children }) => (
+  <div className='corp-icon-circle mb-4'>{children}</div>
+)
+
+const StatItem = ({ value, label }) => (
+  <div className='text-center px-4'>
+    <p className='text-3xl md:text-4xl font-bold text-blue-600'>{value}</p>
+    <p className='text-sm text-slate-600 mt-1'>{label}</p>
+  </div>
+)
+
 const About = () => {
   return (
-    <div className="min-h-screen relative pt-28">
-      {/* Blue/Cyan Background Pattern */}
-      <div className="absolute inset-0 cartoon-bg"></div>
-      <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
-      
-      {/* Subtle floating elements */}
-      <div className="absolute top-32 left-10 w-12 h-12 bg-blue-200 rounded-full gentle-float opacity-40"></div>
-      <div className="absolute bottom-40 right-20 w-8 h-8 bg-cyan-200 rounded-full gentle-bounce opacity-40"></div>
-      
-      <div className='relative z-10 px-5 lg:px-8 max-w-4xl lg:max-w-none mx-auto'>
-        <div className='text-2xl text-center pt-4 border-t border-blue-200'>
-          <Title text1={'ABOUT'} text2={'US'}/>
+    <div className='page-shell bg-white'>
+      <section
+        className='page-hero page-hero--tall'
+        style={{ backgroundImage: `url(${assets.about_hero})`, backgroundPosition: 'center center' }}
+      >
+        <div className='page-hero-content'>
+          <h1>About Applebear: Trusted Partner in Baby Product Manufacturing</h1>
+          <p>
+            We are a professional baby product manufacturer dedicated to quality, safety, and innovation — serving wholesale buyers worldwide.
+          </p>
         </div>
-      <div className='my-10 flex flex-col lg:flex-row gap-8 lg:gap-16 items-center lg:items-stretch'>
-        <img
-          className='w-full max-w-md lg:max-w-[450px] rounded-2xl cartoon-shadow object-contain bg-white mx-auto lg:mx-0'
-          src={assets.about_bottles}
-          alt="Baby bottles collection"
-        />
-        <div className='flex flex-col justify-center gap-6 w-full lg:w-2/4 text-gray-600 min-w-0'>
-        <b className='text-gray-800'>Our Value</b>
-        <p>We are committed to providing healthcare facilities, daycare centers, and retailers with the highest quality baby care products at competitive wholesale prices.</p>
-          
-          <b className='text-gray-800'>Our Mission</b>
-          <p>To be the leading wholesale supplier of safe, reliable, and cost-effective baby care products for healthcare professionals and childcare facilities worldwide.</p>
-          <b className='text-gray-800'>Our History</b>
-          <p>Established in 1998, we have grown to become a trusted wholesale supplier serving healthcare facilities, hospitals, daycare centers, and retailers across the globe. Our comprehensive product line includes feeding supplies, diapering essentials, safety products, and hygiene items. With a dedicated team of 100+ professionals across design, production, quality control, and sales departments, we ensure consistent quality and reliable supply chain management. Our commitment remains: providing healthcare professionals with cost-effective, safe baby care products.</p>
-        </div>
-      </div>
-      <div className='text-xl py-4'>
-          <Title text1={'WHY'} text2={'CHOOSE US'}/>
-      </div>
-      <div className='flex flex-col lg:flex-row text-sm mb-20 relative gap-4 lg:gap-0'>
-        {/* Blue/Cyan Background decoration */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 to-cyan-100/20 rounded-3xl pointer-events-none"></div>
-        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-200/20 rounded-full gentle-float pointer-events-none hidden lg:block"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-cyan-200/20 rounded-full gentle-bounce pointer-events-none hidden lg:block"></div>
-        
-        <div className='relative z-10 flex flex-col lg:flex-row w-full min-w-0 gap-4 lg:gap-0'>
-          <div className='cartoon-card px-6 lg:px-16 py-8 lg:py-20 flex flex-col gap-5 w-full min-w-0'>
-            <b className='text-blue-600'>Quality Assurance</b>
-            <p className='text-gray-600'>All our products meet or exceed international safety standards. We maintain rigorous quality control processes to ensure every item meets healthcare facility requirements.</p>
-          </div>
-          <div className='cartoon-card px-6 lg:px-16 py-8 lg:py-20 flex flex-col gap-5 w-full min-w-0'>
-            <b className='text-cyan-600'>Bulk Ordering</b>
-            <p className='text-gray-600'>Streamlined ordering process for healthcare facilities and daycare centers. Volume discounts, dedicated account management, and reliable supply chain.</p>
-          </div>
-          <div className='cartoon-card px-6 lg:px-16 py-8 lg:py-20 flex flex-col gap-5 w-full min-w-0'>
-            <b className='text-blue-600'>Dedicated Support</b>
-            <p className='text-gray-600'>Personal account managers for wholesale clients, 24/7 support, and customized solutions for healthcare facilities and childcare centers.</p>
+      </section>
+
+      <section className='section-container py-16 md:py-24'>
+        <div className='grid lg:grid-cols-2 gap-10 lg:gap-16 items-center'>
+          <img
+            className='corp-image w-full aspect-[16/9] object-cover object-center'
+            src={assets.about_company}
+            alt='ZheJiang YouZhi Maternal and Child Co., LTD company building'
+          />
+          <div>
+            <h2 className='corp-section-title mb-4'>Our Company</h2>
+            <p className='text-slate-600 leading-relaxed mb-6'>
+              Established in 1998, Applebear has grown into a trusted wholesale supplier serving healthcare facilities, hospitals, daycare centers, and retailers across the globe. Our comprehensive product line includes feeding supplies, safety products, and hygiene essentials.
+            </p>
+            <ul className='corp-check-list mb-8'>
+              <li>International safety standards compliance</li>
+              <li>Rigorous quality control at every production stage</li>
+              <li>Competitive wholesale pricing for bulk orders</li>
+              <li>Reliable supply chain and dedicated account support</li>
+            </ul>
+            <Link to='/contact' className='corp-btn'>
+              Learn More About Us
+              <span aria-hidden='true'>→</span>
+            </Link>
           </div>
         </div>
-      </div>
-      <NewsLetterBox/>
-      </div>
+      </section>
+
+      <section className='section-alt py-16 md:py-24'>
+        <div className='section-container'>
+          <div className='text-center mb-12'>
+            <h2 className='corp-section-title'>Why Choose Applebear</h2>
+            <p className='corp-section-subtitle mx-auto'>
+              We combine manufacturing excellence with wholesale-friendly service to help your business grow.
+            </p>
+          </div>
+          <div className='grid sm:grid-cols-2 lg:grid-cols-4 gap-6'>
+            <div className='corp-feature-card text-center'>
+              <FeatureIcon>
+                <svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.8} d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' /></svg>
+              </FeatureIcon>
+              <h3 className='font-semibold text-slate-800 mb-2'>Quality Assurance</h3>
+              <p className='text-sm text-slate-600 leading-relaxed'>All products meet or exceed international safety standards with rigorous QC processes.</p>
+            </div>
+            <div className='corp-feature-card text-center'>
+              <FeatureIcon>
+                <svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.8} d='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' /></svg>
+              </FeatureIcon>
+              <h3 className='font-semibold text-slate-800 mb-2'>Bulk Ordering</h3>
+              <p className='text-sm text-slate-600 leading-relaxed'>Streamlined wholesale ordering with volume discounts and reliable fulfillment.</p>
+            </div>
+            <div className='corp-feature-card text-center'>
+              <FeatureIcon>
+                <svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.8} d='M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z' /></svg>
+              </FeatureIcon>
+              <h3 className='font-semibold text-slate-800 mb-2'>Dedicated Support</h3>
+              <p className='text-sm text-slate-600 leading-relaxed'>Personal account managers and responsive support for wholesale clients.</p>
+            </div>
+            <div className='corp-feature-card text-center'>
+              <FeatureIcon>
+                <svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.8} d='M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' /></svg>
+              </FeatureIcon>
+              <h3 className='font-semibold text-slate-800 mb-2'>Global Reach</h3>
+              <p className='text-sm text-slate-600 leading-relaxed'>Serving healthcare and retail partners across international markets since 1998.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className='corp-stat-bar py-12 md:py-14'>
+        <div className='section-container grid grid-cols-2 lg:grid-cols-4 gap-8'>
+          <StatItem value='20+' label='Years Experience' />
+          <StatItem value='50+' label='Team Members' />
+          <StatItem value='20+' label='Product Lines' />
+          <StatItem value='30+' label='Countries Served' />
+        </div>
+      </section>
+
+      <section className='section-container py-16 md:py-24'>
+        <div className='grid lg:grid-cols-2 gap-10 lg:gap-16 items-center'>
+          <div className='order-2 lg:order-1'>
+            <h2 className='corp-section-title mb-4'>Our Factory</h2>
+            <p className='text-slate-600 leading-relaxed mb-6'>
+              From design to production, every step follows strict national quality system requirements. Our advanced manufacturing facilities ensure each product meets international testing standards.
+            </p>
+            <ul className='corp-check-list mb-8'>
+              <li>Advanced automated production lines</li>
+              <li>Certified quality management systems</li>
+              <li>Comprehensive product testing laboratory</li>
+              <li>Scalable capacity for bulk wholesale orders</li>
+            </ul>
+            <Link to='/videos' className='corp-btn'>
+              View Factory Tour
+              <span aria-hidden='true'>→</span>
+            </Link>
+          </div>
+          <img
+            className='corp-image w-full aspect-[4/3] object-cover order-1 lg:order-2'
+            src={assets.about_factory}
+            alt='Applebear manufacturing facility with automated production lines'
+          />
+        </div>
+      </section>
+
+      <section className='section-alt py-16 md:py-24'>
+        <div className='section-container'>
+          <div className='grid lg:grid-cols-2 gap-10 lg:gap-16 items-center'>
+            <img
+              className='corp-image w-full aspect-[4/3] object-cover'
+              src={assets.office}
+              alt='Applebear team'
+            />
+            <div>
+              <h2 className='corp-section-title mb-4'>Our Team</h2>
+              <p className='text-slate-600 leading-relaxed mb-6'>
+                With 100+ professionals across design, production, quality control, and sales, we deliver consistent quality and reliable supply chain management for wholesale partners.
+              </p>
+              <ul className='corp-check-list mb-8'>
+                <li>Experienced R&D and product design team</li>
+                <li>Dedicated QC specialists on every line</li>
+                <li>Multilingual sales and support staff</li>
+                <li>Long-term partnerships with global buyers</li>
+              </ul>
+              <Link to='/contact' className='corp-btn'>
+                Contact Our Team
+                <span aria-hidden='true'>→</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

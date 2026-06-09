@@ -62,6 +62,9 @@ import frontView from './frontView.jpg'
 import office from './office.jpg'
 import productionLine from './productionLine.jpg'
 import about_bottles from './about_bottles.jpg'
+import about_company from './about_company.jpg'
+import about_hero from './about_hero.jpg'
+import about_factory from './about_factory.jpg'
 
 // Hero Images
 import slide2 from './slide2.jpg'
@@ -101,6 +104,9 @@ export const assets = {
     office,
     productionLine,
     about_bottles,
+    about_company,
+    about_hero,
+    about_factory,
     
     // Hero Images
     slide2,

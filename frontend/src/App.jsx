@@ -46,7 +46,7 @@ const App = () => {
         </Routes>
       ) : ( 
         /* Other Pages - 80% Width Container */
-        <div className="w-full mx-auto mt-0 h-auto lg:w-[80%]">
+        <div className="w-full mx-auto mt-0 h-auto">
           <Routes>
             <Route path='/collection' element={<Collection />} />
             <Route path='/about' element={<About />} />
@@ -67,10 +67,8 @@ const App = () => {
           </Routes>
         </div>
       )}
-      {/* Footer - 80% Width for All Pages */}
-      <div className="w-[80%] mx-auto">
-        <Footer />
-      </div>
+      {/* Footer */}
+      <Footer />
       <AiChatWidget />
     </div>
   )
