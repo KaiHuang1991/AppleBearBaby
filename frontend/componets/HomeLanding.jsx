@@ -3,13 +3,8 @@ import { Link } from 'react-router-dom'
 import { homeImages, factoryCarousel, galleryImages } from '../src/assets/galleryAssets'
 import OemFlowSection from './OemFlowSection'
 import HomeSection, { SectionHeader } from './HomeSection'
-
-const StatItem = ({ value, label }) => (
-  <div className='home-stat-item'>
-    <p className='home-stat-value'>{value}</p>
-    <p className='home-stat-label'>{label}</p>
-  </div>
-)
+import HomeImage from './HomeImage'
+import AnimatedMetric from './AnimatedMetric'
 
 const WhyChooseIcon = ({ type }) => {
   const props = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -81,7 +76,12 @@ const WhyChooseCard = ({ icon, title, description }) => (
 const CategoryCard = ({ image, badge, title, description, to }) => (
   <Link to={to} className='group home-category-card corp-feature-card p-0 overflow-hidden block h-full'>
     <div className='relative aspect-[4/3] overflow-hidden'>
-      <img src={image} alt={title} className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300' />
+      <HomeImage
+        src={image}
+        alt={title}
+        className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
+        wrapperClassName='w-full h-full'
+      />
       {badge ? (
         <span className='home-category-badge'>{badge}</span>
       ) : null}
@@ -115,6 +115,13 @@ const PROCESS_STEPS = [
 
 const galleryPreview = galleryImages.filter((img) => !factoryCarousel.includes(img)).slice(0, 12)
 
+const MANUFACTURING_METRICS = [
+  { value: '12,000㎡', label: 'Factory Area' },
+  { value: '7', label: 'Production Lines' },
+  { value: '50+', label: 'Skilled Workers' },
+  { value: '2.5M+', label: 'Monthly Output' },
+]
+
 const HomeLanding = () => {
   return (
     <>
@@ -146,9 +153,9 @@ const HomeLanding = () => {
       </section>
 
       <HomeSection variant='stats' innerClassName='home-stat-grid'>
-        <StatItem value='20+' label='Years Experience' />
-        <StatItem value='30+' label='Export Countries' />
-        <StatItem value='20+' label='Product Lines' />
+        <AnimatedMetric value='20+' label='Years Experience' />
+        <AnimatedMetric value='30+' label='Export Countries' />
+        <AnimatedMetric value='20+' label='Product Lines' />
       </HomeSection>
 
       <HomeSection variant='categories'>
@@ -160,27 +167,28 @@ const HomeLanding = () => {
           subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
         />
         <div className='grid md:grid-cols-3 gap-6 lg:gap-8'>
-          <CategoryCard
-            image={homeImages.categoryBottles}
-            badge='100+ Styles'
-            title='Baby Bottles'
-            description='PP/PPSU nursing bottles for newborns to toddlers'
-            to='/collection'
-          />
-          <CategoryCard
-            image={homeImages.categoryCups}
-            badge='50+ Styles'
-            title='Training Cups'
-            description='Spout cups, straw cups and training cups'
-            to='/collection'
-          />
-          <CategoryCard
-            image={homeImages.categoryOther}
-            badge='20+ Styles'
-            title='Other Products'
-            description='Pacifiers, teethers, breast pumps and feeding accessories'
-            to='/collection'
-          />
+          {[
+            {
+              image: homeImages.categoryBottles,
+              badge: '100+ Styles',
+              title: 'Baby Bottles',
+              description: 'PP/PPSU nursing bottles for newborns to toddlers',
+            },
+            {
+              image: homeImages.categoryCups,
+              badge: '50+ Styles',
+              title: 'Training Cups',
+              description: 'Spout cups, straw cups and training cups',
+            },
+            {
+              image: homeImages.categoryOther,
+              badge: '20+ Styles',
+              title: 'Other Products',
+              description: 'Pacifiers, teethers, breast pumps and feeding accessories',
+            },
+          ].map((item) => (
+            <CategoryCard key={item.title} {...item} to='/collection' />
+          ))}
         </div>
         <div className='text-center mt-10'>
           <Link to='/collection' className='corp-btn-outline px-8'>
@@ -209,10 +217,11 @@ const HomeLanding = () => {
       <HomeSection variant='manufacturing'>
         <div className='grid lg:grid-cols-2 gap-10 lg:gap-14 items-center'>
           <div className='relative home-manufacturing-visual'>
-            <img
+            <HomeImage
               src={homeImages.manufacturing}
               alt='Applebear injection molding production line'
               className='corp-image w-full aspect-[4/3] object-cover'
+              wrapperClassName='w-full aspect-[4/3]'
             />
             <div className='home-manufacturing-badge'>
               <p className='text-xs text-slate-500 uppercase tracking-wide'>Est. 1998</p>
@@ -229,16 +238,15 @@ const HomeLanding = () => {
               align='left'
             />
             <div className='grid grid-cols-2 gap-4 mb-8'>
-              {[
-                { value: '12,000㎡', label: 'Factory Area' },
-                { value: '7', label: 'Production Lines' },
-                { value: '50+', label: 'Skilled Workers' },
-                { value: '2.5M+', label: 'Monthly Output' },
-              ].map((item) => (
-                <div key={item.label} className='home-metric-chip'>
-                  <p className='home-metric-value'>{item.value}</p>
-                  <p className='home-metric-label'>{item.label}</p>
-                </div>
+              {MANUFACTURING_METRICS.map((item) => (
+                <AnimatedMetric
+                  key={item.label}
+                  value={item.value}
+                  label={item.label}
+                  wrapperClassName='home-metric-chip'
+                  valueClassName='home-metric-value'
+                  labelClassName='home-metric-label'
+                />
               ))}
             </div>
             <Link to='/about' className='corp-btn'>
@@ -261,7 +269,12 @@ const HomeLanding = () => {
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5'>
           {factoryCarousel.map((src, idx) => (
             <div key={idx} className='home-factory-photo'>
-              <img src={src} alt={`Applebear production equipment ${idx + 1}`} className='w-full h-full object-cover' />
+              <HomeImage
+                src={src}
+                alt={`Applebear production equipment ${idx + 1}`}
+                className='w-full h-full object-cover'
+                wrapperClassName='w-full h-full'
+              />
             </div>
           ))}
         </div>
@@ -306,12 +319,22 @@ const HomeLanding = () => {
           ))}
         </div>
         <div className='home-cert-hero-image'>
-          <img src={homeImages.certifications} alt='Quality certifications and awards' className='w-full object-cover' />
+          <HomeImage
+            src={homeImages.certifications}
+            alt='Quality certifications and awards'
+            className='w-full object-cover'
+            wrapperClassName='w-full'
+          />
         </div>
         <div className='home-gallery-grid'>
           {galleryPreview.map((src, idx) => (
             <div key={idx} className='home-gallery-thumb'>
-              <img src={src} alt={`Facility photo ${idx + 1}`} className='w-full h-full object-cover' />
+              <HomeImage
+                src={src}
+                alt={`Facility photo ${idx + 1}`}
+                className='w-full h-full object-cover'
+                wrapperClassName='w-full h-full'
+              />
             </div>
           ))}
         </div>
