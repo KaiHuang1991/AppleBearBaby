@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect, useLayoutEffect } from 'react'
 import {assets} from '../src/assets/assets'
 import { NavLink, Link, useLocation  } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
@@ -28,6 +28,28 @@ const NavBar = () => {
     const displayName = user?.name || localStorage.getItem('userName')
     const avatarSrc = user?.avatar || localStorage.getItem('userAvatar') || assets.profile_icon
     const hasCustomAvatar = Boolean(token && (user?.avatar || localStorage.getItem('userAvatar')))
+
+    useLayoutEffect(() => {
+        const nav = document.querySelector('.site-navbar')
+        if (!nav) return
+
+        const syncNavbarHeight = () => {
+            const height = Math.round(nav.getBoundingClientRect().height)
+            if (height > 0) {
+                document.documentElement.style.setProperty('--navbar-height', `${height}px`)
+            }
+        }
+
+        syncNavbarHeight()
+        const observer = new ResizeObserver(syncNavbarHeight)
+        observer.observe(nav)
+        window.addEventListener('resize', syncNavbarHeight)
+
+        return () => {
+            observer.disconnect()
+            window.removeEventListener('resize', syncNavbarHeight)
+        }
+    }, [])
 
     const logOut = async () => {
         // Use the logout function from context which handles cookie clearing

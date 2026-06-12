@@ -137,21 +137,18 @@ const Profile = () => {
   const displayInitial = displayName.charAt(0).toUpperCase()
 
   return (
-    <div className="min-h-screen relative">
-      {/* Blue/Cyan Background Pattern */}
+    <div className="page-shell account-page page-content min-h-screen relative pb-24 overflow-x-hidden">
       <div className="absolute inset-0 cartoon-bg"></div>
-      <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
-      
-      {/* Subtle floating elements */}
-      <div className="absolute top-20 left-10 w-12 h-12 bg-blue-200 rounded-full gentle-float opacity-40"></div>
-      <div className="absolute bottom-40 right-20 w-8 h-8 bg-cyan-200 rounded-full gentle-bounce opacity-40"></div>
-      
-      <div className='relative z-10 border-t pt-16'>
+      <div className="absolute inset-0 cartoon-hearts opacity-10 pointer-events-none"></div>
+      <div className="absolute top-32 left-10 w-12 h-12 bg-blue-200 rounded-full gentle-float opacity-40 pointer-events-none"></div>
+      <div className="absolute bottom-40 right-20 w-8 h-8 bg-cyan-200 rounded-full gentle-bounce opacity-40 pointer-events-none"></div>
+
+      <div className='relative z-10'>
         <div className='text-2xl text-center mb-8'>
           <Title text1={'MY'} text2={'PROFILE'}/>
         </div>
-        
-        <div className="max-w-4xl mx-auto px-4">
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="cartoon-card p-8 mb-8">
             <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
               <div className="relative group">

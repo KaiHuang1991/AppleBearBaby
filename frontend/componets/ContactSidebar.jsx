@@ -1,4 +1,19 @@
 import React, { useState } from 'react'
+import { useLocation } from 'react-router-dom'
+
+const HIDE_CONTACT_SIDEBAR_PATHS = new Set([
+  '/profile',
+  '/login',
+  '/cart',
+  '/place-order',
+  '/inquiries',
+])
+
+export const shouldHideContactSidebar = (pathname) => {
+  if (HIDE_CONTACT_SIDEBAR_PATHS.has(pathname)) return true
+  if (pathname.startsWith('/inquiries/')) return true
+  return false
+}
 
 const iconMap = {
   email: (
@@ -51,9 +66,14 @@ function resolveEmailHref() {
 }
 
 const ContactSidebar = () => {
+  const { pathname } = useLocation()
   const [mobileDockVisible, setMobileDockVisible] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const emailHref = resolveEmailHref()
+
+  if (shouldHideContactSidebar(pathname)) {
+    return null
+  }
 
   const scheduleCollapseMobilePanel = () => {
     window.setTimeout(() => setMobileOpen(false), 280)

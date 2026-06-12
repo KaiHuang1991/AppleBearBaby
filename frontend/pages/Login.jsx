@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useCallback, useRef } from 'react'
+import React, { useContext, useEffect, useRef } from 'react'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
@@ -20,14 +20,6 @@ const Login = () => {
   const [searchParams] = useSearchParams()
   const oauthHandledRef = useRef(false)
 
-  const handleOAuthSuccess = useCallback((data) => {
-    completeLogin(data, { redirectTo: '/' })
-    toast.success('Signed in successfully')
-    if (data.isNewUser) {
-      trackGoogleAdsSignup({ transactionId: data.userId })
-    }
-  }, [completeLogin])
-  
   const handleResendVerification = async () => {
     try {
       setResendingEmail(true)
@@ -220,7 +212,7 @@ const Login = () => {
       </form>
 
       {currentState === 'Login' && (
-        <SocialLogin api={api} onAuthSuccess={handleOAuthSuccess} />
+        <SocialLogin />
       )}
       
       {/* Forgot Password Modal */}

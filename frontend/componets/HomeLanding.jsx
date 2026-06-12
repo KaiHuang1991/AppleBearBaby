@@ -1,6 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { homeImages, factoryCarousel, galleryImages } from '../src/assets/galleryAssets'
+import { homeImages, factoryCarousel } from '../src/assets/galleryAssets'
+import { productCategories } from '../src/assets/categoryAssets'
+import { certificationItems } from '../src/assets/certificationAssets'
 import OemFlowSection from './OemFlowSection'
 import HomeSection, { SectionHeader } from './HomeSection'
 import HomeImage from './HomeImage'
@@ -73,22 +75,36 @@ const WhyChooseCard = ({ icon, title, description }) => (
   </div>
 )
 
-const CategoryCard = ({ image, badge, title, description, to }) => (
-  <Link to={to} className='group home-category-card corp-feature-card p-0 overflow-hidden block h-full'>
-    <div className='relative aspect-[4/3] overflow-hidden'>
+const CertificationCard = ({ image, title }) => (
+  <div className='home-cert-card'>
+    <div className='home-cert-frame'>
+      <div className='home-cert-image-wrap'>
+        <HomeImage
+          src={image}
+          alt={title}
+          className='w-full h-full object-cover object-top'
+          wrapperClassName='w-full h-full'
+        />
+      </div>
+    </div>
+    <div className='home-cert-caption'>
+      <p className='font-semibold text-xs sm:text-sm text-slate-800 leading-snug'>{title}</p>
+    </div>
+  </div>
+)
+
+const CategoryCard = ({ image, title, slug }) => (
+  <Link to={slug ? `/collection/${slug}` : '/collection'} className='group home-category-card corp-feature-card p-0 overflow-hidden block h-full'>
+    <div className='relative aspect-square overflow-hidden bg-slate-50'>
       <HomeImage
         src={image}
         alt={title}
-        className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
+        className='w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300'
         wrapperClassName='w-full h-full'
       />
-      {badge ? (
-        <span className='home-category-badge'>{badge}</span>
-      ) : null}
     </div>
-    <div className='p-5'>
-      <h3 className='font-semibold text-lg text-slate-800 mb-1 group-hover:text-blue-600 transition-colors'>{title}</h3>
-      <p className='text-sm text-slate-600 leading-relaxed'>{description}</p>
+    <div className='px-3 py-4 text-center'>
+      <h3 className='font-semibold text-sm sm:text-base text-slate-800 group-hover:text-blue-600 transition-colors'>{title}</h3>
     </div>
   </Link>
 )
@@ -102,8 +118,6 @@ const WHY_CHOOSE = [
   { icon: 'support', title: '24h Online Support', description: 'Dedicated account managers respond to wholesale inquiries promptly.' },
 ]
 
-const CERTIFICATIONS = ['ISO 9001', 'BPA Free', 'EN 14350']
-
 const PROCESS_STEPS = [
   { step: '01', title: 'Requirement Review', description: 'Understand your specs and goals' },
   { step: '02', title: 'Product Design', description: 'Industrial design and 3D modeling' },
@@ -112,8 +126,6 @@ const PROCESS_STEPS = [
   { step: '05', title: 'Mass Production', description: 'Scalable batch manufacturing' },
   { step: '06', title: 'Delivery', description: 'Safe packaging and on-time shipping' },
 ]
-
-const galleryPreview = galleryImages.filter((img) => !factoryCarousel.includes(img)).slice(0, 12)
 
 const MANUFACTURING_METRICS = [
   { value: '12,000㎡', label: 'Factory Area' },
@@ -166,28 +178,9 @@ const HomeLanding = () => {
           highlight='Categories'
           subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
         />
-        <div className='grid md:grid-cols-3 gap-6 lg:gap-8'>
-          {[
-            {
-              image: homeImages.categoryBottles,
-              badge: '100+ Styles',
-              title: 'Baby Bottles',
-              description: 'PP/PPSU nursing bottles for newborns to toddlers',
-            },
-            {
-              image: homeImages.categoryCups,
-              badge: '50+ Styles',
-              title: 'Training Cups',
-              description: 'Spout cups, straw cups and training cups',
-            },
-            {
-              image: homeImages.categoryOther,
-              badge: '20+ Styles',
-              title: 'Other Products',
-              description: 'Pacifiers, teethers, breast pumps and feeding accessories',
-            },
-          ].map((item) => (
-            <CategoryCard key={item.title} {...item} to='/collection' />
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6'>
+          {productCategories.map((item) => (
+            <CategoryCard key={item.slug} image={item.image} title={item.title} slug={item.slug} />
           ))}
         </div>
         <div className='text-center mt-10'>
@@ -310,32 +303,9 @@ const HomeLanding = () => {
           highlight='Certifications'
           subtitle='Our products meet the highest international safety standards for buyers and end consumers worldwide.'
         />
-        <div className='home-cert-row'>
-          {CERTIFICATIONS.map((cert) => (
-            <div key={cert} className='home-cert-badge'>
-              <span className='home-cert-icon' aria-hidden='true'>✓</span>
-              <p className='font-semibold text-slate-800'>{cert}</p>
-            </div>
-          ))}
-        </div>
-        <div className='home-cert-hero-image'>
-          <HomeImage
-            src={homeImages.certifications}
-            alt='Quality certifications and awards'
-            className='w-full object-cover'
-            wrapperClassName='w-full'
-          />
-        </div>
-        <div className='home-gallery-grid'>
-          {galleryPreview.map((src, idx) => (
-            <div key={idx} className='home-gallery-thumb'>
-              <HomeImage
-                src={src}
-                alt={`Facility photo ${idx + 1}`}
-                className='w-full h-full object-cover'
-                wrapperClassName='w-full h-full'
-              />
-            </div>
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6'>
+          {certificationItems.map((item) => (
+            <CertificationCard key={item.title} {...item} />
           ))}
         </div>
       </HomeSection>

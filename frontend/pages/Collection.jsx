@@ -3,12 +3,24 @@ import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets'
 import Title from '../componets/Title'
 import ProductItem from '../componets/ProductItem'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getCategorySlug, resolveCategoryIdFromSlug } from '../src/utils/categorySlug'
+
+const buildCollectionUrl = ({ slug, search } = {}) => {
+  const params = new URLSearchParams(search || '')
+  const searchVal = (params.get('search') || params.get('q') || '').trim()
+  const next = new URLSearchParams()
+  if (searchVal) next.set('search', searchVal)
+  const query = next.toString()
+  const path = slug ? `/collection/${slug}` : '/collection'
+  return query ? `${path}?${query}` : path
+}
 
 const Collection = () => {
   const { products, search, setSearch, showSearch, setShowSearch, categoryTree, loadingCategories, getProductCategoryIds, categories } = useContext(ShopContext)
   const location = useLocation()
   const navigate = useNavigate()
+  const { categorySlug } = useParams()
   const searchInputRef = useRef(null)
   const [showFilter, setShowFilter] = useState(false)
   const [filterProducts, setFilterProducts] = useState([])
@@ -138,7 +150,11 @@ const Collection = () => {
               type='button'
               onClick={(event) => {
                 event.stopPropagation()
-                setSelectedCategoryIds(prev => prev.includes(idString) ? [] : [idString])
+                if (isSelected) {
+                  navigate(buildCollectionUrl({ search: location.search }))
+                  return
+                }
+                navigate(buildCollectionUrl({ slug: getCategorySlug(node), search: location.search }))
               }}
               className={`flex-1 text-left text-sm font-medium transition-colors truncate ${isSelected ? 'text-blue-600 underline' : 'text-gray-700 hover:text-blue-500'}`}
             >
@@ -157,17 +173,20 @@ const Collection = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
-    const keys = ['categoryId', 'subCategoryId', 'thirdCategoryId']
-    const ids = []
+    let uniqueIds = []
 
-    keys.forEach(key => {
-      const value = params.get(key)
-      if (value) {
-        ids.push(String(value))
-      }
-    })
-
-    const uniqueIds = Array.from(new Set(ids)).slice(-1)
+    if (categorySlug) {
+      const resolvedId = resolveCategoryIdFromSlug(categories, categorySlug)
+      if (resolvedId) uniqueIds = [resolvedId]
+    } else {
+      const keys = ['categoryId', 'subCategoryId', 'thirdCategoryId']
+      const ids = []
+      keys.forEach(key => {
+        const value = params.get(key)
+        if (value) ids.push(String(value))
+      })
+      uniqueIds = Array.from(new Set(ids)).slice(-1)
+    }
 
     setSelectedCategoryIds(uniqueIds)
 
@@ -177,7 +196,7 @@ const Collection = () => {
     if (uniqueIds.length || searchFromUrl) {
       setShowFilter(true)
     }
-  }, [location.search, setSearch])
+  }, [categorySlug, location.search, categories, setSearch, setShowFilter])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -194,11 +213,11 @@ const Collection = () => {
         nextParams.delete('q')
       }
       const query = nextParams.toString()
-      navigate(`/collection${query ? `?${query}` : ''}`, { replace: true })
+      navigate(buildCollectionUrl({ slug: categorySlug, search: query ? `?${query}` : '' }), { replace: true })
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [search, location.search, navigate])
+  }, [search, location.search, navigate, categorySlug])
 
   useEffect(() => {
     if (!selectedCategoryIds.length || categoryMap.size === 0) return
@@ -291,7 +310,7 @@ const Collection = () => {
           <p className='mb-3 text-sm font-medium text-blue-600'>CATEGORIES</p>
           <button
             type='button'
-            onClick={() => setSelectedCategoryIds([])}
+            onClick={() => navigate(buildCollectionUrl({ search: location.search }))}
             className={`mb-2 text-xs font-semibold uppercase tracking-[0.2em] transition-colors ${selectedCategoryIds.length === 0 ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'}`}
           >
             View All

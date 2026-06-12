@@ -24,6 +24,7 @@ import ScrollToTop from '../componets/ScrollToTop'
 import SiteSeo from '../componets/SiteSeo'
 import GoogleAds from '../componets/GoogleAds'
 import AiChatWidget from '../componets/AiChatWidget'
+import ContactSidebar from '../componets/ContactSidebar'
 import { ToastContainer } from 'react-toastify'
 
 const App = () => {
@@ -49,6 +50,7 @@ const App = () => {
         <div className="w-full mx-auto mt-0 h-auto">
           <Routes>
             <Route path='/collection' element={<Collection />} />
+            <Route path='/collection/:categorySlug' element={<Collection />} />
             <Route path='/about' element={<About />} />
             <Route path='/contact' element={<Contact />} />
             <Route path='/product/:productId' element={<Product />} />
@@ -69,6 +71,7 @@ const App = () => {
       )}
       {/* Footer */}
       <Footer />
+      <ContactSidebar />
       <AiChatWidget />
     </div>
   )
