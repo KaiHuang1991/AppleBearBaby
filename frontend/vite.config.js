@@ -14,9 +14,12 @@ const repoNodeModules = path.resolve(__dirname, '../node_modules')
 export default defineConfig({
   plugins: [react(), tailwindcss(), sitemapDev(), socialOgPreview()],
   resolve: {
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
     alias: {
       react: path.join(repoNodeModules, 'react'),
       'react-dom': path.join(repoNodeModules, 'react-dom'),
+      'react/jsx-runtime': path.join(repoNodeModules, 'react/jsx-runtime.js'),
+      'react/jsx-dev-runtime': path.join(repoNodeModules, 'react/jsx-dev-runtime.js'),
     },
   },
   server: {

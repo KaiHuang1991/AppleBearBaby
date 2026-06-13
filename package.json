@@ -7,5 +7,21 @@
   ],
   "scripts": {
     "build:frontend": "npm run build --workspace=frontend"
+  },
+  "overrides": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-helmet-async": {
+      "react": "19.2.7",
+      "react-dom": "19.2.7"
+    },
+    "react-router": {
+      "react": "19.2.7",
+      "react-dom": "19.2.7"
+    },
+    "react-router-dom": {
+      "react": "19.2.7",
+      "react-dom": "19.2.7"
+    }
   }
 }
