@@ -33,7 +33,9 @@
     "vite": "^6.3.5"
   },
   "optionalDependencies": {
+    "@esbuild/linux-x64": "0.25.4",
     "@rollup/rollup-linux-x64-gnu": "4.41.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.1.7",
     "lightningcss-linux-x64-gnu": "1.30.1"
   }
 }
