@@ -4,5 +4,8 @@
   "workspaces": [
     "frontend",
     "packages/api"
-  ]
+  ],
+  "scripts": {
+    "build:frontend": "npm run build --workspace=frontend"
+  }
 }
