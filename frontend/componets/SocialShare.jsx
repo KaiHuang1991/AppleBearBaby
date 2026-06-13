@@ -24,10 +24,6 @@ const SocialShare = ({ product }) => {
 
   if (!product || !productPageUrl) return null
 
-  const isLocalhost =
-    typeof window !== 'undefined' &&
-    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(window.location.origin)
-
   return (
     <div className='flex flex-col items-end gap-2 mt-6 border-t border-gray-100 pt-6 w-full sm:w-auto'>
       <div className='flex flex-wrap items-center justify-end gap-3'>
@@ -57,11 +53,6 @@ const SocialShare = ({ product }) => {
           </a>
         ))}
       </div>
-      {isLocalhost ? (
-        <p className='text-xs text-amber-700 max-w-md text-right'>
-          Facebook cannot load product images from localhost. Deploy to your live site (https) and use Sharing Debugger to test.
-        </p>
-      ) : null}
     </div>
   )
 }
