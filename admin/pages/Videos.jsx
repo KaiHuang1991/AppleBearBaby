@@ -26,9 +26,24 @@ const Videos = ({ token, backendUrl: propBackendUrl }) => {
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState(null)
+  const [syncMessage, setSyncMessage] = useState('')
+  const [syncError, setSyncError] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
+
+  const fetchSyncStatus = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/videos/admin/sync-status`, {
+        headers: { token },
+      })
+      if (data.success) setSyncStatus(data)
+    } catch {
+      setSyncStatus(null)
+    }
+  }
 
   const fetchVideos = async () => {
     setLoading(true)
@@ -46,7 +61,39 @@ const Videos = ({ token, backendUrl: propBackendUrl }) => {
 
   useEffect(() => {
     fetchVideos()
+    fetchSyncStatus()
   }, [])
+
+  const handleSyncYouTube = async () => {
+    setSyncing(true)
+    setSyncMessage('')
+    setSyncError('')
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/videos/admin/sync-youtube`, null, {
+        headers: { token },
+        timeout: 120000,
+      })
+      if (data.success) {
+        const msg =
+          data.message ||
+          `Sync complete: ${data.created} new, ${data.updated} updated, ${data.shortsCount || 0} Shorts`
+        setSyncMessage(msg)
+        toast.success(msg)
+        fetchVideos()
+        fetchSyncStatus()
+      } else {
+        const msg = data.message || 'Sync failed'
+        setSyncError(msg)
+        toast.error(msg)
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'YouTube sync failed'
+      setSyncError(msg)
+      toast.error(msg)
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const openAdd = () => {
     setForm(emptyForm)
@@ -120,23 +167,72 @@ const Videos = ({ token, backendUrl: propBackendUrl }) => {
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Video library</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-2xl">
-            Use YouTube <strong>Unlisted</strong> uploads — paste the share link here. Videos stay off YouTube search
-            but play on your site. No monetization = no pre-roll ads for most accounts.
+            <strong>Public videos</strong> can be synced from your YouTube channel (
+            <a
+              href="https://www.youtube.com/@user-iy7wk9in6g"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              @user-iy7wk9in6g
+            </a>
+            ). After sync, edit category, product link, and publish status here.
           </p>
+          <p className="text-sm text-gray-500 mt-2 max-w-2xl">
+            <strong>Unlisted videos</strong> are not on your public channel list — add them manually with the YouTube
+            link (no pre-roll ads for most accounts).
+          </p>
+          {syncStatus ? (
+            <p className="text-xs text-gray-500 mt-2 max-w-2xl">
+              Sync via {syncStatus.method === 'youtube_api' ? 'YouTube API' : 'channel page'} · @
+              {syncStatus.channelHandle}
+              {syncStatus.channelId ? ` (${syncStatus.channelId})` : ''}
+              {syncStatus.lastSyncedAt
+                ? ` · Last sync ${new Date(syncStatus.lastSyncedAt).toLocaleString()}`
+                : ''}
+              {syncStatus.cronEnabled ? ' · Daily auto-sync on' : ''}
+            </p>
+          ) : null}
+          {syncStatus?.note ? (
+            <p className="text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-2 max-w-2xl">
+              {syncStatus.note}
+            </p>
+          ) : null}
           <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3 max-w-2xl">
             若前台出现「请登录以确认你不是聊天机器人」：在 YouTube 工作室为该视频开启<strong>允许嵌入</strong>；
             可见性用「不公开列出」或「公开」（不要用「私享」）；用已登录的 Chrome 先打开一次该视频；
             正式域名 applebearbaby.net 上比 localhost 更稳定。
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openAdd}
-          className="px-5 py-2 rounded-full bg-gray-800 text-white text-sm hover:bg-black"
-        >
-          + Add video
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleSyncYouTube}
+            disabled={syncing}
+            className="px-5 py-2 rounded-full bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
+          >
+            {syncing ? 'Syncing…' : 'Sync from YouTube'}
+          </button>
+          <button
+            type="button"
+            onClick={openAdd}
+            className="px-5 py-2 rounded-full bg-gray-800 text-white text-sm hover:bg-black"
+          >
+            + Add video
+          </button>
+        </div>
       </div>
+
+      {syncMessage ? (
+        <p className="mb-4 text-sm text-green-800 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          {syncMessage}
+        </p>
+      ) : null}
+      {syncError ? (
+        <p className="mb-4 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {syncError}
+        </p>
+      ) : null}
 
       {showForm && (
         <form
@@ -268,6 +364,10 @@ const Videos = ({ token, backendUrl: propBackendUrl }) => {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1 font-mono truncate">{video.youtubeUrl}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {video.source === 'youtube' ? 'YouTube sync' : 'Manual'}
+                  {video.category ? ` · ${video.category}` : ''}
+                </p>
                 {video.description ? (
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{video.description}</p>
                 ) : null}

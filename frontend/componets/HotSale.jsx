@@ -31,7 +31,7 @@ const HotSale = () => {
 
       <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 catalog-product-grid'>
         {hotProducts.map((item) => (
-          <ProductItem key={item._id} id={item._id} image={item.image} name={item.name} price={item.price} />
+          <ProductItem key={item._id} id={item._id} slug={item.slug} image={item.image} name={item.name} price={item.price} />
         ))}
       </div>
 

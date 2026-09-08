@@ -3,7 +3,6 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { createHttpClient, createShopApi } from "@applebear/api";
 import { resolveBackendUrl } from "../src/resolveBackendUrl.js";
-import { GoogleMap, LoadScript } from "@react-google-maps/api";
 
 export const ShopContext = createContext();
 
@@ -456,32 +455,6 @@ const ShopContextProvider = (props) => {
     return ids
   }
 
-  const getGoogleMap = () => {
-    // 定义地图容器样式
-    const containerStyle = {
-      width: '80%',
-      height: '400px',
-    };
-
-    // 定义地图的初始中心点和缩放级别
-    const center = {
-      lat: -34.397,
-      lng: 150.644,
-    };
-    return (
-      // LoadScript 加载 Google Maps JavaScript API
-      <LoadScript googleMapsApiKey="AIzaSyCI4KCRxc10tpJLV2ojoygQe9BTtvI7PIQ">
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={center}
-          zoom={8}
-        >
-          {/* 这里可以添加其他地图元素，如标记、折线等 */}
-        </GoogleMap>
-      </LoadScript>
-    );
-
-  }
    //发送评论
   const submitComment=async (formData,userId,productId)=>{
     try {
@@ -868,7 +841,7 @@ const ShopContextProvider = (props) => {
 
   const value = {
     products, currency, delivery_fee, search, setSearch, showSearch, setShowSearch, cartItems, addToCart, getCartCount, updateQuantity, getCartAmount,
-    navigate, getProductsData, backendUrl, api, token, setToken, getGoogleMap, sendInquiryEmail, getInquiryThread, postInquiryMessage, submitComment, setCartItems,
+    navigate, getProductsData, backendUrl, api, token, setToken, sendInquiryEmail, getInquiryThread, postInquiryMessage, submitComment, setCartItems,
     inquiryUnreadCount, refreshInquiryUnreadCount, requestCustomerInquiryDesktopAlerts,
     getBlogComments, addBlogComment, updateBlogComment, deleteBlogComment, user, getUserInfo,
     isCartOpen, openCart, closeCart,

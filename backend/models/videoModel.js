@@ -17,11 +17,15 @@ const videoSchema = new mongoose.Schema(
     order: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: true },
     views: { type: Number, default: 0 },
+    /** manual = admin-added (incl. unlisted); youtube = imported from channel sync */
+    source: { type: String, enum: ['manual', 'youtube'], default: 'manual' },
+    youtubePublishedAt: { type: Date, default: null },
+    lastSyncedAt: { type: Date, default: null },
   },
   { timestamps: true }
 )
 
-videoSchema.index({ isPublished: 1, order: 1, createdAt: -1 })
+videoSchema.index({ isPublished: 1, order: 1, youtubePublishedAt: -1, createdAt: -1 })
 videoSchema.index({ productId: 1, isPublished: 1 })
 videoSchema.index({ youtubeId: 1 })
 

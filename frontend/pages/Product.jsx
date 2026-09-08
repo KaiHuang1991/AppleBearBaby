@@ -1,7 +1,6 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import React, { lazy, Suspense, useContext, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import RelatedProducts from '../componets/RelatedProducts'
 import SocialShare from '../componets/SocialShare'
 import { buildOgShareImages } from '../src/utils/ogCollage'
 import { ShopContext } from '../context/ShopContext'
@@ -10,7 +9,11 @@ import { toast } from 'react-toastify'
 import { flyToCart } from '../src/utils/flyToCart'
 import '../styles/ProductDescription.css'
 import YouTubeEmbed from '../componets/YouTubeEmbed'
+import { getProductPath, isMongoObjectId } from '../src/utils/productPath'
+import { getProductCanonicalUrl } from '../src/utils/productShareUrl'
+import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
 
+const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
 const Product = () => {
   const { productId } = useParams()
@@ -33,8 +36,17 @@ const Product = () => {
   const [averageRating, setAverageRating] = useState(5)
   const [loadingComments, setLoadingComments] = useState(true)
   const [productVideos, setProductVideos] = useState([])
+  const [zoomViewer, setZoomViewer] = useState(null)
 
   const userId = localStorage.getItem("userId")
+
+  const recordVideoView = async (videoId) => {
+    try {
+      await api.videosRecordView(videoId)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const formatDateTime = (dateString) => {
     const date = new Date(dateString || Date.now())
@@ -68,7 +80,7 @@ const Product = () => {
 
   const fetchProductData = async () => {
     products.map((item) => {
-      if (item._id === productId) {
+      if (item._id === productId || item.slug === productId) {
         setProductData(item)
         //console.log(productData)
         setImage(item.image[0]) //get the first image of current product page
@@ -77,30 +89,28 @@ const Product = () => {
     })
   }
 
+  const resolvedProductId = productData?._id || (isMongoObjectId(productId) ? productId : null)
+
   const categoryPath = getProductCategoryPath(productData)
 
-  const handleBreadcrumbNavigation = (levelIndex) => {
-    if (!categoryPath || !categoryPath[levelIndex]?.id) return
-
+  const breadcrumbCollectionTo = (levelIndex) => {
+    if (!categoryPath || levelIndex < 0) return '/collection'
     const params = new URLSearchParams()
     const keys = ['categoryId', 'subCategoryId', 'thirdCategoryId']
-
     categoryPath.forEach((node, idx) => {
       if (idx > levelIndex) return
-      if (node?.id && keys[idx]) {
-        params.set(keys[idx], node.id)
-      }
+      if (node?.id && keys[idx]) params.set(keys[idx], node.id)
     })
-
     const queryString = params.toString()
-    navigate(queryString ? `/collection?${queryString}` : '/collection')
+    return queryString ? `/collection?${queryString}` : '/collection'
   }
   const fetchCommentsData = async () => {
+    if (!resolvedProductId) return
     try {
       setLoadingComments(true)
       
       // Try to load from cache first for instant display
-      const cachedReviews = localStorage.getItem(`reviews_${productId}`)
+      const cachedReviews = localStorage.getItem(`reviews_${resolvedProductId}`)
       if (cachedReviews) {
         try {
           const parsedReviews = JSON.parse(cachedReviews)
@@ -115,9 +125,9 @@ const Product = () => {
         }
       }
       
-      console.log('Fetching comments for product:', productId)
+      console.log('Fetching comments for product:', resolvedProductId)
       const response = await api.productListComment({
-        productId
+        productId: resolvedProductId
       })
       
       if (response.data.success) {
@@ -140,7 +150,7 @@ const Product = () => {
         setReviews(reviewsArray)
         
         // Cache reviews in localStorage with productId as key
-        localStorage.setItem(`reviews_${productId}`, JSON.stringify(reviewsArray))
+        localStorage.setItem(`reviews_${resolvedProductId}`, JSON.stringify(reviewsArray))
       }
     } catch (error) {
       console.error('Error fetching comments:', error)
@@ -179,22 +189,51 @@ const Product = () => {
     window.scrollTo(0, 0)
     setImage('')
     setQuantity(1)
-    if (products.find(item => item._id === productId)) {
-      setProductData(products.find(item => item._id === productId))
-      setImage(products.find(item => item._id === productId).image[0])
+    let cancelled = false
+
+    const applyProduct = (match) => {
+      if (!match || cancelled) return
+      setProductData(match)
+      setImage(match.image?.[0] || '')
+      if (match.slug && isMongoObjectId(productId) && productId !== match.slug) {
+        navigate(getProductPath(match), { replace: true })
+      }
     }
-  }, [productId, products])
+
+    const match = products.find(
+      (item) => item._id === productId || item.slug === productId
+    )
+    if (match) {
+      applyProduct(match)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    ;(async () => {
+      try {
+        const { data } = await api.productGet(productId)
+        if (data?.success && data.product) applyProduct(data.product)
+      } catch (err) {
+        console.error(err)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [productId, products, navigate, api])
   useEffect(() => {
-    if (productId) {
+    if (resolvedProductId) {
       fetchCommentsData()
     }
-  }, [productId])
+  }, [resolvedProductId])
 
   useEffect(() => {
-    if (!productId) return
+    if (!resolvedProductId) return
     const loadVideos = async () => {
       try {
-        const { data } = await api.videosByProduct(productId)
+        const { data } = await api.videosByProduct(resolvedProductId)
         if (data?.success) setProductVideos(data.videos || [])
         else setProductVideos([])
       } catch {
@@ -202,7 +241,48 @@ const Product = () => {
       }
     }
     loadVideos()
-  }, [productId, api])
+  }, [resolvedProductId, api])
+
+  useEffect(() => {
+    if (tabs !== 'description' || !productData) return
+    const root = document.querySelector('.product-description-detail')
+    if (!root) return
+    root.querySelectorAll('img').forEach((img) => {
+      if (!img.getAttribute('loading')) img.setAttribute('loading', 'lazy')
+      img.setAttribute('decoding', 'async')
+      const src = img.getAttribute('src') || ''
+      if (src.includes('res.cloudinary.com') && !src.includes('w_')) {
+        img.setAttribute('src', optimizeCloudinaryUrl(src, { width: 900 }))
+      }
+    })
+  }, [tabs, productData])
+
+  const openZoomViewer = (urls, startIndex = 0, alt = '') => {
+    const list = (urls || []).filter(Boolean).map((url) => optimizeCloudinaryUrl(url, { width: 1600 }))
+    if (!list.length) return
+    const index = Math.min(Math.max(0, startIndex), list.length - 1)
+    setZoomViewer({ list, index, alt })
+  }
+
+  useEffect(() => {
+    if (!zoomViewer) return
+    const onKey = (event) => {
+      if (event.key === 'Escape') setZoomViewer(null)
+      if (event.key === 'ArrowRight' && zoomViewer.list.length > 1) {
+        setZoomViewer((prev) => prev && ({ ...prev, index: (prev.index + 1) % prev.list.length }))
+      }
+      if (event.key === 'ArrowLeft' && zoomViewer.list.length > 1) {
+        setZoomViewer((prev) => prev && ({ ...prev, index: (prev.index - 1 + prev.list.length) % prev.list.length }))
+      }
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [zoomViewer])
 
   // 生成SEO相关的meta信息
   const generateSEOMeta = () => {
@@ -246,7 +326,7 @@ const Product = () => {
       return normalized
     }
 
-    const canonical = typeof window !== 'undefined' ? window.location.href : ''
+    const canonical = getProductCanonicalUrl(productData)
     const title = productData.name || 'Product'
     const description = stripHtml(productData.description || '').slice(0, 160)
     const sourceImages = normalizeImages(productData.image)
@@ -317,9 +397,49 @@ const Product = () => {
     }
   }, [productData?.sizes])
 
+  const handleAddToInquiry = () => {
+    if (productData.sizes && productData.sizes.length > 0) {
+      if (!size) {
+        toast.error('Please select a size')
+        return
+      }
+      addToCart(productData._id, size, quantity)
+    } else {
+      addToCart(productData._id, 'Default', quantity)
+    }
+    const imgEl = document.querySelector('img.product-main-img')
+    if (imgEl) flyToCart(imgEl)
+  }
+
+  const specRows = []
+  if (productData) {
+    if (productData.modelNumber && String(productData.modelNumber).trim()) {
+      specRows.push({ label: 'Model', value: String(productData.modelNumber).trim() })
+    }
+    if (productData.category) specRows.push({ label: 'Category', value: productData.category })
+    if (productData.subCategory) specRows.push({ label: 'Subcategory', value: productData.subCategory })
+    if (productData.thirdCategory) specRows.push({ label: 'Type', value: productData.thirdCategory })
+    if (Array.isArray(productData.attributes)) {
+      productData.attributes.forEach((attribute, index) => {
+        if (!attribute) return
+        const attrInfo = attribute.attribute || {}
+        const label = attrInfo.label || attrInfo.name || ''
+        const value = attribute.value || ''
+        if (!label || !value) return
+        specRows.push({ label, value, key: attrInfo._id || `${label}-${index}` })
+      })
+    }
+  }
+
+  const categoryEyebrow = productData
+    ? [productData.category, productData.subCategory, productData.thirdCategory].filter(Boolean).join(' / ')
+    : ''
+
+  const tabClass = (id) =>
+    `product-tab ${tabs === id ? 'product-tab--active' : ''}`
 
   return productData ? (
-    <div className=' mt-20 transition-opacity ease-in duration-500 opacity-100 cartoon-bg min-h-screen pb-20'>
+    <main className='mt-20 transition-opacity ease-in duration-500 opacity-100 cartoon-bg min-h-screen pb-28 lg:pb-20'>
       {/* SEO Meta Tags */}
       {seoMeta && (
         <Helmet>
@@ -327,7 +447,15 @@ const Product = () => {
           <title>{seoMeta.title}</title>
           <meta name="description" content={seoMeta.description} />
           <meta name="keywords" content={seoMeta.keywords} />
-          <link rel="canonical" href={seoMeta.canonical} />
+          {seoMeta.canonical ? <link rel="canonical" href={seoMeta.canonical} /> : null}
+          {image ? (
+            <link
+              rel="preload"
+              as="image"
+              href={optimizeCloudinaryUrl(image, { width: 800 })}
+              fetchPriority="high"
+            />
+          ) : null}
           
           {/* Open Graph Meta标签（Facebook, LinkedIn等） */}
           <meta property="og:type" content={seoMeta.ogType} />
@@ -339,7 +467,7 @@ const Product = () => {
               <meta property="og:image:secure_url" content={imgUrl} />
             </React.Fragment>
           ))}
-          <meta property="og:url" content={seoMeta.canonical} />
+          {seoMeta.canonical ? <meta property="og:url" content={seoMeta.canonical} /> : null}
           {import.meta.env.VITE_FACEBOOK_APP_ID ? (
             <meta property="fb:app_id" content={import.meta.env.VITE_FACEBOOK_APP_ID} />
           ) : null}
@@ -364,527 +492,536 @@ const Product = () => {
         </Helmet>
       )}
       {/* Breadcrumb Navigation */}
-      <div className='bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200'>
-        <div className='px-4 sm:px-8 lg:px-12 py-4'>
-          <div className='flex flex-wrap items-center gap-2 text-sm sm:text-base text-gray-600'>
+      <div className='bg-[var(--color-surface)] border-b border-slate-200'>
+        <div className='section-container py-3'>
+          <nav className='flex flex-wrap items-center gap-2 text-xs sm:text-sm text-[var(--color-ink-muted)]' aria-label='Breadcrumb'>
             <button
               type='button'
               onClick={() => window.history.back()}
-              className='hover:text-blue-600 transition-colors flex items-center gap-1'
+              className='hover:text-[var(--color-brand)] transition-colors flex items-center gap-1'
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Back
             </button>
-            <span className='text-gray-400'>/</span>
-            <button
-              type='button'
-              onClick={() => navigate('/collection')}
-              className='hover:text-blue-600 transition-colors'
-            >
+            <span aria-hidden="true">/</span>
+            <Link to='/collection' className='hover:text-[var(--color-brand)] transition-colors'>
               Catalog
-            </button>
+            </Link>
             {categoryPath?.map((node, index) => (
               <React.Fragment key={node?.id || node?.name || index}>
-                <span className='text-gray-400'>/</span>
+                <span aria-hidden="true">/</span>
                 {node?.id ? (
-                  <button
-                    type='button'
-                    onClick={() => handleBreadcrumbNavigation(index)}
-                    className='hover:text-blue-600 transition-colors'
+                  <Link
+                    to={breadcrumbCollectionTo(index)}
+                    className='hover:text-[var(--color-brand)] transition-colors'
                   >
                     {node?.name || 'Category'}
-                  </button>
+                  </Link>
                 ) : (
-                  <span className='text-gray-500'>{node?.name || 'Category'}</span>
+                  <span>{node?.name || 'Category'}</span>
                 )}
               </React.Fragment>
             ))}
-            <span className='text-gray-400'>/</span>
-            <span className='font-medium text-gray-800 truncate max-w-[10rem] sm:max-w-md md:max-w-lg'>{productData.name}</span>
-          </div>
+            <span aria-hidden="true">/</span>
+            <span className='font-medium text-[var(--color-ink)] truncate max-w-[10rem] sm:max-w-md md:max-w-lg'>{productData.name}</span>
+          </nav>
         </div>
       </div>
       
-      {/*Product Data*/}
-      <div className='product-detail-row flex gap-6 md:gap-8 lg:gap-8 flex-col lg:flex-row lg:items-stretch px-4 sm:px-6 lg:px-12 pt-6 sm:pt-8 w-full max-w-screen-xl mx-auto'>
-        {/*Product Images*/}
-        <div className='product-gallery flex flex-col-reverse gap-3 lg:flex-row lg:items-stretch w-full min-w-0 lg:flex-[1.05] lg:min-h-0'>
-          {/* Thumbnail Images */}
-          <div 
-            className='thumbnail-column flex lg:flex-col overflow-x-auto lg:overflow-hidden justify-start gap-3 pb-2 lg:pb-0 lg:pr-3 w-full lg:w-28 xl:w-32 flex-shrink-0'
-            style={{ scrollbarWidth: 'none' }}
-          >
-            {
-              productData.image.map((item, itemIndex) => (
-                <img 
-                  onClick={() => setImage(item)} 
-                  src={item} 
-                  key={itemIndex} 
-                  className={`thumbnail-item w-[22%] min-w-[4.5rem] lg:w-full aspect-square object-cover flex-shrink-0 cursor-pointer rounded-lg border-2 transition-all duration-200 shadow-sm ${
-                    image === item 
-                      ? 'border-blue-500 ring-2 ring-blue-200 lg:scale-100 scale-105 shadow-md' 
-                      : 'border-gray-200 hover:border-blue-300 hover:scale-105 lg:hover:scale-100 hover:shadow-md'
-                  }`}
+      {/* Product Data */}
+      <div className='section-container product-detail-row pt-6 sm:pt-8'>
+        {/* Product Images */}
+        <div className='product-gallery'>
+          <div className='thumbnail-column'>
+            {(productData.image || []).map((item, itemIndex) => (
+              <button
+                type='button'
+                key={itemIndex}
+                onClick={() => setImage(item)}
+                className={`thumbnail-item ${image === item ? 'thumbnail-item--active' : ''}`}
+                aria-label={`${productData.name} thumbnail ${itemIndex + 1}`}
+                aria-pressed={image === item}
+              >
+                <img
+                  src={optimizeCloudinaryUrl(item, { width: 200 })}
+                  alt={`${productData.name} thumbnail ${itemIndex + 1}`}
+                  width={200}
+                  height={200}
+                  loading="lazy"
+                  decoding="async"
                 />
-              ))
-            }
+              </button>
+            ))}
           </div>
-          {/* Main Product Image */}
-          <div className='product-main-outer min-w-0 flex-1 lg:h-full rounded-xl shadow-lg bg-white'>
-            <div className='product-main-wrapper relative rounded-lg bg-white w-full h-full'>
-              <img 
-                src={image} 
-                className='product-main-img w-full h-full object-contain transition-transform duration-300 hover:scale-105' 
+          <div className='product-main-outer'>
+            <div className='product-main-wrapper'>
+              <img
+                src={optimizeCloudinaryUrl(image, { width: 800 })}
+                className='product-main-img'
                 alt={productData.name}
+                width={800}
+                height={800}
+                fetchPriority="high"
+                decoding="async"
+                onClick={() => {
+                  const gallery = productData.image || []
+                  const index = Math.max(0, gallery.indexOf(image))
+                  openZoomViewer(gallery, index, productData.name)
+                }}
               />
             </div>
           </div>
         </div>
-        {/*Product Info*/}
-        <div className='product-info-panel bg-white rounded-lg shadow-sm flex flex-col w-full min-w-0 lg:flex-1 lg:min-w-0 lg:self-stretch'>
-          {/* Quick Info Tags */}
-          <div className='bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-3 flex flex-wrap gap-2 items-center'>
-            <span className='bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1'>
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              {averageRating.toFixed(1)} Rating
-            </span>
-            {productData.bestseller && (
-              <span className='bg-white text-yellow-500 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 shadow-sm'>
-                <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
-                  <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
-                </svg>
-                Bestseller
-              </span>
-            )}
-            <span className='bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1'>
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-              In Stock
-            </span>
-            <span className='bg-white/20 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1'>
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-              </svg>
-              Fast Shipping
-            </span>
-          </div>
-          
-          <div className='p-4 sm:p-6'>
-            <h4 className='font-medium text-xl sm:text-xl'>{productData.name}</h4>
-            {productData.modelNumber && String(productData.modelNumber).trim() ? (
-              <p className='text-sm text-gray-600 mt-1'>
-                Model <span className='font-semibold text-gray-800'>{String(productData.modelNumber).trim()}</span>
-              </p>
-            ) : null}
-          <div className='flex items-center gap-1 mt-2'>
-            <p onClick={() => setRating(1)} className='cursor-pointer'>{rating >= 1 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-            <p>{averageRating >= 2 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-            <p>{averageRating >= 3 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-            <p>{averageRating >= 4 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-            <p>{averageRating >= 5 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-            <p className='pl-2'>({reviews.length})</p>
-          </div>
-          <p className='mt-2 text-3xl font-medium text-blue-600'>{currency}{productData.price}</p>
-          
-          {/* 分类标签 */}
-          {(productData.category || productData.subCategory || productData.thirdCategory) && (
-            <div className='mt-2 flex flex-wrap gap-2 items-center'>
-              <span className='text-sm font-semibold text-gray-700'>Category:</span>
-              {productData.category && (
-                <span className='inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm'>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                  </svg>
-                  {productData.category}
-                </span>
-              )}
-              {productData.subCategory && (
-                <span className='inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm'>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1H8a3 3 0 00-3 3v1.5a1.5 1.5 0 01-3 0V6z" clipRule="evenodd" />
-                    <path d="M6 12a2 2 0 012-2h8a2 2 0 012 2v2a2 2 0 01-2 2H2h2a2 2 0 002-2v-2z" />
-                  </svg>
-                  {productData.subCategory}
-                </span>
-              )}
-              {productData.thirdCategory && (
-                <span className='inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-sm'>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                  </svg>
-                  {productData.thirdCategory}
-                </span>
-              )}
-            </div>
-          )}
 
-          {/* 属性标签 */}
-          {Array.isArray(productData.attributes) && productData.attributes.length > 0 && (
-            <div className='mt-3 flex flex-wrap gap-2 items-center'>
-              <span className='text-sm font-semibold text-gray-700'>Features:</span>
-              {productData.attributes.map((attribute, index) => {
-                if (!attribute) return null
-                const attrInfo = attribute.attribute || {}
-                const label = attrInfo.label || attrInfo.name || ''
-                const value = attribute.value || ''
-                if (!label || !value) return null
-                const bg = attrInfo.color || '#f0f9ff'
-                const textColor = '#0f172a'
-                return (
-                  <span
-                    key={attrInfo._id || `${label}-${index}`}
-                    className='inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg shadow-sm border border-gray-200'
-                    style={{ backgroundColor: bg, color: textColor }}
-                  >
-                    <span className='w-2 h-2 rounded-full bg-current opacity-50'></span>
-                    <span className='font-semibold'>{label}:</span>
-                    <span>{value}</span>
-                  </span>
-                )
-              })}
-            </div>
-          )}
-          {productData.sizes && productData.sizes.length > 0 && (
-            <div className='flex flex-col gap-4 my-2'>
-              <p>Select Size</p>
+        {/* Product Info */}
+        <div className='product-info-panel'>
+          {categoryEyebrow ? (
+            <p className='text-xs font-medium uppercase tracking-wide text-[var(--color-ink-muted)] mb-2'>
+              {categoryEyebrow}
+            </p>
+          ) : null}
+
+          <h1 className='text-xl sm:text-2xl font-semibold text-[var(--color-ink)] leading-snug'>
+            {productData.name}
+          </h1>
+
+          <div className='flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-[var(--color-ink-muted)]'>
+            {productData.modelNumber && String(productData.modelNumber).trim() ? (
+              <span>Model {String(productData.modelNumber).trim()}</span>
+            ) : null}
+            <span className='flex items-center gap-1' aria-label={`${averageRating.toFixed(1)} star rating`}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <img
+                  key={star}
+                  src={averageRating >= star ? assets.star_icon : assets.star_dull_icon}
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+              ))}
+            </span>
+            <button
+              type='button'
+              className='hover:text-[var(--color-brand)]'
+              onClick={() => setTabs('reviews')}
+            >
+              {reviews.length} review{reviews.length === 1 ? '' : 's'}
+            </button>
+          </div>
+
+          <div className='product-price-panel'>
+            <span className='text-xs font-medium uppercase tracking-wide text-[var(--color-ink-muted)]'>Wholesale price</span>
+            <p className='text-3xl font-semibold text-[var(--color-brand)] leading-none mt-1'>
+              {currency}{productData.price}
+            </p>
+          </div>
+
+          {specRows.length > 0 ? (
+            <dl className='product-spec-list'>
+              {specRows.map((row) => (
+                <div key={row.key || row.label} className='product-spec-row'>
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          {productData.sizes && productData.sizes.length > 0 ? (
+            <div className='mt-5'>
+              <p className='text-sm font-medium text-[var(--color-ink)] mb-2'>Select size</p>
               <div className='flex gap-2 flex-wrap'>
                 {productData.sizes.map((item, index) => (
                   <button
+                    type='button'
                     onClick={() => setSize(item)}
                     key={index}
-                    className={`border py-2 px-4 rounded-md bg-white transition-all ${item === size ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50 text-blue-600' : 'border-gray-200 hover:border-blue-300'}`}
+                    className={`min-w-[3rem] border py-2 px-4 rounded-md bg-white text-sm transition-colors ${
+                      item === size
+                        ? 'border-[var(--color-brand)] bg-[var(--color-brand-light)] text-[var(--color-brand)]'
+                        : 'border-slate-200 text-[var(--color-ink)] hover:border-[var(--color-brand)]'
+                    }`}
                   >
                     {item}
                   </button>
                 ))}
               </div>
-              <div className='flex items-center gap-2'>
-                <label className='text-sm text-gray-600'>Quantity</label>
-                <input
-                  type='number'
-                  min='1'
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-                  className='w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-                />
-              </div>
             </div>
-          )}
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full'>
-          <button onClick={(e) => {
-            if (productData.sizes && productData.sizes.length > 0) {
-              if (!size) {
-                toast.error('Please select a size')
-                return
-              }
-              addToCart(productData._id, size, quantity)
-            } else {
-              addToCart(productData._id, 'Default', quantity)
-            }
-            const imgEl = document.querySelector('img.product-main-img')
-            if (imgEl) flyToCart(imgEl)
-            }} className='cartoon-btn text-white px-8 py-3 text-sm sm:w-auto'>Add & Inquiry</button>
-            <div className='flex-1 flex justify-start sm:justify-end'>
-              <SocialShare product={productData} />
-            </div>
+          ) : null}
+
+          <div className='flex items-center gap-3 mt-4'>
+            <label htmlFor='product-quantity' className='text-sm font-medium text-[var(--color-ink)]'>Quantity</label>
+            <input
+              id='product-quantity'
+              type='number'
+              min='1'
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+              className='w-20 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] focus:border-[var(--color-brand)]'
+            />
           </div>
-          {/* <hr className='mt-8 sm:w-4/5' />
-          <div className='text-sm text-gray-500 mt-5 flex flex-col gap-1'>
-            <p>100% Original Product.</p>
-            <p>Cash on delivery is available on this product.</p>
-            <p>Easy return and exchange policy within 7days</p>
-          </div> */}
+
+          <div className='product-cta-block'>
+            <button
+              type='button'
+              onClick={handleAddToInquiry}
+              className='cartoon-btn text-white px-8 py-3 text-sm w-full sm:w-auto'
+            >
+              Add & Inquiry
+            </button>
+            <SocialShare product={productData} />
           </div>
+
+          <ul className='product-trust-row'>
+            <li>
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              In Stock
+            </li>
+            <li>
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
+              </svg>
+              Fast Shipping
+            </li>
+            {productData.bestseller ? (
+              <li>
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                Bestseller
+              </li>
+            ) : null}
+          </ul>
         </div>
       </div>
-      {/*Description & Review Section*/}
-      <div className='mt-12 px-4 sm:px-8 lg:px-12 min-w-0'>
-        <div className='bg-white rounded-lg shadow-md overflow-hidden min-w-0'>
-          <div className='flex justify-center gap-2 p-3'>
+      {/* Description / Videos / Reviews */}
+      <div className='section-container mt-10 sm:mt-12 min-w-0'>
+        <div className='product-tabs' role="tablist" aria-label="Product details">
+          <button
+            type="button"
+            role="tab"
+            id="tab-description"
+            aria-controls="panel-description"
+            onClick={() => setTabs("description")}
+            aria-selected={tabs === 'description'}
+            className={tabClass('description')}
+          >
+            Description
+          </button>
+          {productVideos.length > 0 ? (
             <button
-              onClick={() => setTabs("description")}
-              aria-selected={tabs==='description'}
-              className={`px-5 py-3 text-sm sm:text-base font-semibold cursor-pointer rounded-md transition-colors duration-200
-              ${tabs==='description' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'}`}
+              type="button"
+              role="tab"
+              id="tab-videos"
+              aria-controls="panel-videos"
+              onClick={() => setTabs('videos')}
+              aria-selected={tabs === 'videos'}
+              className={tabClass('videos')}
             >
-              Description
+              Videos ({productVideos.length})
             </button>
-            {productVideos.length > 0 ? (
-              <button
-                onClick={() => setTabs('videos')}
-                aria-selected={tabs === 'videos'}
-                className={`px-5 py-3 text-sm sm:text-base font-semibold cursor-pointer rounded-md transition-colors duration-200
-              ${tabs === 'videos' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'}`}
-              >
-                Videos({productVideos.length})
-              </button>
-            ) : null}
-            <button
-              onClick={() => setTabs("reviews")}
-              aria-selected={tabs==='reviews'}
-              className={`px-5 py-3 text-sm sm:text-base font-semibold cursor-pointer rounded-md transition-colors duration-200
-              ${tabs==='reviews' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600'}`}
-            >
-              Reviews({reviews.length})
-            </button>
-          </div>
-          {tabs === 'videos' && productVideos.length > 0 ? (
-            <div className='border-t border-blue-100 bg-white px-6 py-6 min-w-0'>
-              <div className="flex flex-col gap-8 max-w-3xl mx-auto">
-                {productVideos.map((video) => (
-                  <div key={video._id}>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">{video.title}</h3>
-                    <YouTubeEmbed youtubeId={video.youtubeId} title={video.title} />
-                    {video.description ? (
-                      <p className="text-sm text-gray-600 mt-3">{video.description}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : tabs === "description" ? (
-            <div className='border-t border-blue-100 bg-white px-6 py-6 text-sm text-gray-600 min-w-0'>
-              <div
-                className='product-description-detail flex flex-col gap-4 w-full max-w-4xl min-w-0 mx-auto'
-            dangerouslySetInnerHTML={{ __html: productData.description }}
-              />
-            </div>
-          ) : (
-            <div className='flex flex-col gap-4 border-t border-blue-100 bg-white px-6 py-6 text-sm text-gray-600'>
-              <div className='flex flex-col w-full max-w-4xl mx-auto'>
-              {/* <h3 className="text-lg font-semibold text-gray-800 mb-4">Submit</h3> */}
+          ) : null}
+          <button
+            type="button"
+            role="tab"
+            id="tab-reviews"
+            aria-controls="panel-reviews"
+            onClick={() => setTabs("reviews")}
+            aria-selected={tabs === 'reviews'}
+            className={tabClass('reviews')}
+          >
+            Reviews ({reviews.length})
+          </button>
+        </div>
 
-              {/* 错误或成功提示 */}
-              {error && <p className="text-red-500 mb-4">{error}</p>}
-              {message && <p className="text-green-500 mb-4">{message}</p>}
-
-              {/* 评论表单 */}
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData();
-                formData.append("rating", rating);
-                formData.append("comment", comment);
-                formData.append("productId", productId);
-                formData.append("userId", userId);
-                if (media && media.length > 0) {
-                  Array.from(media).forEach((file, index) => {
-                    formData.append('media', file);
-                    console.log(`Appending file ${index + 1}: ${file.name}`);
-                  });
-                }
-                const result = await submitComment(formData, userId, productId)
-                if (result && result.success) {
-                  // Refresh comments after successful submission
-                  await fetchCommentsData()
-                  // Reset form
-                  setComment('')
-                  setMedia(false)
-                  setRating(5)
-                }
-              }} className="space-y-4">
-                {/* 评分选择 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-                  <div className='flex items-center gap-1 mt-2'>
-                    <p onClick={() => setRating(1)} className='cursor-pointer'>{rating >= 1 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-                    <p onClick={() => setRating(2)} className='cursor-pointer'>{rating >= 2 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-                    <p onClick={() => setRating(3)} className='cursor-pointer'>{rating >= 3 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-                    <p onClick={() => setRating(4)} className='cursor-pointer'>{rating >= 4 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-                    <p onClick={() => setRating(5)} className='cursor-pointer'>{rating >= 5 ? <img src={assets.star_icon} /> : <img src={assets.star_dull_icon} alt="" />}</p>
-                  </div>
-                </div>
-
-                {/* 评论内容输入 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Comments</label>
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Please share your thoughts about this product..."
-                    required
-                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-32 resize-none"
+        {tabs === 'videos' && productVideos.length > 0 ? (
+          <div
+            id="panel-videos"
+            role="tabpanel"
+            aria-labelledby="tab-videos"
+            className="product-tab-panel"
+          >
+            <div className="flex flex-col gap-8 w-full min-w-0 max-w-3xl">
+              {productVideos.map((video) => (
+                <div key={video._id}>
+                  <h2 className="text-lg font-semibold text-[var(--color-ink)] mb-3">{video.title}</h2>
+                  <YouTubeEmbed
+                    youtubeId={video.youtubeId}
+                    title={video.title}
+                    onActivate={() => recordVideoView(video._id)}
                   />
+                  {video.description ? (
+                    <p className="text-sm text-[var(--color-ink-muted)] mt-3">{video.description}</p>
+                  ) : null}
                 </div>
+              ))}
+            </div>
+          </div>
+        ) : tabs === "description" ? (
+          <div
+            id="panel-description"
+            role="tabpanel"
+            aria-labelledby="tab-description"
+            className="product-tab-panel text-sm text-[var(--color-ink-muted)]"
+          >
+            <div
+              className="product-description-detail w-full min-w-0"
+              dangerouslySetInnerHTML={{ __html: productData.description }}
+            />
+          </div>
+        ) : (
+          <div
+            id="panel-reviews"
+            role="tabpanel"
+            aria-labelledby="tab-reviews"
+            className="product-tab-panel text-sm text-[var(--color-ink-muted)]"
+          >
+            {error && <p className="text-red-500 mb-4">{error}</p>}
+            {message && <p className="text-green-600 mb-4">{message}</p>}
 
-                {/* 图片上传 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Images (Optional)</label>
-                  <div className='flex flex-col sm:flex-row gap-3 items-start'>
-                    <input
-                      id="review-media-input"
-                      multiple
-                      type="file"
-                      accept="image/*"
-                      onChange={handleSetImage(setMedia)}
-                      className="hidden"
-                    />
-                    <label htmlFor="review-media-input" className='inline-flex items-center justify-center px-4 py-2 rounded-md bg-blue-600 text-white text-sm cursor-pointer hover:bg-blue-700'>
-                      Choose Images
-                    </label>
-                    <span className='text-sm text-gray-500 mt-1 sm:mt-2'>
-                      {media && media.length > 0 ? `${media.length} file(s) selected` : 'No file selected'}
-                    </span>
-                    {media && media.length > 0 && (
-                      <div className='flex flex-row gap-2 flex-wrap'>
-                        {Array.from(media).map((element, index) => (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData();
+              formData.append("rating", rating);
+              formData.append("comment", comment);
+              formData.append("productId", resolvedProductId);
+              formData.append("userId", userId);
+              if (media && media.length > 0) {
+                Array.from(media).forEach((file) => {
+                  formData.append('media', file);
+                });
+              }
+              const result = await submitComment(formData, userId, resolvedProductId)
+              if (result && result.success) {
+                await fetchCommentsData()
+                setComment('')
+                setMedia(false)
+                setRating(5)
+              }
+            }} className="space-y-4 max-w-2xl">
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Rating</label>
+                <div className='flex items-center gap-1 mt-2'>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setRating(star)}
+                      aria-label={`${star} star${star === 1 ? '' : 's'}`}
+                      className="cursor-pointer"
+                    >
+                      <img
+                        src={rating >= star ? assets.star_icon : assets.star_dull_icon}
+                        alt=""
+                        width={20}
+                        height={20}
+                        className="w-5 h-5"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="review-comment" className="block text-sm font-medium text-[var(--color-ink)] mb-2">Comments</label>
+                <textarea
+                  id="review-comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Please share your thoughts about this product..."
+                  required
+                  className="w-full p-3 border border-slate-200 rounded-md focus:ring-2 focus:ring-[var(--color-brand)] focus:border-[var(--color-brand)] h-32 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">Upload Images (Optional)</label>
+                <div className='flex flex-col sm:flex-row gap-3 items-start'>
+                  <input
+                    id="review-media-input"
+                    multiple
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSetImage(setMedia)}
+                    className="hidden"
+                  />
+                  <label htmlFor="review-media-input" className='corp-btn-outline text-sm cursor-pointer'>
+                    Choose Images
+                  </label>
+                  <span className='text-sm text-[var(--color-ink-muted)] mt-1 sm:mt-2'>
+                    {media && media.length > 0 ? `${media.length} file(s) selected` : 'No file selected'}
+                  </span>
+                  {media && media.length > 0 && (
+                    <div className='flex flex-row gap-2 flex-wrap'>
+                      {Array.from(media).map((element, index) => (
+                        <img
+                          key={index}
+                          src={URL.createObjectURL(element)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded-md border border-slate-200"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button type="submit" className="cartoon-btn text-white px-8 py-3 text-sm">
+                Submit Review
+              </button>
+            </form>
+
+            <div className="space-y-6 mt-10 max-w-2xl">
+              {loadingComments ? (
+                <div className="flex justify-center items-center py-10">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--color-brand)]"></div>
+                  <p className="ml-3">Loading reviews...</p>
+                </div>
+              ) : reviews && reviews.length > 0 ? (
+                reviews.map((review, index) => (
+                  <div key={review._id || index} className="pb-4 border-b border-slate-200">
+                    <div className="flex items-center justify-between mb-2 gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-semibold text-[var(--color-ink)]">
+                          {userNames[index] || 'Anonymous'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, starIndex) => (
+                            <img
+                              key={starIndex}
+                              src={starIndex < review.rating ? assets.star_icon : assets.star_dull_icon}
+                              alt=""
+                              className="w-4 h-4"
+                              width={16}
+                              height={16}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <span className="text-xs text-slate-400">
+                          {formatDateTime(review.createdAt)}
+                        </span>
+                        {JSON.stringify(review.userId) === (`"${userId}"`) && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(review._id)}
+                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-[var(--color-ink-muted)] mb-3">{review.comment}</p>
+                    {review.media && review.media.length > 0 && (
+                      <div className="flex flex-row gap-2 flex-wrap">
+                        {review.media.map((img, imgIndex) => (
                           <img
-                            key={index}
-                            src={URL.createObjectURL(element)}
-                            alt={`Preview ${index + 1}`}
-                            className="w-20 h-20 object-cover rounded-md border-2 border-gray-200"
+                            onClick={handleImageClick}
+                            key={imgIndex}
+                            src={img}
+                            alt={`Review image ${imgIndex + 1}`}
+                            className="w-20 h-20 object-cover rounded-md border border-slate-200 cursor-pointer"
                           />
                         ))}
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* 提交按钮 */}
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Submit Review
-                </button>
-              </form>
-              {/* Reviews List */}
-              <div className="space-y-6 mt-10">
-                {loadingComments ? (
-                  <div className="flex justify-center items-center py-10">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                    <p className="ml-3 text-gray-600">Loading reviews...</p>
-                  </div>
-                ) : reviews && reviews.length > 0 ?
-                  (
-                    reviews <= 10 ?
-                      (
-                        reviews.map((review, index) => (
-                          <div key={index} className="pb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-800">
-                                  {userNames[index] || 'Anonymous'}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, starIndex) => (
-                                    <img
-                                      key={starIndex}
-                                      src={starIndex < review.rating ? assets.star_icon : assets.star_dull_icon}
-                                      alt="Rating star"
-                                      className="w-4 h-4"
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-xs text-gray-400">
-                                  {formatDateTime(review.createdAt)}
-                                </span>
-
-
-                                {JSON.stringify(review.userId) === (`"${userId}"`) && (
-                                  <button
-                                    onClick={() => handleDeleteComment(review._id)}
-                                    className="text-red-500 hover:text-red-700 text-sm font-medium"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-gray-600 mb-3">{review.comment}</p>
-                            {review.media && review.media.length > 0 && (
-                              <div className="flex flex-row gap-2 flex-wrap">
-                                {review.media.map((img, imgIndex) => (
-                                  <img
-                                    key={imgIndex}
-                                    src={img}
-                                    alt={`Review image ${imgIndex + 1}`}
-                                    className="w-20 h-20 object-cover rounded-md border border-gray-200"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                            <hr className="mt-4 border-gray-200" />
-                          </div>
-                        )
-                        )
-                      ) :
-                      (
-                        reviews.map((review, index) => (
-                          <div key={index} className="pb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-800">
-                                  {userNames[index] || 'Anonymous'}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, starIndex) => (
-                                    <img
-                                      key={starIndex}
-                                      src={starIndex < review.rating ? assets.star_icon : assets.star_dull_icon}
-                                      alt="Rating star"
-                                      className="w-4 h-4"
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-xs text-gray-400">
-                                  {formatDateTime(review.createdAt)}
-                                </span>
-
-
-                                {JSON.stringify(review.userId) === (`"${userId}"`) && (
-                                  <button
-                                    onClick={() => handleDeleteComment(review._id)}
-                                    className="text-red-500 hover:text-red-700 text-sm font-medium"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-gray-600 mb-3">{review.comment}</p>
-                            {review.media && review.media.length > 0 && (
-                              <div className="flex flex-row gap-2 flex-wrap">
-                                {review.media.map((img, imgIndex) => (
-                                      <img
-                                        onClick={handleImageClick}
-                                        key={imgIndex}
-                                        src={img}
-                                        alt={`Review image ${imgIndex + 1}`}
-                                        className='w-20 h-20 object-cover rounded-md border border-gray-200 cursor-pointer '
-                                      />
-                                ))}
-                              </div>
-                                )}
-                                <hr className="mt-4 border-gray-200" />
-                              </div>
-                            )
-                        )
-                            )
-                            ) : (
-                            <p className="text-gray-500 italic">No reviews yet. Be the first to share your thoughts!</p>
-                  )
-                }
-              </div>
+                ))
+              ) : (
+                <p className="italic">No reviews yet. Be the first to share your thoughts!</p>
+              )}
             </div>
           </div>
-          )}
+        )}
+      </div>
+
+      <div className='section-container'>
+        <Suspense fallback={null}>
+          <RelatedProducts category={productData.category} subCategory={productData.subCategory} />
+        </Suspense>
+      </div>
+
+      <div className='product-sticky-cta lg:hidden'>
+        <div className='product-sticky-cta-inner'>
+          <div className='min-w-0'>
+            <p className='text-xs text-[var(--color-ink-muted)] truncate'>{productData.name}</p>
+            <p className='text-lg font-semibold text-[var(--color-brand)] leading-tight'>
+              {currency}{productData.price}
+            </p>
+          </div>
+          <button
+            type='button'
+            onClick={handleAddToInquiry}
+            className='cartoon-btn text-white px-5 py-2.5 text-sm shrink-0'
+          >
+            Add & Inquiry
+          </button>
         </div>
       </div>
-      {/*Related Products*/}
-      <div className='px-4 sm:px-8 lg:px-12'>
-        <RelatedProducts category={productData.category} subCategory={productData.subCategory} />
-      </div>
-    </div>
+      {zoomViewer ? (
+        <div
+          className="product-zoom-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Enlarged product image"
+          onClick={() => setZoomViewer(null)}
+        >
+          <button
+            type="button"
+            className="product-zoom-close"
+            aria-label="Close enlarged image"
+            onClick={() => setZoomViewer(null)}
+          >
+            ×
+          </button>
+          {zoomViewer.list.length > 1 ? (
+            <button
+              type="button"
+              className="product-zoom-nav product-zoom-prev"
+              aria-label="Previous image"
+              onClick={(event) => {
+                event.stopPropagation()
+                setZoomViewer((prev) => prev && ({ ...prev, index: (prev.index - 1 + prev.list.length) % prev.list.length }))
+              }}
+            >
+              ‹
+            </button>
+          ) : null}
+          <img
+            src={zoomViewer.list[zoomViewer.index]}
+            alt={zoomViewer.alt || 'Enlarged product image'}
+            className="product-zoom-image"
+            onClick={(event) => event.stopPropagation()}
+          />
+          {zoomViewer.list.length > 1 ? (
+            <button
+              type="button"
+              className="product-zoom-nav product-zoom-next"
+              aria-label="Next image"
+              onClick={(event) => {
+                event.stopPropagation()
+                setZoomViewer((prev) => prev && ({ ...prev, index: (prev.index + 1) % prev.list.length }))
+              }}
+            >
+              ›
+            </button>
+          ) : null}
+          {zoomViewer.list.length > 1 ? (
+            <p className="product-zoom-count" onClick={(event) => event.stopPropagation()}>
+              {zoomViewer.index + 1} / {zoomViewer.list.length}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </main>
   ) : (
     <div className='flex justify-center items-center min-h-screen'>
       <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>

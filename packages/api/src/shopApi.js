@@ -29,10 +29,12 @@ export function createShopApi(client) {
 
     videosAll: (params) => client.get('/api/videos/all', { params }),
     videosGetById: (id) => client.get(`/api/videos/${id}`),
+    videosRecordView: (id) => client.post(`/api/videos/${id}/view`),
     videosByProduct: (productId) => client.get(`/api/videos/product/${productId}`),
 
     // --- Product & reviews ---
     productList: (params) => client.get('/api/product/list', { params }),
+    productGet: (productKey) => client.get(`/api/product/single/${encodeURIComponent(productKey)}`),
     productListComment: (body) => client.post('/api/product/listcomment', body),
     productLinkComment: (body) => client.post('/api/product/comment', body),
     reviewsAdd: (formData) => client.post('/api/reviews/add', formData),

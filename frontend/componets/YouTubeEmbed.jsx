@@ -7,7 +7,7 @@ import './YouTubeEmbed.css'
  * - Lazy-loads iframe only after click (fast initial page load)
  * - Uses youtube-nocookie.com with rel=0 & modestbranding=1
  */
-const YouTubeEmbed = ({ youtubeUrl, youtubeId, title = 'YouTube video', className = '' }) => {
+const YouTubeEmbed = ({ youtubeUrl, youtubeId, title = 'YouTube video', className = '', onActivate }) => {
   const id = youtubeId || parseYouTubeId(youtubeUrl)
   const [activated, setActivated] = useState(false)
 
@@ -53,7 +53,10 @@ const YouTubeEmbed = ({ youtubeUrl, youtubeId, title = 'YouTube video', classNam
         <button
           type="button"
           className="youtube-embed__poster"
-          onClick={() => setActivated(true)}
+          onClick={() => {
+            setActivated(true)
+            onActivate?.()
+          }}
           aria-label={`Play video: ${title}`}
         >
           <img

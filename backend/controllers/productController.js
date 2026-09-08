@@ -5,6 +5,8 @@ import userModel from '../models/userModel.js'
 import categoryModel from '../models/categoryModel.js'
 import attributeModel from '../models/attributeModel.js'
 import mongoose from 'mongoose'
+import { ensureUniqueProductSlug, findProductBySlugOrId } from '../utils/productSlug.js'
+import { invalidateSitemapCache } from '../utils/sitemapService.js'
 // function for add product
 const parseJsonField = (value, defaultValue) => {
     if (!value) return defaultValue
@@ -125,8 +127,11 @@ const addProduct = async (req, res) => {
     }
 
 
+    const slug = await ensureUniqueProductSlug(name)
+
     const productData = {
         name,
+        slug,
         modelNumber: modelNumberTrim,
         description,
         category: resolvedCategoryName,
@@ -160,6 +165,7 @@ const addProduct = async (req, res) => {
     }
     try {
         await product.save()
+        invalidateSitemapCache()
         res.json({ success: true, message: "Product Added" })
     }
     catch (error) {
@@ -325,7 +331,11 @@ const updateProduct = async (req, res) => {
             }
         }
 
+        const nameChanged = currenctProduct.name !== name
         currenctProduct.name = name
+        if (!currenctProduct.slug || nameChanged) {
+            currenctProduct.slug = await ensureUniqueProductSlug(name, { excludeId: currenctProduct._id })
+        }
         if (modelNumberTrim !== undefined) {
             currenctProduct.modelNumber = modelNumberTrim
         }
@@ -378,6 +388,7 @@ const updateProduct = async (req, res) => {
         currenctProduct.updatedAt = Date.now()
 
         await currenctProduct.save()
+        invalidateSitemapCache()
 
         res.json({ success: true, message: "product updated" })
 
@@ -435,6 +446,7 @@ const listProduct = async (req, res) => {
                 {
                     $project: {
                         name: 1,
+                        slug: 1,
                         price: 1,
                         image: 1,
                         category: 1,
@@ -535,19 +547,45 @@ const updateImg = async (req, res) => {
 const removeProduct = async (req, res) => {
     try {
         await productModel.findByIdAndDelete(req.body.id)
+        invalidateSitemapCache()
         res.json({ success: true, message: "product removed" })
     } catch (error) {
         console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
-// function for single product info
+// function for single product info (admin POST body)
 const singleProduct = async (req, res) => {
     try {
         const { productId } = req.body
-        const product = await productModel
-            .findById(productId)
-            .populate('categoryId subCategoryId attributes.attribute')
+        const product = await findProductBySlugOrId(productId, {
+            populate: 'categoryId subCategoryId attributes.attribute',
+        })
+        if (!product) {
+            return res.json({ success: false, message: 'Product not found' })
+        }
+        res.json({ success: true, product })
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+/** Public GET by slug or ObjectId — used by product detail pages. */
+const publicSingleProduct = async (req, res) => {
+    try {
+        const productKey = req.params.productKey || req.query.id
+        if (!productKey) {
+            return res.json({ success: false, message: 'Product key required' })
+        }
+        const product = await findProductBySlugOrId(productKey, {
+            populate: 'categoryId subCategoryId attributes.attribute',
+            lean: true,
+        })
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' })
+        }
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400')
         res.json({ success: true, product })
     } catch (error) {
         console.log(error)
@@ -601,7 +639,8 @@ export {
     addProduct, 
     listProduct, 
     removeProduct, 
-    singleProduct, 
+    singleProduct,
+    publicSingleProduct,
     updateImg, 
     updateProduct, 
     submitComment, 

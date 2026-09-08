@@ -15,6 +15,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
   const [image3, setImage3] = useState(false)
   const [image4, setImage4] = useState(false)
   const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
   const [modelNumber, setModelNumber] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
@@ -78,6 +79,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       setImage3(product.image?.[2] || false)
       setImage4(product.image?.[3] || false)
       setName(product.name || '')
+      setSlug(product.slug || '')
       setModelNumber(product.modelNumber || '')
       setDescription(product.description || '')
       setPrice(product.price || '')
@@ -285,6 +287,19 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
         <p className='mb-2'>Product Name</p>
         <input onChange={(e) => { setName(e.target.value) }} value={name} className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg' type='text' placeholder='Type here' required />
       </div>
+
+      {slug ? (
+        <div className='w-full'>
+          <p className='mb-2'>SEO URL slug (auto)</p>
+          <input
+            value={slug}
+            readOnly
+            className='w-full max-w-[500px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600'
+            type='text'
+          />
+          <p className='text-xs text-gray-500 mt-1'>/product/{slug}</p>
+        </div>
+      ) : null}
 
       <div className='w-full'>
         <p className='mb-2'>Model (optional)</p>

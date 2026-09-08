@@ -16,7 +16,7 @@ const RelatedProducts = ({category,subCategory}) => {
             productsCopy = productsCopy.filter((item)=>subCategory===item.subCategory)
             setRelated(productsCopy.slice(0,5))
         }
-    },[products])
+    },[products, category, subCategory])
   return (
     <div className='my-24'>
       <div className='text-center text-3xl py-2'>
@@ -24,7 +24,7 @@ const RelatedProducts = ({category,subCategory}) => {
         <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 gap-y-6 sm:gap-y-8 grid-items-align'>
             {
                 related.map((item,index)=>(
-                    <ProductItem key={index} id={item._id} image ={item.image} name = {item.name} price={item.price}/>
+                    <ProductItem key={index} id={item._id} slug={item.slug} image={item.image} name={item.name} price={item.price}/>
                 ))
             }
         </div>

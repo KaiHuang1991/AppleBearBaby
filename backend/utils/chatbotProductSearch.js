@@ -104,7 +104,7 @@ export function formatProductsForClient(products) {
       modelNumber: p.modelNumber && String(p.modelNumber).trim() ? String(p.modelNumber).trim() : '',
       price: typeof p.price === 'number' ? p.price : Number(p.price) || 0,
       image: imgs[0] || '',
-      href: `/product/${p._id}`
+      href: `/product/${p.slug || p._id}`
     }
   })
 }

@@ -1,5 +1,6 @@
 import productModel from '../models/productModel.js'
 import blogModel from '../models/blogModel.js'
+import { backfillMissingProductSlugs, hasUsableProductSlug } from './productSlug.js'
 
 /**
  * Indexable static routes — keep in sync with frontend `src/App.jsx` and `src/seo/config.js`.
@@ -29,10 +30,21 @@ function escapeXml(value) {
 }
 
 function toW3CDate(value) {
-  if (value == null) return null
-  const date = new Date(value)
+  if (value == null || value === '') return null
+  let raw = value
+  if (typeof raw === 'number' && raw > 1e9 && raw < 1e12) {
+    raw *= 1000
+  }
+  const date = new Date(raw)
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString().slice(0, 10)
+}
+
+function productLastmod(product, fallback) {
+  const updated = toW3CDate(product.updatedAt)
+  const created = toW3CDate(product.date)
+  if (updated && created) return updated >= created ? updated : created
+  return updated || created || fallback
 }
 
 function normalizeEntry({ loc, lastmod, changefreq, priority }) {
@@ -46,10 +58,17 @@ function normalizeEntry({ loc, lastmod, changefreq, priority }) {
 
 /**
  * Collect all indexable URLs from static routes + MongoDB (products, published blogs).
+ * Product locs are slug-only; ObjectId URLs are never emitted.
  */
 export async function collectSitemapEntries() {
   const origin = getSiteOrigin()
   const today = toW3CDate(Date.now())
+
+  try {
+    await backfillMissingProductSlugs()
+  } catch (err) {
+    console.error('sitemap slug backfill:', err)
+  }
 
   const staticEntries = INDEXABLE_STATIC_ROUTES.map((route) =>
     normalizeEntry({
@@ -61,7 +80,7 @@ export async function collectSitemapEntries() {
   )
 
   const [products, blogs] = await Promise.all([
-    productModel.find().select('_id date').sort({ date: -1 }).lean(),
+    productModel.find().select('_id slug date updatedAt').sort({ updatedAt: -1, date: -1 }).lean(),
     blogModel
       .find({ isPublished: true })
       .select('_id updatedAt createdAt')
@@ -69,14 +88,16 @@ export async function collectSitemapEntries() {
       .lean(),
   ])
 
-  const productEntries = products.map((p) =>
-    normalizeEntry({
-      loc: `${origin}/product/${p._id}`,
-      lastmod: toW3CDate(p.date) || today,
-      changefreq: 'weekly',
-      priority: '0.8',
-    })
-  )
+  const productEntries = products
+    .filter((p) => hasUsableProductSlug(p.slug))
+    .map((p) =>
+      normalizeEntry({
+        loc: `${origin}/product/${p.slug}`,
+        lastmod: productLastmod(p, today),
+        changefreq: 'weekly',
+        priority: '0.8',
+      })
+    )
 
   const blogEntries = blogs.map((b) =>
     normalizeEntry({
@@ -127,6 +148,10 @@ export function buildRobotsTxt() {
 
 let cache = { ts: 0, xml: '', entries: [] }
 const TTL_MS = Number(process.env.SITEMAP_CACHE_MS) || 300000
+
+export function invalidateSitemapCache() {
+  cache = { ts: 0, xml: '', entries: [] }
+}
 
 export async function getSitemapXml({ bypassCache = false } = {}) {
   const now = Date.now()

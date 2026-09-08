@@ -19,6 +19,7 @@ import chatbotRoute from "./routes/chatbotRoute.js";
 import ogRoute from "./routes/ogRoute.js";
 import sitemapRoute from "./routes/sitemapRoute.js";
 import { getGoogleOAuthRedirectUri } from "./utils/googleOAuthClient.js";
+import { scheduleYouTubeSync } from "./jobs/youtubeSyncJob.js";
 
 // App Config
 
@@ -35,6 +36,9 @@ app.use(cookieParser())
 // VPS default: admin subdomain; local dev: localhost (see ALLOWED_ORIGINS in .env for production sites)
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'https://admin.applebearbaby.net',
+  'https://applebearbaby.net',
+  'https://www.applebearbaby.net',
+  'https://admin.applebearbaby.net',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
@@ -132,6 +136,7 @@ const startServer = async () => {
             if (process.env.GOOGLE_CLIENT_ID) {
                 console.log(`🔐 Google OAuth redirect URI (add to Cloud Console): ${getGoogleOAuthRedirectUri()}`)
             }
+            scheduleYouTubeSync()
         })
     } catch (error) {
         console.error('❌ Failed to start server:', error.message)

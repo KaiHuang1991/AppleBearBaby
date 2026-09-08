@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import Title from '../componets/Title'
 import YouTubeEmbed from '../componets/YouTubeEmbed'
 import { ShopContext } from '../context/ShopContext'
 
@@ -12,24 +11,108 @@ const CATEGORY_LABELS = {
   other: 'Other',
 }
 
+const SIDEBAR_ITEMS = [
+  { value: '', label: 'Home', icon: 'home' },
+  { value: 'product-demo', label: 'Product demo', icon: 'play' },
+  { value: 'factory', label: 'Factory', icon: 'factory' },
+  { value: 'tutorial', label: 'Tutorial', icon: 'tutorial' },
+  { value: 'wholesale', label: 'Wholesale', icon: 'wholesale' },
+  { value: 'other', label: 'Other', icon: 'other' },
+]
+
+const CHANNEL_NAME = 'Applebear Baby'
+const CHANNEL_AVATAR =
+  'https://res.cloudinary.com/dzskx10vu/image/upload/v1763529649/logo_mrflxn.png'
+
+const VIDEOS_PER_PAGE = 12
+
+function formatViews(count) {
+  if (!count) return '0 views'
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M views`
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K views`
+  return `${count} views`
+}
+
+function formatRelativeTime(dateString) {
+  if (!dateString) return ''
+  const diffMs = Date.now() - new Date(dateString).getTime()
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 60) return `${Math.max(1, minutes)} minutes ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`
+  const years = Math.floor(months / 12)
+  return `${years} year${years === 1 ? '' : 's'} ago`
+}
+
+function SidebarIcon({ type }) {
+  const common = 'w-5 h-5 shrink-0'
+  switch (type) {
+    case 'home':
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+        </svg>
+      )
+    case 'play':
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      )
+    case 'factory':
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M22 21H2V3h2v12h2V7h4v8h2V11h4v10h2V15h2v6z" />
+        </svg>
+      )
+    case 'tutorial':
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6L21 9 12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
+        </svg>
+      )
+    case 'wholesale':
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1.003 1.003 0 0020 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+        </svg>
+      )
+    default:
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z" />
+        </svg>
+      )
+  }
+}
+
 const Videos = () => {
   const { api } = useContext(ShopContext)
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('')
   const [activeVideo, setActiveVideo] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [category])
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       try {
-        const params = { limit: 24 }
+        const params = { page: currentPage, limit: VIDEOS_PER_PAGE }
         if (category) params.category = category
         const { data } = await api.videosAll(params)
         if (data?.success) {
-          const list = data.videos || []
-          setVideos(list)
-          setActiveVideo(list[0] || null)
+          setVideos(data.videos || [])
+          setTotalPages(data.totalPages || 1)
         }
       } catch (err) {
         console.error(err)
@@ -38,97 +121,270 @@ const Videos = () => {
       }
     }
     load()
-  }, [api, category])
+  }, [api, category, currentPage])
+
+  useEffect(() => {
+    if (!activeVideo) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setActiveVideo(null)
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [activeVideo])
+
+  const selectCategory = (value) => {
+    setCategory(value)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const openVideo = async (video) => {
+    setActiveVideo(video)
+    try {
+      const { data } = await api.videosRecordView(video._id)
+      if (data?.success) {
+        setActiveVideo((current) =>
+          current?._id === video._id ? { ...current, views: data.views } : current
+        )
+        setVideos((prev) =>
+          prev.map((item) => (item._id === video._id ? { ...item, views: data.views } : item))
+        )
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const contentTop = 'calc(var(--navbar-height, 5.25rem) + 2rem)'
 
   return (
-    <div className="pt-28 pb-16 px-4 sm:px-0 min-h-screen">
-      <div className="text-center mb-10">
-        <Title text1="PRODUCT" text2="VIDEOS" />
-        <p className="max-w-2xl mx-auto text-gray-600 text-sm sm:text-base mt-4">
-          Factory tours, product demos, and how-to guides — hosted on YouTube (unlisted) and embedded here for fast
-          loading on applebearbaby.net.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap justify-center gap-2 mb-8">
-        <button
-          type="button"
-          onClick={() => setCategory('')}
-          className={`px-4 py-2 rounded-full text-sm border transition-colors ${!category ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:border-blue-400'}`}
+    <div
+      className="videos-page bg-white min-h-screen"
+      style={{ paddingTop: contentTop }}
+    >
+      <div className="flex max-w-[100vw]">
+        <aside
+          className="hidden lg:block w-[15rem] xl:w-[15.5rem] shrink-0 sticky overflow-y-auto py-3 px-3"
+          style={{
+            top: contentTop,
+            height: 'calc(100vh - var(--navbar-height, 5.25rem) - 2rem)',
+          }}
+          aria-label="Video categories"
         >
-          All
-        </button>
-        {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setCategory(value)}
-            className={`px-4 py-2 rounded-full text-sm border transition-colors ${category === value ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:border-blue-400'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <p className="text-center text-gray-500">Loading videos…</p>
-      ) : videos.length === 0 ? (
-        <p className="text-center text-gray-500">No videos published yet.</p>
-      ) : (
-        <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="lg:col-span-2">
-            {activeVideo ? (
-              <div className="cartoon-card p-4 sm:p-6">
-                <YouTubeEmbed
-                  youtubeId={activeVideo.youtubeId}
-                  youtubeUrl={activeVideo.youtubeUrl}
-                  title={activeVideo.title}
-                />
-                <h2 className="text-xl font-semibold text-gray-800 mt-4">{activeVideo.title}</h2>
-                {activeVideo.description ? (
-                  <p className="text-gray-600 mt-2 text-sm leading-relaxed">{activeVideo.description}</p>
-                ) : null}
-                {activeVideo.productId?._id || activeVideo.productId ? (
-                  <Link
-                    to={`/product/${activeVideo.productId?._id || activeVideo.productId}`}
-                    className="inline-block mt-4 text-blue-600 text-sm font-medium hover:underline"
-                  >
-                    View related product →
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <ul className="space-y-3">
-            {videos.map((video) => (
-              <li key={video._id}>
+          <nav className="flex flex-col gap-0.5">
+            {SIDEBAR_ITEMS.map((item) => {
+              const active = category === item.value
+              return (
                 <button
+                  key={item.value || 'all'}
                   type="button"
-                  onClick={() => setActiveVideo(video)}
-                  className={`w-full flex gap-3 p-3 rounded-xl border text-left transition-all ${
-                    activeVideo?._id === video._id
-                      ? 'border-blue-500 bg-blue-50 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-blue-300'
+                  onClick={() => selectCategory(item.value)}
+                  className={`flex items-center gap-5 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-[#f2f2f2] text-[#0f0f0f]'
+                      : 'text-[#0f0f0f] hover:bg-[#f2f2f2]'
                   }`}
                 >
-                  <img
-                    src={video.thumbnail}
-                    alt=""
-                    className="w-24 aspect-video object-cover rounded-lg shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-800 text-sm line-clamp-2">{video.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {CATEGORY_LABELS[video.category] || video.category}
-                    </p>
-                  </div>
+                  <SidebarIcon type={item.icon} />
+                  <span>{item.label}</span>
                 </button>
-              </li>
-            ))}
-          </ul>
+              )
+            })}
+          </nav>
+
+          <hr className="my-3 border-[#e5e5e5]" />
+
+          <div className="px-3 py-1">
+            <p className="text-base font-semibold text-[#0f0f0f] mb-2">Explore</p>
+            <div className="flex flex-col gap-1 text-sm">
+              <Link to="/collection" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
+                Wholesale catalog
+              </Link>
+              <Link to="/about" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
+                About us
+              </Link>
+              <Link to="/contact" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
+                Contact
+              </Link>
+            </div>
+          </div>
+        </aside>
+
+        <main className="flex-1 min-w-0">
+          <nav className="lg:hidden px-4 pb-4 flex flex-col gap-0.5 border-b border-[#e5e5e5] mb-4" aria-label="Video categories">
+            {SIDEBAR_ITEMS.map((item) => {
+              const active = category === item.value
+              return (
+                <button
+                  key={`mobile-${item.value || 'all'}`}
+                  type="button"
+                  onClick={() => selectCategory(item.value)}
+                  className={`flex items-center gap-4 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-[#f2f2f2] text-[#0f0f0f]'
+                      : 'text-[#0f0f0f] hover:bg-[#f2f2f2]'
+                  }`}
+                >
+                  <SidebarIcon type={item.icon} />
+                  <span>{item.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+
+          <div className="px-4 py-4 sm:py-6">
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 gap-y-8">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div key={index} className="animate-pulse">
+                    <div className="aspect-video rounded-xl bg-[#e5e5e5]" />
+                    <div className="flex gap-3 mt-3">
+                      <div className="w-9 h-9 rounded-full bg-[#e5e5e5] shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-[#e5e5e5] rounded w-full" />
+                        <div className="h-3 bg-[#e5e5e5] rounded w-2/3" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : videos.length === 0 ? (
+              <p className="text-center text-[#606060] py-16">No videos published yet.</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 gap-y-8">
+                  {videos.map((video) => (
+                    <article key={video._id} className="group cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => openVideo(video)}
+                        className="w-full text-left"
+                      >
+                        <div className="relative aspect-video overflow-hidden rounded-xl bg-[#f2f2f2]">
+                          <img
+                            src={video.thumbnail}
+                            alt=""
+                            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                          />
+                          <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-xs font-medium text-white bg-black/80 leading-none">
+                            {CATEGORY_LABELS[video.category] || 'Video'}
+                          </span>
+                        </div>
+
+                        <div className="flex gap-3 mt-3 pr-6">
+                          <img
+                            src={CHANNEL_AVATAR}
+                            alt=""
+                            className="w-9 h-9 rounded-full object-contain bg-white border border-[#e5e5e5] shrink-0 mt-0.5"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-[0.95rem] font-semibold text-[#0f0f0f] leading-snug line-clamp-2">
+                              {video.title}
+                            </h3>
+                            <p className="text-sm text-[#606060] mt-1 truncate">{CHANNEL_NAME}</p>
+                            <p className="text-sm text-[#606060] truncate">
+                              {formatViews(video.views)} • {formatRelativeTime(video.youtubePublishedAt || video.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    </article>
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex flex-wrap justify-center items-center gap-3 mt-10 pt-6 border-t border-[#e5e5e5]">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 text-sm rounded-full bg-[#f2f2f2] text-[#0f0f0f] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#e5e5e5] transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-[#606060]">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 text-sm rounded-full bg-[#f2f2f2] text-[#0f0f0f] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#e5e5e5] transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {activeVideo ? (
+        <div
+          className="fixed inset-0 z-[10000] flex items-start justify-center overflow-y-auto bg-black/70 p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeVideo.title}
+          onClick={() => setActiveVideo(null)}
+        >
+          <div
+            className="relative w-full max-w-5xl my-4 sm:my-8 bg-white rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveVideo(null)}
+              className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+              aria-label="Close video"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="p-4 sm:p-6">
+              <YouTubeEmbed
+                youtubeId={activeVideo.youtubeId}
+                youtubeUrl={activeVideo.youtubeUrl}
+                title={activeVideo.title}
+              />
+              <div className="mt-4 flex gap-3">
+                <img
+                  src={CHANNEL_AVATAR}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-contain bg-white border border-[#e5e5e5] shrink-0"
+                />
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold text-[#0f0f0f] leading-snug">{activeVideo.title}</h2>
+                  <p className="text-sm text-[#606060] mt-1">
+                    {CHANNEL_NAME} • {formatViews(activeVideo.views)} •{' '}
+                    {formatRelativeTime(activeVideo.youtubePublishedAt || activeVideo.createdAt)}
+                  </p>
+                  {activeVideo.description ? (
+                    <p className="text-sm text-[#0f0f0f] mt-3 leading-relaxed whitespace-pre-line">
+                      {activeVideo.description}
+                    </p>
+                  ) : null}
+                  {activeVideo.productId?._id || activeVideo.productId ? (
+                    <Link
+                      to={`/product/${activeVideo.productId?.slug || activeVideo.productId?._id || activeVideo.productId}`}
+                      className="inline-block mt-4 text-sm font-medium text-blue-600 hover:underline"
+                      onClick={() => setActiveVideo(null)}
+                    >
+                      View related product →
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

@@ -8,6 +8,14 @@ const LatestVideos = () => {
   const { api } = useContext(ShopContext)
   const [videos, setVideos] = useState([])
 
+  const recordView = async (videoId) => {
+    try {
+      await api.videosRecordView(videoId)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -33,6 +41,7 @@ const LatestVideos = () => {
           <YouTubeEmbed
             youtubeId={featured.youtubeId}
             title={featured.title}
+            onActivate={() => recordView(featured._id)}
           />
           <h3 className="font-semibold text-gray-800 mt-3">{featured.title}</h3>
         </div>

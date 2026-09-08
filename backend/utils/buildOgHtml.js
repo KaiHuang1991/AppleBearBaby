@@ -33,6 +33,41 @@ export const optimizeOgImage = (url = '') => {
   return url
 }
 
+/** Display-sized Cloudinary URL for LCP preload (matches frontend product gallery). */
+export const optimizeDeliveryImage = (url = '', { width = 800, height, crop = 'limit' } = {}) => {
+  if (!url || typeof url !== 'string') return url
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url
+
+  const afterUpload = url.split('/upload/')[1]
+  if (!afterUpload) return url
+  const parts = afterUpload.split('/')
+  while (parts.length > 1) {
+    const head = parts[0]
+    if (/^v\d+$/.test(head)) {
+      parts.shift()
+      break
+    }
+    if (head.includes(',') || /^[a-z0-9_]+_[a-z0-9_,]+$/i.test(head)) {
+      parts.shift()
+      continue
+    }
+    break
+  }
+  const publicId = parts.join('/').replace(/\.[^/.]+$/, '')
+  const cloudMatch = url.match(/res\.cloudinary\.com\/([^/]+)\//i)
+  const cloud = cloudMatch ? cloudMatch[1] : null
+  if (!cloud || !publicId) {
+    const transforms = [`c_${crop}`, `w_${width}`, height ? `h_${height}` : '', 'q_auto', 'f_auto']
+      .filter(Boolean)
+      .join(',')
+    return url.replace('/upload/', `/upload/${transforms}/`)
+  }
+  const transforms = [`c_${crop}`, `w_${width}`, height ? `h_${height}` : '', 'q_auto', 'f_auto']
+    .filter(Boolean)
+    .join(',')
+  return `https://res.cloudinary.com/${cloud}/image/upload/${transforms}/${publicId}`
+}
+
 export const normalizeOgImages = (rawImages = [], baseOrigin = '', fallback = '/applebear.png') => {
   const list = Array.isArray(rawImages) ? rawImages.filter(Boolean) : []
   const sources = list.length ? list : [fallback]
@@ -64,28 +99,85 @@ const buildOgImageMetaTags = (images = []) => {
     .join('')
 }
 
-/**
- * Minimal HTML document with Open Graph tags for social crawlers (no JS required).
- */
-export const buildProductOgHtml = ({
+const formatPageTitle = (title, siteName = 'AppleBear Baby') => {
+  const t = String(title || '').trim()
+  if (!t) return siteName
+  if (t.includes(siteName)) return t
+  return `${t} | ${siteName}`
+}
+
+const buildProductJsonLd = ({
   title,
   description,
-  image,
   images,
   canonical,
+  brand,
+  sku,
+  price,
+  currency = 'USD',
+}) => {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: title,
+    description: description || undefined,
+    image: images?.length ? images : undefined,
+    brand: {
+      '@type': 'Brand',
+      name: brand || 'AppleBearBaby',
+    },
+    url: canonical,
+  }
+  if (sku) jsonLd.sku = sku
+  if (price != null && price !== '' && !Number.isNaN(Number(price))) {
+    jsonLd.offers = {
+      '@type': 'Offer',
+      url: canonical,
+      priceCurrency: currency,
+      price: String(price),
+      availability: 'https://schema.org/InStock',
+    }
+  }
+  return jsonLd
+}
+
+/**
+ * Head fragments + visible SEO body for product pages (crawlers + View Source).
+ */
+export const buildProductSeoFragments = ({
+  title,
+  description,
+  keywords = '',
+  image,
+  images,
+  lcpImage = '',
+  canonical,
   siteName = 'AppleBear Baby',
+  brand = 'AppleBearBaby',
+  sku = '',
   price,
   currency = 'USD',
   fbAppId,
+  fullDescription = '',
 }) => {
-  const safeTitle = escapeHtml(title)
+  const pageTitle = formatPageTitle(title, siteName)
+  const safeTitle = escapeHtml(pageTitle)
   const safeDescription = escapeHtml(description)
+  const safeKeywords = escapeHtml(keywords)
   const safeCanonical = escapeHtml(canonical)
   const safeSite = escapeHtml(siteName)
+  const safeBrand = escapeHtml(brand)
   const ogImages = Array.isArray(images) && images.length ? images : image ? [image] : []
   const primaryImage = ogImages[0] || ''
   const safePrimaryImage = escapeHtml(primaryImage)
+  const lcpSrc = lcpImage || optimizeDeliveryImage(primaryImage, { width: 800 })
+  const safeLcpImage = escapeHtml(lcpSrc)
   const ogImageMeta = buildOgImageMetaTags(ogImages)
+  const bodyText = escapeHtml(fullDescription || description || '')
+  const h1 = escapeHtml(title || pageTitle)
+  const lcpPreload = safeLcpImage
+    ? `\n  <link rel="preload" as="image" href="${safeLcpImage}" fetchpriority="high" />`
+    : ''
 
   const priceMeta =
     price != null && price !== ''
@@ -99,14 +191,27 @@ export const buildProductOgHtml = ({
       ? `\n  <meta property="fb:app_id" content="${escapeHtml(String(fbAppId).trim())}" />`
       : ''
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  const keywordsMeta = safeKeywords
+    ? `\n  <meta name="keywords" content="${safeKeywords}" />`
+    : ''
+
+  const jsonLd = buildProductJsonLd({
+    title: title || pageTitle,
+    description,
+    images: ogImages,
+    canonical,
+    brand,
+    sku,
+    price,
+    currency,
+  })
+
+  const headInjection = `
   <title>${safeTitle}</title>
-  <meta name="description" content="${safeDescription}" />
-  <link rel="canonical" href="${safeCanonical}" />
+  <meta name="description" content="${safeDescription}" />${keywordsMeta}
+  <link rel="canonical" href="${safeCanonical}" />${lcpPreload}
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="${safeBrand}" />
   <meta property="og:site_name" content="${safeSite}" />
   <meta property="og:locale" content="en_US" />
   <meta property="og:type" content="product" />
@@ -115,14 +220,113 @@ export const buildProductOgHtml = ({
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:url" content="${safeCanonical}" />${priceMeta}${fbAppIdMeta}
+  <meta property="og:url" content="${safeCanonical}" />${priceMeta}
+  <meta property="product:availability" content="in stock" />
+  <meta property="product:brand" content="${safeBrand}" />${fbAppIdMeta}
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${safeTitle}" />
   <meta name="twitter:description" content="${safeDescription}" />
   <meta name="twitter:image" content="${safePrimaryImage}" />
+  <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
+  <style id="seo-content-hide">html.js #seo-content{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+`
+
+  const imgTag = primaryImage
+    ? `\n  <img src="${safePrimaryImage}" alt="${h1}" width="1200" height="630" />`
+    : ''
+
+  const bodyInjection = `
+<article id="seo-content">
+  <h1>${h1}</h1>${imgTag}
+  <p>${bodyText}</p>
+  <p><a href="${safeCanonical}">${h1}</a></p>
+</article>
+<script>document.documentElement.classList.add('js')</script>
+`
+
+  return { pageTitle, headInjection, bodyInjection, jsonLd }
+}
+
+/**
+ * Inject product SEO fragments into the Vite/SPA index.html shell.
+ */
+export const injectProductSeoIntoHtml = (indexHtml, fragments) => {
+  let html = String(indexHtml || '')
+  if (!html) return ''
+
+  const { headInjection, bodyInjection } = fragments
+
+  // Drop default title / description so injected tags win
+  html = html.replace(/<title>[^<]*<\/title>\s*/i, '')
+  html = html.replace(/<meta\s+name=["']description["'][^>]*>\s*/gi, '')
+  html = html.replace(/<meta\s+name=["']robots["'][^>]*>\s*/gi, '')
+
+  if (/<\/head>/i.test(html)) {
+    html = html.replace(/<\/head>/i, `${headInjection}</head>`)
+  } else {
+    html = `${headInjection}${html}`
+  }
+
+  if (/<div\s+id=["']root["'][^>]*>\s*<\/div>/i.test(html)) {
+    html = html.replace(
+      /<div\s+id=["']root["'][^>]*>\s*<\/div>/i,
+      `${bodyInjection}<div id="root"></div>`
+    )
+  } else if (/<body[^>]*>/i.test(html)) {
+    html = html.replace(/<body([^>]*)>/i, `<body$1>${bodyInjection}`)
+  } else {
+    html = `${bodyInjection}${html}`
+  }
+
+  return html
+}
+
+/**
+ * Standalone HTML fallback when SPA index.html is unavailable.
+ */
+export const buildProductOgHtml = ({
+  title,
+  description,
+  keywords = '',
+  image,
+  images,
+  lcpImage = '',
+  canonical,
+  siteName = 'AppleBear Baby',
+  brand = 'AppleBearBaby',
+  sku = '',
+  price,
+  currency = 'USD',
+  fbAppId,
+  fullDescription = '',
+}) => {
+  const fragments = buildProductSeoFragments({
+    title,
+    description,
+    keywords,
+    image,
+    images,
+    lcpImage,
+    canonical,
+    siteName,
+    brand,
+    sku,
+    price,
+    currency,
+    fbAppId,
+    fullDescription,
+  })
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/applebear.png" />
+${fragments.headInjection}
 </head>
 <body>
-  <p><a href="${safeCanonical}">${safeTitle}</a></p>
+${fragments.bodyInjection}
 </body>
 </html>`
 }

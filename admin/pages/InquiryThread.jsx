@@ -12,10 +12,12 @@ const storeBaseUrl = (
 
 const storefrontProductUrl = (productId) => {
   if (!productId) return null
-  const id =
-    typeof productId === 'object' && productId?._id != null
-      ? String(productId._id)
-      : String(productId)
+  if (typeof productId === 'object') {
+    const key = productId.slug || productId._id
+    if (!key) return null
+    return `${storeBaseUrl}/product/${key}`
+  }
+  const id = String(productId)
   if (!id || id === 'undefined' || id === 'null') return null
   return `${storeBaseUrl}/product/${id}`
 }

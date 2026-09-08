@@ -341,7 +341,7 @@ const Collection = () => {
          <div className='catalog-product-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-10 gap-y-6 lg:gap-y-15 w-full min-w-0 max-w-full sm:max-w-none lg:max-w-none mx-auto sm:mx-0 box-border'>
           {
             currentProducts.map((product,productIndex)=>(
-              <ProductItem key={productIndex} id={product._id} image={product.image} name={product.name} price={product.price} />
+              <ProductItem key={productIndex} id={product._id} slug={product.slug} image={product.image} name={product.name} price={product.price} />
             ))
           }
         </div>

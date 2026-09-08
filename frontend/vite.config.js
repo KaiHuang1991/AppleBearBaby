@@ -22,6 +22,22 @@ export default defineConfig({
       'react/jsx-dev-runtime': path.join(repoNodeModules, 'react/jsx-dev-runtime.js'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('react-dom') || id.includes('/react/') || id.includes('\\react\\')) {
+            return 'react-vendor'
+          }
+          if (id.includes('react-router')) return 'router'
+          if (id.includes('react-helmet')) return 'helmet'
+          if (id.includes('react-toastify')) return 'toast'
+          if (id.includes('axios') || id.includes('@applebear')) return 'api'
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // Listen on all interfaces so http://YOUR_LAN_IP:5173 works from phone / other PCs

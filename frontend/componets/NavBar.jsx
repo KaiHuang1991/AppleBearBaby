@@ -73,7 +73,15 @@ const NavBar = () => {
     <nav className="site-navbar fixed w-full bg-white/95 backdrop-blur-sm top-0 left-0 right-0 border-b border-slate-200 shadow-sm" style={{zIndex: 9999}} aria-label="Main navigation">
       <div className='navbar-inner flex items-center justify-between gap-3 py-3 sm:py-3.5 lg:py-4 px-4 sm:px-6 lg:px-[10vw] min-h-[4.25rem] lg:min-h-0'>
         <Link to='/' className='flex items-center gap-2 shrink-0 min-w-0'>
-            <img draggable={false} src='https://res.cloudinary.com/dzskx10vu/image/upload/v1763529649/logo_mrflxn.png' className="w-24 sm:w-28 lg:w-32 pointer-events-none" alt="Applebear" />
+            <img
+              draggable={false}
+              src="https://res.cloudinary.com/dzskx10vu/image/upload/c_limit,w_256,q_auto,f_auto/v1763529649/logo_mrflxn.png"
+              className="w-24 sm:w-28 lg:w-32 pointer-events-none h-auto"
+              alt="Applebear"
+              width={128}
+              height={48}
+              decoding="async"
+            />
         </Link>
         <ul className="hidden lg:flex flex-1 justify-center gap-4 xl:gap-6 text-sm text-slate-600 min-w-0 px-2">
             <NavLink to='/' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
@@ -180,7 +188,16 @@ const NavBar = () => {
                 </div>}
             </div>
             <button type='button' onClick={() => openCart()} className='relative cursor-pointer'>
-                <img draggable={false} id='cart-icon' src={assets.cart_icon} className='w-5 min-w-5 hover:scale-110 transition-transform duration-300 pointer-events-none' alt="" />
+                <img
+                  draggable={false}
+                  id="cart-icon"
+                  src={assets.cart_icon}
+                  className="w-5 min-w-5 h-5 hover:scale-110 transition-transform duration-300 pointer-events-none"
+                  alt="Cart"
+                  width={20}
+                  height={20}
+                  decoding="async"
+                />
                 <span className='absolute right-[-5px] bottom-[-5px] w-4 text-center leading-4 bg-blue-600 text-white aspect-square rounded-full text-[11px] pointer-events-none'>{getCartCount()}</span>
             </button>
             <button

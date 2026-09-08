@@ -10,7 +10,7 @@ Layout: Global NavBar + Footer on all pages. Home (/) is full-width hero/content
 Routes:
 - / — Home (featured content, entry to shop).
 - /collection — Product catalogue with category tree filters and search on this page (filters do not use separate URLs per category).
-- /product/{productId} — Product detail (sizes, attributes, images). Add to cart requires sign-in where enforced by the site.
+- /product/{slug} — Product detail (sizes, attributes, images). Prefer SEO slug URLs; ObjectId still works with redirect. Add to cart requires sign-in where enforced by the site.
 - /cart — Shopping cart; signed-in users submit cart inquiries / batch quote-style messages from here.
 - /contact — Reach the store (guest-friendly): contact options shown on the page (form, email, WhatsApp, etc.).
 - /login — Sign in / register; email flows include /verify-email/:token, /awaiting-verification, /reset-password/:token.

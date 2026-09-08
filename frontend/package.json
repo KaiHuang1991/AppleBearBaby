@@ -11,8 +11,6 @@
   },
   "dependencies": {
     "@applebear/api": "*",
-    "@googlemaps/js-api-loader": "^1.16.8",
-    "@react-google-maps/api": "^2.20.6",
     "@tailwindcss/vite": "^4.1.7",
     "react": "19.2.7",
     "react-dom": "19.2.7",

@@ -1,23 +1,45 @@
+import { getProductPath } from './productPath.js'
+
 /**
- * Canonical HTTPS product URL for social sharing (Facebook reads OG from this URL).
+ * Prefer VITE_SITE_URL for SEO/social; fall back to window origin for local share UI.
  */
-export function getSiteOrigin() {
+export function getSiteOrigin({ allowLocalhost = true } = {}) {
   const fromEnv = import.meta.env.VITE_SITE_URL
-  if (fromEnv && typeof fromEnv === 'string') {
+  if (fromEnv && typeof fromEnv === 'string' && fromEnv.trim()) {
     return fromEnv.replace(/\/$/, '')
   }
   if (typeof window !== 'undefined') {
-    return window.location.origin.replace(/\/$/, '')
+    const origin = window.location.origin.replace(/\/$/, '')
+    if (
+      !allowLocalhost &&
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+    ) {
+      return ''
+    }
+    return origin
   }
   return ''
 }
 
+/** Absolute product URL for share buttons (may be localhost in local dev). */
 export function getProductShareUrl(product) {
-  const id = product?._id
-  if (!id) return ''
-  const origin = getSiteOrigin()
+  const path = getProductPath(product)
+  if (!path || path === '/collection') return ''
+  const origin = getSiteOrigin({ allowLocalhost: true })
   if (!origin) return ''
-  return `${origin}/product/${id}`
+  return `${origin}${path}`
+}
+
+/**
+ * Canonical URL for Helmet. Empty on localhost without VITE_SITE_URL
+ * so the server-injected production canonical is not overwritten.
+ */
+export function getProductCanonicalUrl(product) {
+  const path = getProductPath(product)
+  if (!path || path === '/collection') return ''
+  const origin = getSiteOrigin({ allowLocalhost: false })
+  if (!origin) return ''
+  return `${origin}${path}`
 }
 
 export function buildFacebookShareUrl(productPageUrl) {

@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  /** SEO-friendly URL segment, e.g. applebear-wide-neck-pp-feeding-bottle-240ml */
+  slug: { type: String, trim: true, lowercase: true, sparse: true, unique: true },
   /** Optional SKU / model code shown on storefront and admin (e.g. 8007E). */
   modelNumber: { type: String, trim: true, default: '' },
   description: { type: String, required: true },
