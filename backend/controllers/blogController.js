@@ -1,4 +1,6 @@
 import blogModel from '../models/blogModel.js';
+import { ensureUniqueBlogSlug, findBlogBySlugOrId } from '../utils/blogSlug.js';
+import { invalidateSitemapCache } from '../utils/sitemapService.js';
 
 // Get all blogs with optional filtering
 export const getAllBlogs = async (req, res) => {
@@ -49,12 +51,12 @@ export const getAllBlogs = async (req, res) => {
   }
 };
 
-// Get single blog by ID
+// Get single blog by slug or ID
 export const getBlogById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const blog = await blogModel.findById(id);
+    const blog = await findBlogBySlugOrId(id);
     
     if (!blog) {
       return res.status(404).json({
@@ -84,9 +86,11 @@ export const getBlogById = async (req, res) => {
 export const createBlog = async (req, res) => {
   try {
     const { title, content, category, author, image, excerpt, tags, readTime } = req.body;
+    const slug = await ensureUniqueBlogSlug(title);
     
     const newBlog = new blogModel({
       title,
+      slug,
       content,
       category,
       author,
@@ -97,6 +101,7 @@ export const createBlog = async (req, res) => {
     });
     
     const savedBlog = await newBlog.save();
+    invalidateSitemapCache();
     
     res.status(201).json({
       success: true,
@@ -116,20 +121,29 @@ export const createBlog = async (req, res) => {
 export const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-    
-    const blog = await blogModel.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    );
-    
-    if (!blog) {
+    const updateData = { ...req.body };
+    delete updateData.slug;
+
+    const existing = await findBlogBySlugOrId(id);
+    if (!existing) {
       return res.status(404).json({
         success: false,
         message: 'Blog not found'
       });
     }
+
+    const nextTitle = updateData.title !== undefined ? updateData.title : existing.title;
+    if (!existing.slug || (updateData.title && updateData.title !== existing.title)) {
+      updateData.slug = await ensureUniqueBlogSlug(nextTitle, { excludeId: existing._id });
+    }
+    
+    const blog = await blogModel.findByIdAndUpdate(
+      existing._id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    
+    invalidateSitemapCache();
     
     res.status(200).json({
       success: true,
@@ -149,15 +163,17 @@ export const updateBlog = async (req, res) => {
 export const deleteBlog = async (req, res) => {
   try {
     const { id } = req.params;
+    const existing = await findBlogBySlugOrId(id);
     
-    const blog = await blogModel.findByIdAndDelete(id);
-    
-    if (!blog) {
+    if (!existing) {
       return res.status(404).json({
         success: false,
         message: 'Blog not found'
       });
     }
+
+    await blogModel.findByIdAndDelete(existing._id);
+    invalidateSitemapCache();
     
     res.status(200).json({
       success: true,
@@ -210,4 +226,4 @@ export const getPopularBlogs = async (req, res) => {
       error: error.message
     });
   }
-}; 
+};

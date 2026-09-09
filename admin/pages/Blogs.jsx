@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 
+const storeBaseUrl = (
+  import.meta.env.VITE_STORE_URL ||
+  import.meta.env.VITE_FRONTEND_URL ||
+  'http://localhost:5173'
+).replace(/\/$/, '')
+
 const Blogs = ({ token }) => {
   const [blogs, setBlogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -275,13 +281,14 @@ const Blogs = ({ token }) => {
                         >
                           Delete
                         </button>
-                        <Link
-                          to={`/blog/${blog._id}`}
+                        <a
+                          href={`${storeBaseUrl}/blog/${blog.slug || blog._id}`}
                           target="_blank"
+                          rel="noopener noreferrer"
                           className="text-green-600 hover:text-green-900"
                         >
                           View
-                        </Link>
+                        </a>
                       </div>
                     </td>
                   </tr>

@@ -17,7 +17,7 @@ Routes:
 - /place-order — Order placement step when checkout applies.
 - /inquiries — Signed-in: past inquiries list when available.
 - /profile — Signed-in: account profile.
-- /blogs — Blog listing; /blog/{id} — single article (id from listings API).
+- /blogs — Blog listing; /blog/{slug} — single article (title slug; ObjectId still resolves).
 - /about — About the shop.
 
 Use these paths when directing users (prepend your public site origin only if the user explicitly needs a full URL).`

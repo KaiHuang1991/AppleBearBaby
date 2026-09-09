@@ -1,7 +1,8 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import YouTubeEmbed from '../componets/YouTubeEmbed'
 import { ShopContext } from '../context/ShopContext'
+import { getProductPath } from '../src/utils/productPath'
 
 const CATEGORY_LABELS = {
   'product-demo': 'Product demo',
@@ -98,10 +99,45 @@ const Videos = () => {
   const [activeVideo, setActiveVideo] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [query, setQuery] = useState('')
+  const [submittedQuery, setSubmittedQuery] = useState('')
+  const [searchTitle, setSearchTitle] = useState(true)
+  const [searchModel, setSearchModel] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const filterRef = useRef(null)
+
+  const searchIn = useMemo(() => {
+    const fields = []
+    if (searchTitle) fields.push('title')
+    if (searchModel) fields.push('model')
+    return fields.join(',') || 'title'
+  }, [searchTitle, searchModel])
+
+  const searchModeLabel = searchTitle && searchModel
+    ? 'Title & model'
+    : searchModel
+      ? 'Product model'
+      : 'Title'
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSubmittedQuery(query.trim())
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [query])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [category])
+  }, [category, submittedQuery, searchIn])
+
+  useEffect(() => {
+    if (!filtersOpen) return undefined
+    const onPointerDown = (event) => {
+      if (!filterRef.current?.contains(event.target)) setFiltersOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [filtersOpen])
 
   useEffect(() => {
     const load = async () => {
@@ -109,6 +145,10 @@ const Videos = () => {
       try {
         const params = { page: currentPage, limit: VIDEOS_PER_PAGE }
         if (category) params.category = category
+        if (submittedQuery) {
+          params.search = submittedQuery
+          params.searchIn = searchIn
+        }
         const { data } = await api.videosAll(params)
         if (data?.success) {
           setVideos(data.videos || [])
@@ -121,7 +161,7 @@ const Videos = () => {
       }
     }
     load()
-  }, [api, category, currentPage])
+  }, [api, category, currentPage, submittedQuery, searchIn])
 
   useEffect(() => {
     if (!activeVideo) return undefined
@@ -135,6 +175,16 @@ const Videos = () => {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [activeVideo])
+
+  const toggleSearchField = (field) => {
+    if (field === 'title') {
+      if (searchTitle && !searchModel) return
+      setSearchTitle((current) => !current)
+      return
+    }
+    if (searchModel && !searchTitle) return
+    setSearchModel((current) => !current)
+  }
 
   const selectCategory = (value) => {
     setCategory(value)
@@ -236,6 +286,73 @@ const Videos = () => {
           </nav>
 
           <div className="px-4 py-4 sm:py-6">
+            <form
+              className="flex flex-col sm:flex-row gap-2 sm:items-center mb-6"
+              onSubmit={(event) => {
+                event.preventDefault()
+                setSubmittedQuery(query.trim())
+              }}
+            >
+              <label className="relative flex-1 min-w-0">
+                <span className="sr-only">Search videos</span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={searchModel && !searchTitle ? 'Search by product model' : 'Search videos'}
+                  className="w-full h-11 rounded-full border border-[#ccc] bg-[#f8f8f8] pl-4 pr-12 text-sm text-[#0f0f0f] placeholder:text-[#909090] outline-none focus:border-[#1c62b9] focus:bg-white"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full text-[#0f0f0f] hover:bg-[#e5e5e5] transition-colors"
+                  aria-label="Search"
+                >
+                  <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-3-3" />
+                  </svg>
+                </button>
+              </label>
+
+              <div className="relative shrink-0" ref={filterRef}>
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen((open) => !open)}
+                  className="h-11 w-full sm:w-auto min-w-[10.5rem] px-4 rounded-full border border-[#ccc] bg-white text-sm font-medium text-[#0f0f0f] flex items-center justify-between gap-2 hover:bg-[#f8f8f8]"
+                  aria-haspopup="true"
+                  aria-expanded={filtersOpen}
+                >
+                  <span className="truncate">{searchModeLabel}</span>
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" />
+                  </svg>
+                </button>
+                {filtersOpen ? (
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#e5e5e5] bg-white shadow-lg p-3 z-30">
+                    <p className="text-xs font-semibold text-[#606060] uppercase tracking-wide mb-2">Search in</p>
+                    <label className="flex items-center gap-2 py-1.5 text-sm text-[#0f0f0f] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={searchTitle}
+                        onChange={() => toggleSearchField('title')}
+                        className="w-4 h-4 rounded border-[#ccc] text-blue-600 focus:ring-blue-500"
+                      />
+                      Title
+                    </label>
+                    <label className="flex items-center gap-2 py-1.5 text-sm text-[#0f0f0f] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={searchModel}
+                        onChange={() => toggleSearchField('model')}
+                        className="w-4 h-4 rounded border-[#ccc] text-blue-600 focus:ring-blue-500"
+                      />
+                      Product model
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            </form>
+
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 gap-y-8">
                 {Array.from({ length: 8 }).map((_, index) => (
@@ -252,7 +369,9 @@ const Videos = () => {
                 ))}
               </div>
             ) : videos.length === 0 ? (
-              <p className="text-center text-[#606060] py-16">No videos published yet.</p>
+              <p className="text-center text-[#606060] py-16">
+                {submittedQuery ? 'No videos match your search.' : 'No videos published yet.'}
+              </p>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-4 gap-y-8">
@@ -284,6 +403,11 @@ const Videos = () => {
                             <h3 className="text-[0.95rem] font-semibold text-[#0f0f0f] leading-snug line-clamp-2">
                               {video.title}
                             </h3>
+                            {video.productId?.modelNumber ? (
+                              <p className="text-xs text-[#606060] mt-1 truncate">
+                                Model {video.productId.modelNumber}
+                              </p>
+                            ) : null}
                             <p className="text-sm text-[#606060] mt-1 truncate">{CHANNEL_NAME}</p>
                             <p className="text-sm text-[#606060] truncate">
                               {formatViews(video.views)} • {formatRelativeTime(video.youtubePublishedAt || video.createdAt)}
@@ -372,11 +496,13 @@ const Videos = () => {
                   ) : null}
                   {activeVideo.productId?._id || activeVideo.productId ? (
                     <Link
-                      to={`/product/${activeVideo.productId?.slug || activeVideo.productId?._id || activeVideo.productId}`}
+                      to={getProductPath(activeVideo.productId)}
                       className="inline-block mt-4 text-sm font-medium text-blue-600 hover:underline"
                       onClick={() => setActiveVideo(null)}
                     >
-                      View related product →
+                      {activeVideo.productId?.modelNumber
+                        ? `View related product (${activeVideo.productId.modelNumber}) →`
+                        : 'View related product →'}
                     </Link>
                   ) : null}
                 </div>

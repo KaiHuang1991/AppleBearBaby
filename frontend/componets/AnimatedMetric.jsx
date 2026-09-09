@@ -30,7 +30,7 @@ const AnimatedMetric = ({
   valueClassName = 'home-stat-value',
   labelClassName = 'home-stat-label',
   wrapperClassName = 'home-stat-item',
-  duration = 900,
+  duration = 1400,
 }) => {
   const ref = useRef(null)
   const inView = useInView(ref, { threshold: 0.4 })
@@ -39,7 +39,7 @@ const AnimatedMetric = ({
 
   useEffect(() => {
     if (!inView) return undefined
-    if (!parsed) {
+    if (!parsed || (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
       setDisplay(value)
       return undefined
     }
@@ -60,7 +60,10 @@ const AnimatedMetric = ({
 
   return (
     <div ref={ref} className={wrapperClassName}>
-      <p className={valueClassName}>{display}</p>
+      <p className={valueClassName} aria-label={String(value)}>
+        <span aria-hidden='true'>{display}</span>
+        <span className='sr-only'>{value}</span>
+      </p>
       {label ? <p className={labelClassName}>{label}</p> : null}
     </div>
   )

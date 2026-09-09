@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react'
+import { getBlogPath } from '../src/utils/blogPath'
 
 const shareTargets = [
   {
@@ -46,7 +47,8 @@ const BlogShare = ({ blog }) => {
       }
     }
 
-    const url = typeof window !== 'undefined' ? window.location.href : ''
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const url = origin ? `${origin}${getBlogPath(blog)}` : ''
     return {
       pageUrl: url,
       canUseNativeShare: typeof navigator !== 'undefined' && typeof navigator.share === 'function'

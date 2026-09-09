@@ -25,7 +25,7 @@ export function createShopApi(client) {
     chatbotMessage: (body) => client.post('/api/chatbot/message', body),
 
     blogsAll: (params) => client.get('/api/blogs/all', { params }),
-    blogsGetById: (id) => client.get(`/api/blogs/${id}`),
+    blogsGetById: (id) => client.get(`/api/blogs/${encodeURIComponent(id)}`),
 
     videosAll: (params) => client.get('/api/videos/all', { params }),
     videosGetById: (id) => client.get(`/api/videos/${id}`),
@@ -65,7 +65,7 @@ export function createShopApi(client) {
       client.post(`/api/inquiries/user/${inquiryId}/resend`, body),
 
     // --- Blog comments (article comments) ---
-    commentsBlog: (blogId) => client.get(`/api/comments/blog/${blogId}`),
+    commentsBlog: (blogId) => client.get(`/api/comments/blog/${encodeURIComponent(blogId)}`),
     commentsAdd: (body) => client.post('/api/comments/add', body),
     commentsUpdate: (commentId, body) => client.put(`/api/comments/update/${commentId}`, body),
     commentsDelete: (commentId) => client.delete(`/api/comments/delete/${commentId}`),

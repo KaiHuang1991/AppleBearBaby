@@ -3,6 +3,7 @@ import Title from './Title'
 import { useNavigate } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext'
 import { homeImages } from '../src/assets/galleryAssets'
+import { getBlogPath } from '../src/utils/blogPath'
 
 const blogFallbackImage = homeImages.showroom
 
@@ -53,8 +54,8 @@ const LatestBlog = () => {
     }
   }
 
-  const handleBlogClick = (blogId) => {
-    navigate(`/blog/${blogId}`)
+  const handleBlogClick = (blog) => {
+    navigate(getBlogPath(blog))
   }
 
   const handleViewAllBlogs = () => {
@@ -130,7 +131,7 @@ const LatestBlog = () => {
                 <article
                   key={post._id}
                   className='snap-center min-w-[80vw] max-w-sm rounded-3xl bg-white/90 p-5 shadow-xl ring-1 ring-blue-100'
-                  onClick={() => handleBlogClick(post._id)}
+                  onClick={() => handleBlogClick(post)}
                 >
                   <div className='h-44 w-full overflow-hidden rounded-2xl shadow-md'>
                     <img
@@ -180,7 +181,7 @@ const LatestBlog = () => {
                   >
                     <div 
                         className='cartoon-card w-full max-w-5xl cursor-pointer px-10 py-8 lg:px-12 lg:py-10 hover:scale-[1.01] transition-all duration-300'
-                      onClick={() => handleBlogClick(post._id)}
+                      onClick={() => handleBlogClick(post)}
                     >
                       <div className='flex flex-col lg:flex-row gap-8 items-center justify-center'>
                           <div className='w-full lg:w-1/2 h-72 rounded-2xl overflow-hidden shadow-lg'>

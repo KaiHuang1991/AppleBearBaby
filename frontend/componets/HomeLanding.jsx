@@ -7,6 +7,9 @@ import OemFlowSection from './OemFlowSection'
 import HomeSection, { SectionHeader } from './HomeSection'
 import HomeImage from './HomeImage'
 import AnimatedMetric from './AnimatedMetric'
+import HomeHeroSlider from './HomeHeroSlider'
+import HomeCategorySlider from './HomeCategorySlider'
+import Reveal from './Reveal'
 
 const WhyChooseIcon = ({ type }) => {
   const props = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -93,22 +96,6 @@ const CertificationCard = ({ image, title }) => (
   </div>
 )
 
-const CategoryCard = ({ image, title, slug }) => (
-  <Link to={slug ? `/collection/${slug}` : '/collection'} className='group home-category-card corp-feature-card p-0 overflow-hidden block h-full'>
-    <div className='relative aspect-square overflow-hidden bg-slate-50'>
-      <HomeImage
-        src={image}
-        alt={title}
-        className='w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300'
-        wrapperClassName='w-full h-full'
-      />
-    </div>
-    <div className='px-3 py-4 text-center'>
-      <h3 className='font-semibold text-sm sm:text-base text-slate-800 group-hover:text-blue-600 transition-colors'>{title}</h3>
-    </div>
-  </Link>
-)
-
 const WHY_CHOOSE = [
   { icon: 'service', title: 'One-Stop Service', description: 'From mold development to mass production, we handle everything in-house.' },
   { icon: 'quality', title: 'Strict Quality Control', description: 'Rigorous inspection processes ensure every batch meets international standards.' },
@@ -137,32 +124,7 @@ const MANUFACTURING_METRICS = [
 const HomeLanding = () => {
   return (
     <>
-      <section
-        className='home-section home-section--hero home-hero relative flex items-center'
-        style={{ backgroundImage: `url(${homeImages.hero})` }}
-      >
-        <div className='home-section-bg home-hero-overlay' aria-hidden='true' />
-        <div className='section-container relative z-10 py-16 md:py-24'>
-          <div className='max-w-2xl home-hero-content'>
-            <span className='home-hero-badge'>OEM / ODM Manufacturer</span>
-            <h1 className='text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5'>
-              One-Stop Baby Bottle &amp; Sippy Cup Manufacturer
-            </h1>
-            <p className='text-base sm:text-lg text-slate-200 leading-relaxed mb-8 max-w-xl'>
-              Professional OEM/ODM factory with over 20 years of experience — from custom design and mold development to mass production for wholesale buyers worldwide.
-            </p>
-            <div className='flex flex-wrap gap-3'>
-              <Link to='/collection' className='corp-btn px-6 py-3'>
-                Browse Wholesale Catalog
-                <span aria-hidden='true'>→</span>
-              </Link>
-              <Link to='/contact' className='corp-btn-outline bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 px-6 py-3'>
-                Get Free Quote
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeHeroSlider />
 
       <HomeSection variant='stats' innerClassName='home-stat-grid'>
         <AnimatedMetric value='20+' label='Years Experience' />
@@ -171,45 +133,49 @@ const HomeLanding = () => {
       </HomeSection>
 
       <HomeSection variant='categories'>
-        <SectionHeader
-          index={1}
-          eyebrow='Product Range'
-          title='Our Product'
-          highlight='Categories'
-          subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
-        />
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6'>
-          {productCategories.map((item) => (
-            <CategoryCard key={item.slug} image={item.image} title={item.title} slug={item.slug} />
-          ))}
-        </div>
-        <div className='text-center mt-10'>
-          <Link to='/collection' className='corp-btn-outline px-8'>
-            View All Products
-            <span aria-hidden='true'>→</span>
-          </Link>
-        </div>
+        <Reveal>
+          <SectionHeader
+            index={1}
+            eyebrow='Product Range'
+            title='Our Product'
+            highlight='Categories'
+            subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
+          />
+        </Reveal>
+        <HomeCategorySlider items={productCategories} />
+        <Reveal delay={120}>
+          <div className='text-center mt-10'>
+            <Link to='/collection' className='corp-btn-outline px-8'>
+              View All Products
+              <span aria-hidden='true'>→</span>
+            </Link>
+          </div>
+        </Reveal>
       </HomeSection>
 
       <HomeSection variant='why'>
-        <SectionHeader
-          index={2}
-          eyebrow='Why Partner With Us'
-          title='Why Choose'
-          highlight='Applebear'
-          subtitle='One-stop baby product manufacturing with professional OEM/ODM experience.'
-          dark
-        />
+        <Reveal>
+          <SectionHeader
+            index={2}
+            eyebrow='Why Partner With Us'
+            title='Why Choose'
+            highlight='Applebear'
+            subtitle='One-stop baby product manufacturing with professional OEM/ODM experience.'
+            dark
+          />
+        </Reveal>
         <div className='home-why-grid'>
-          {WHY_CHOOSE.map((item) => (
-            <WhyChooseCard key={item.title} icon={item.icon} title={item.title} description={item.description} />
+          {WHY_CHOOSE.map((item, i) => (
+            <Reveal key={item.title} delay={i * 90}>
+              <WhyChooseCard icon={item.icon} title={item.title} description={item.description} />
+            </Reveal>
           ))}
         </div>
       </HomeSection>
 
       <HomeSection variant='manufacturing'>
         <div className='grid lg:grid-cols-2 gap-10 lg:gap-14 items-center'>
-          <div className='relative home-manufacturing-visual'>
+          <Reveal className='relative home-manufacturing-visual'>
             <HomeImage
               src={homeImages.manufacturing}
               alt='Applebear injection molding production line'
@@ -220,55 +186,64 @@ const HomeLanding = () => {
               <p className='text-xs text-slate-500 uppercase tracking-wide'>Est. 1998</p>
               <p className='font-bold text-slate-800'>20+ Years Manufacturing</p>
             </div>
-          </div>
+          </Reveal>
           <div>
-            <SectionHeader
-              index={3}
-              eyebrow='Capabilities'
-              title='World-Class Manufacturing'
-              highlight='Capabilities'
-              subtitle='Our facility is equipped with advanced injection molding machines, automated assembly lines, and dedicated quality control — every product manufactured to international safety standards.'
-              align='left'
-            />
+            <Reveal>
+              <SectionHeader
+                index={3}
+                eyebrow='Capabilities'
+                title='World-Class Manufacturing'
+                highlight='Capabilities'
+                subtitle='Our facility is equipped with advanced injection molding machines, automated assembly lines, and dedicated quality control — every product manufactured to international safety standards.'
+                align='left'
+              />
+            </Reveal>
             <div className='grid grid-cols-2 gap-4 mb-8'>
-              {MANUFACTURING_METRICS.map((item) => (
-                <AnimatedMetric
-                  key={item.label}
-                  value={item.value}
-                  label={item.label}
-                  wrapperClassName='home-metric-chip'
-                  valueClassName='home-metric-value'
-                  labelClassName='home-metric-label'
-                />
+              {MANUFACTURING_METRICS.map((item, i) => (
+                <Reveal key={item.label} delay={i * 80}>
+                  <AnimatedMetric
+                    value={item.value}
+                    label={item.label}
+                    wrapperClassName='home-metric-chip'
+                    valueClassName='home-metric-value'
+                    labelClassName='home-metric-label'
+                  />
+                </Reveal>
               ))}
             </div>
-            <Link to='/about' className='corp-btn'>
-              Learn About Our Factory
-              <span aria-hidden='true'>→</span>
-            </Link>
+            <Reveal delay={200}>
+              <Link to='/about' className='corp-btn'>
+                Learn About Our Factory
+                <span aria-hidden='true'>→</span>
+              </Link>
+            </Reveal>
           </div>
         </div>
       </HomeSection>
 
       <HomeSection variant='factory'>
-        <SectionHeader
-          index={4}
-          eyebrow='Factory Tour'
-          title='Inside Our'
-          highlight='Facility'
-          subtitle='Injection molding lines, automated assembly equipment, blow-molding machines, and clean-room standards — see how we manufacture at scale.'
-          dark
-        />
+        <Reveal>
+          <SectionHeader
+            index={4}
+            eyebrow='Factory Tour'
+            title='Inside Our'
+            highlight='Facility'
+            subtitle='Injection molding lines, automated assembly equipment, blow-molding machines, and clean-room standards — see how we manufacture at scale.'
+            dark
+          />
+        </Reveal>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5'>
           {factoryCarousel.map((src, idx) => (
-            <div key={idx} className='home-factory-photo'>
-              <HomeImage
-                src={src}
-                alt={`Applebear production equipment ${idx + 1}`}
-                className='w-full h-full object-cover'
-                wrapperClassName='w-full h-full'
-              />
-            </div>
+            <Reveal key={idx} delay={idx * 70}>
+              <div className='home-factory-photo'>
+                <HomeImage
+                  src={src}
+                  alt={`Applebear production equipment ${idx + 1}`}
+                  className='w-full h-full object-cover'
+                  wrapperClassName='w-full h-full'
+                />
+              </div>
+            </Reveal>
           ))}
         </div>
       </HomeSection>
@@ -276,36 +251,44 @@ const HomeLanding = () => {
       <OemFlowSection />
 
       <HomeSection variant='process'>
-        <SectionHeader
-          index={6}
-          eyebrow='How We Work'
-          title='Our Production'
-          highlight='Process'
-          subtitle='Every product goes through our standardized 6-step manufacturing process to ensure consistent quality and safety.'
-        />
+        <Reveal>
+          <SectionHeader
+            index={6}
+            eyebrow='How We Work'
+            title='Our Production'
+            highlight='Process'
+            subtitle='Every product goes through our standardized 6-step manufacturing process to ensure consistent quality and safety.'
+          />
+        </Reveal>
         <div className='home-process-grid'>
-          {PROCESS_STEPS.map((item) => (
-            <div key={item.step} className='home-process-card' data-step={item.step}>
-              <span className='home-process-num' aria-hidden='true'>{item.step}</span>
-              <p className='home-process-label'>STEP {item.step}</p>
-              <h3 className='font-semibold text-slate-800 text-sm mb-2'>{item.title}</h3>
-              <p className='text-xs text-slate-500 leading-relaxed'>{item.description}</p>
-            </div>
+          {PROCESS_STEPS.map((item, i) => (
+            <Reveal key={item.step} delay={i * 90}>
+              <div className='home-process-card' data-step={item.step}>
+                <span className='home-process-num' aria-hidden='true'>{item.step}</span>
+                <p className='home-process-label'>STEP {item.step}</p>
+                <h3 className='font-semibold text-slate-800 text-sm mb-2'>{item.title}</h3>
+                <p className='text-xs text-slate-500 leading-relaxed'>{item.description}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </HomeSection>
 
       <HomeSection variant='quality'>
-        <SectionHeader
-          index={7}
-          eyebrow='Quality Assurance'
-          title='International'
-          highlight='Certifications'
-          subtitle='Our products meet the highest international safety standards for buyers and end consumers worldwide.'
-        />
+        <Reveal>
+          <SectionHeader
+            index={7}
+            eyebrow='Quality Assurance'
+            title='International'
+            highlight='Certifications'
+            subtitle='Our products meet the highest international safety standards for buyers and end consumers worldwide.'
+          />
+        </Reveal>
         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6'>
-          {certificationItems.map((item) => (
-            <CertificationCard key={item.title} {...item} />
+          {certificationItems.map((item, i) => (
+            <Reveal key={item.title} delay={i * 80}>
+              <CertificationCard {...item} />
+            </Reveal>
           ))}
         </div>
       </HomeSection>

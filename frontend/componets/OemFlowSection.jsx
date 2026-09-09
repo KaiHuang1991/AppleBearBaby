@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { oemFlowImages } from '../src/assets/oemAssets'
 import OemPrintingBranch from './OemPrintingBranch'
 import HomeSection, { SectionHeader } from './HomeSection'
+import Reveal from './Reveal'
 
 const FLOW_STEPS = [
   {
@@ -76,24 +77,26 @@ const OemFlowArrow = () => (
 
 const OemFlowSection = () => (
   <HomeSection variant='oem' innerClassName='home-oem-panel'>
-    <SectionHeader
-      index={5}
-      eyebrow='Custom Development'
-      title='Full-Service OEM'
-      highlight='Capabilities'
-      subtitle='From concept to finished product, our OEM service covers every aspect of baby product development.'
-    />
+    <Reveal>
+      <SectionHeader
+        index={5}
+        eyebrow='Custom Development'
+        title='Full-Service OEM'
+        highlight='Capabilities'
+        subtitle='From concept to finished product, our OEM service covers every aspect of baby product development.'
+      />
+    </Reveal>
 
     <div className='oem-flow'>
       <div className='oem-flow-row'>
-        <OemStepCard {...FLOW_STEPS[0]} />
+        <Reveal delay={40}><OemStepCard {...FLOW_STEPS[0]} /></Reveal>
         <OemFlowArrow />
-        <OemPrintingBranch />
-        <OemStepCard {...FLOW_STEPS[1]} />
+        <Reveal delay={120}><OemPrintingBranch /></Reveal>
+        <Reveal delay={180}><OemStepCard {...FLOW_STEPS[1]} /></Reveal>
         <OemFlowArrow />
-        <OemStepCard {...FLOW_STEPS[2]} />
+        <Reveal delay={240}><OemStepCard {...FLOW_STEPS[2]} /></Reveal>
         <OemFlowArrow />
-        <OemStepCard {...FLOW_STEPS[3]} />
+        <Reveal delay={300}><OemStepCard {...FLOW_STEPS[3]} /></Reveal>
       </div>
     </div>
 

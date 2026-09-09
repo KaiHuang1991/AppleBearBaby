@@ -21,6 +21,7 @@ const Profile = lazy(() => import('../pages/Profile'))
 const Blogs = lazy(() => import('../pages/Blogs'))
 const Videos = lazy(() => import('../pages/Videos'))
 const BlogDetail = lazy(() => import('../pages/BlogDetail'))
+const NotFound = lazy(() => import('../pages/NotFound'))
 const VerifyEmail = lazy(() => import('../pages/VerifyEmail'))
 const AwaitingVerification = lazy(() => import('../pages/AwaitingVerification'))
 const ResetPassword = lazy(() => import('../pages/ResetPassword'))
@@ -86,8 +87,9 @@ const App = () => {
               <Route path="/inquiries/:id" element={<InquiryThread />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/blogs" element={<Blogs />} />
-              <Route path="/blog/:id" element={<BlogDetail />} />
+              <Route path="/blog/:blogKey" element={<BlogDetail />} />
               <Route path="/videos" element={<Videos />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
         )}

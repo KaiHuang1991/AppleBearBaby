@@ -1,6 +1,22 @@
 import videoModel from '../models/videoModel.js'
+import productModel from '../models/productModel.js'
 import { parseYouTubeId, youtubeThumbnailUrl } from '../utils/youtube.js'
 import { getYouTubeSyncConfigStatus, syncVideosFromYouTube } from '../services/youtubeSyncService.js'
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function parseSearchIn(raw) {
+  const parts = String(raw || 'title')
+    .split(',')
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean)
+  const title = parts.includes('title')
+  const model = parts.includes('model')
+  if (!title && !model) return { title: true, model: false }
+  return { title, model }
+}
 
 function normalizeVideoPayload(body, existing) {
   const title = body.title !== undefined ? String(body.title).trim() : existing?.title
@@ -44,17 +60,46 @@ function normalizeVideoPayload(body, existing) {
 
 export const getAllVideos = async (req, res) => {
   try {
-    const { category, search, page = 1, limit = 12, productId } = req.query
+    const { category, search, searchIn, page = 1, limit = 12, productId } = req.query
     const query = { isPublished: true }
 
     if (category) query.category = category
     if (productId) query.productId = productId
 
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ]
+    const keyword = String(search || '').trim().slice(0, 80)
+    if (keyword) {
+      const fields = parseSearchIn(searchIn)
+      const regex = { $regex: escapeRegex(keyword), $options: 'i' }
+      const clauses = []
+
+      if (fields.title) {
+        clauses.push({ title: regex })
+      }
+
+      if (fields.model) {
+        const products = await productModel
+          .find({
+            $or: [{ modelNumber: regex }, { name: regex }],
+          })
+          .select('_id')
+          .lean()
+        const productIds = products.map((item) => item._id)
+        if (productIds.length) {
+          clauses.push({ productId: { $in: productIds } })
+        }
+      }
+
+      if (!clauses.length) {
+        return res.json({
+          success: true,
+          videos: [],
+          total: 0,
+          currentPage: parseInt(page, 10),
+          totalPages: 0,
+        })
+      }
+
+      query.$or = clauses
     }
 
     const skip = (Number(page) - 1) * Number(limit)
@@ -63,7 +108,7 @@ export const getAllVideos = async (req, res) => {
       .sort({ order: 1, youtubePublishedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit, 10))
-      .populate('productId', 'name slug')
+      .populate('productId', 'name slug modelNumber')
       .lean()
 
     const enriched = videos.map((v) => ({

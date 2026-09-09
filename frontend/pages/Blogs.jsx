@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
+import { getBlogPath } from '../src/utils/blogPath';
 
 const Blogs = () => {
   const { api } = useContext(ShopContext);
@@ -140,7 +141,7 @@ const Blogs = () => {
             {blogs.map((blog) => (
               <article key={blog._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 {blog.image && (
-                  <Link to={`/blog/${blog._id}`} className="block aspect-video overflow-hidden">
+                  <Link to={getBlogPath(blog)} className="block aspect-video overflow-hidden">
                     <img
                       src={blog.image}
                       alt={blog.title}
@@ -155,7 +156,9 @@ const Blogs = () => {
                     </span>
                   </div>
                   <h2 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                    {blog.title}
+                    <Link to={getBlogPath(blog)} className="hover:text-blue-600">
+                      {blog.title}
+                    </Link>
                   </h2>
                   <p className="text-gray-600 mb-3 text-sm line-clamp-3">
                     {blog.excerpt}
@@ -169,7 +172,7 @@ const Blogs = () => {
                       </span>
                     </div>
                     <Link
-                      to={`/blog/${blog._id}`}
+                      to={getBlogPath(blog)}
                       className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                     >
                       Read More →

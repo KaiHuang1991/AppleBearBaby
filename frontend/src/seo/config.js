@@ -93,13 +93,14 @@ export const ROUTE_SEO = {
 }
 
 const PATTERN_SEO = [
+  { pattern: '/collection/:categorySlug', entry: ROUTE_SEO['/collection'] },
   { pattern: '/inquiries/:id', entry: { title: 'Inquiry', description: 'Inquiry conversation with AppleBear Baby.', robots: 'noindex, nofollow' } },
   { pattern: '/verify-email/:token', entry: { title: 'Verify Email', description: 'Verify your AppleBear Baby email.', robots: 'noindex, nofollow' } },
   { pattern: '/reset-password/:token', entry: { title: 'Reset Password', description: 'Reset your AppleBear Baby account password.', robots: 'noindex, nofollow' } },
 ]
 
 /** Routes that provide their own full SEO (Helmet) */
-export const SEO_OWNED_PATTERNS = ['/product/:productId', '/blog/:id']
+export const SEO_OWNED_PATTERNS = ['/product/:productId', '/blog/:blogKey', '/blog/:id']
 
 export function isSeoOwnedRoute(pathname) {
   return SEO_OWNED_PATTERNS.some((pattern) => matchPath({ path: pattern, end: true }, pathname))
@@ -117,11 +118,11 @@ export function getRouteSeo(pathname) {
   }
 
   return {
-    title: 'AppleBear Baby',
-    description: ROUTE_SEO['/'].description,
-    keywords: DEFAULT_KEYWORDS,
+    title: 'Page Not Found',
+    description:
+      'The page you requested could not be found on AppleBear Baby. Browse our wholesale catalog or contact the factory for a quote.',
     ogType: 'website',
-    robots: 'index, follow',
+    robots: 'noindex, follow',
   }
 }
 

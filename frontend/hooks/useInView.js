@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 export const useInView = (ref, { threshold = 0.15, rootMargin = '0px 0px -40px 0px', once = true } = {}) => {
-  const [inView, setInView] = useState(false)
+  const [inView, setInView] = useState(() => prefersReducedMotion())
 
   useEffect(() => {
     const el = ref.current

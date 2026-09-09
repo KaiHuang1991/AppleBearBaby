@@ -1,6 +1,7 @@
 import productModel from '../models/productModel.js'
 import blogModel from '../models/blogModel.js'
 import { backfillMissingProductSlugs, hasUsableProductSlug } from './productSlug.js'
+import { backfillMissingBlogSlugs, hasUsableBlogSlug } from './blogSlug.js'
 
 /**
  * Indexable static routes — keep in sync with frontend `src/App.jsx` and `src/seo/config.js`.
@@ -66,6 +67,7 @@ export async function collectSitemapEntries() {
 
   try {
     await backfillMissingProductSlugs()
+    await backfillMissingBlogSlugs()
   } catch (err) {
     console.error('sitemap slug backfill:', err)
   }
@@ -83,7 +85,7 @@ export async function collectSitemapEntries() {
     productModel.find().select('_id slug date updatedAt').sort({ updatedAt: -1, date: -1 }).lean(),
     blogModel
       .find({ isPublished: true })
-      .select('_id updatedAt createdAt')
+      .select('_id slug updatedAt createdAt')
       .sort({ updatedAt: -1 })
       .lean(),
   ])
@@ -99,14 +101,16 @@ export async function collectSitemapEntries() {
       })
     )
 
-  const blogEntries = blogs.map((b) =>
-    normalizeEntry({
-      loc: `${origin}/blog/${b._id}`,
-      lastmod: toW3CDate(b.updatedAt || b.createdAt) || today,
-      changefreq: 'monthly',
-      priority: '0.7',
-    })
-  )
+  const blogEntries = blogs
+    .filter((b) => hasUsableBlogSlug(b.slug))
+    .map((b) =>
+      normalizeEntry({
+        loc: `${origin}/blog/${b.slug}`,
+        lastmod: toW3CDate(b.updatedAt || b.createdAt) || today,
+        changefreq: 'monthly',
+        priority: '0.7',
+      })
+    )
 
   return [...staticEntries, ...productEntries, ...blogEntries]
 }

@@ -12,6 +12,7 @@ import YouTubeEmbed from '../componets/YouTubeEmbed'
 import { getProductPath, isMongoObjectId } from '../src/utils/productPath'
 import { getProductCanonicalUrl } from '../src/utils/productShareUrl'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
+import NotFound from './NotFound'
 
 const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
@@ -20,6 +21,7 @@ const Product = () => {
   const navigate = useNavigate()
   const { products, currency, addToCart, submitComment, getProductCategoryPath, api } = useContext(ShopContext)
   const [productData, setProductData] = useState(false)
+  const [missingProduct, setMissingProduct] = useState(false)
   const [image, setImage] = useState('')
   const [size, setSize] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -189,6 +191,8 @@ const Product = () => {
     window.scrollTo(0, 0)
     setImage('')
     setQuantity(1)
+    setProductData(false)
+    setMissingProduct(false)
     let cancelled = false
 
     const applyProduct = (match) => {
@@ -214,8 +218,10 @@ const Product = () => {
       try {
         const { data } = await api.productGet(productId)
         if (data?.success && data.product) applyProduct(data.product)
+        else if (!cancelled) setMissingProduct(true)
       } catch (err) {
         console.error(err)
+        if (!cancelled) setMissingProduct(true)
       }
     })()
 
@@ -437,6 +443,10 @@ const Product = () => {
 
   const tabClass = (id) =>
     `product-tab ${tabs === id ? 'product-tab--active' : ''}`
+
+  if (missingProduct) {
+    return <NotFound />
+  }
 
   return productData ? (
     <main className='mt-20 transition-opacity ease-in duration-500 opacity-100 cartoon-bg min-h-screen pb-28 lg:pb-20'>

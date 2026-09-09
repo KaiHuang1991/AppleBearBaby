@@ -13,6 +13,8 @@ const blogSchema = new mongoose.Schema(
     image: { type: String, default: '' },
     excerpt: { type: String, required: true },
     tags: [{ type: String }],
+    /** SEO-friendly URL segment, e.g. oem-baby-bottle-buying-guide */
+    slug: { type: String, trim: true, lowercase: true, sparse: true, unique: true },
     readTime: { type: Number, default: 5 }, // in minutes
     views: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: true }

@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import '../styles/ProductDescription.css';
 import BlogShare from '../componets/BlogShare';
 import Seo from '../componets/Seo';
 import { SITE } from '../src/seo/config';
+import { toAbsoluteUrl } from '../src/seo/utils';
+import NotFound from './NotFound';
+import { getBlogPath, isMongoObjectId } from '../src/utils/blogPath';
 
 const BlogDetail = () => {
-  const { id } = useParams();
+  const { blogKey, id } = useParams();
+  const articleKey = blogKey || id;
+  const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState([]);
@@ -21,7 +26,7 @@ const BlogDetail = () => {
   useEffect(() => {
     fetchBlog();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]); // backendUrl is stable, no need to include
+  }, [articleKey]); // backendUrl is stable, no need to include
 
   useEffect(() => {
     if (blog) {
@@ -30,7 +35,8 @@ const BlogDetail = () => {
   }, [blog]);
 
   const fetchComments = async () => {
-    const commentsData = await getBlogComments(id);
+    if (!blog?._id) return;
+    const commentsData = await getBlogComments(blog._id);
     setComments(commentsData);
   };
 
@@ -47,7 +53,7 @@ const BlogDetail = () => {
 
     setCommentLoading(true);
     const userName = user?.name || 'Anonymous';
-    const result = await addBlogComment(id, newComment.trim(), userName);
+    const result = await addBlogComment(blog._id, newComment.trim(), userName);
     if (result) {
       setNewComment('');
       fetchComments();
@@ -80,11 +86,14 @@ const BlogDetail = () => {
 
   const fetchBlog = async () => {
     try {
-      const response = await api.blogsGetById(id);
+      const response = await api.blogsGetById(articleKey);
       const data = response.data;
       
       if (data.success) {
         setBlog(data.blog);
+        if (data.blog.slug && isMongoObjectId(articleKey) && articleKey !== data.blog.slug) {
+          navigate(getBlogPath(data.blog), { replace: true });
+        }
       }
     } catch (error) {
       console.error('Error fetching blog:', error);
@@ -118,7 +127,7 @@ const BlogDetail = () => {
         name: SITE.name,
         logo: origin ? { '@type': 'ImageObject', url: `${origin}${SITE.defaultImage}` } : undefined,
       },
-      mainEntityOfPage: origin ? `${origin}/blog/${blog._id}` : undefined,
+      mainEntityOfPage: origin ? `${origin}${getBlogPath(blog)}` : undefined,
     }
   }, [blog, computedExcerpt])
 
@@ -140,17 +149,7 @@ const BlogDetail = () => {
   }
 
   if (!blog) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative">
-        <div className="absolute inset-0 cartoon-bg"></div>
-        <div className="text-center relative z-10">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Blog not found</h2>
-          <Link to="/blogs" className="text-blue-600 hover:text-blue-700">
-            ← Back to Blogs
-          </Link>
-        </div>
-      </div>
-    );
+    return <NotFound />
   }
 
   return (
@@ -162,8 +161,7 @@ const BlogDetail = () => {
         description={computedExcerpt || blog.excerpt}
         image={blog.image}
         keywords={Array.isArray(blog.tags) ? blog.tags.join(', ') : undefined}
-        ogType="article"
-        jsonLd={blogJsonLd}
+        canonical={toAbsoluteUrl(getBlogPath(blog))}
       />
       
       {/* Floating decorative elements */}
