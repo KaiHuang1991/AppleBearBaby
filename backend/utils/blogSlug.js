@@ -38,13 +38,28 @@ export async function backfillMissingBlogSlugs() {
   for (const blog of blogs) {
     if (hasUsableBlogSlug(blog.slug)) continue
 
-    const slug = await ensureUniqueBlogSlug(blog.title, { excludeId: blog._id })
-    await blogModel.updateOne({ _id: blog._id }, { $set: { slug } })
-    updated += 1
-    console.log(`blog slug backfill: ${blog._id} → ${slug}`)
+    try {
+      const slug = await ensureUniqueBlogSlug(blog.title, { excludeId: blog._id })
+      await blogModel.updateOne({ _id: blog._id }, { $set: { slug } })
+      updated += 1
+      console.log(`blog slug backfill: ${blog._id} → ${slug}`)
+    } catch (err) {
+      console.error(`blog slug backfill failed for ${blog._id}:`, err.message)
+    }
   }
 
   return { updated, scanned: blogs.length }
+}
+
+export function getBlogUrlKey(blog) {
+  if (!blog) return ''
+  if (blog.slug) return blog.slug
+  return String(blog._id || '')
+}
+
+export function getBlogPath(blog) {
+  const key = getBlogUrlKey(blog)
+  return key ? `/blog/${key}` : '/blogs'
 }
 
 export async function findBlogBySlugOrId(param, { select, lean = false } = {}) {

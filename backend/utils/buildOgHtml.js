@@ -248,9 +248,9 @@ export const buildProductSeoFragments = ({
 }
 
 /**
- * Inject product SEO fragments into the Vite/SPA index.html shell.
+ * Inject SEO fragments into the Vite/SPA index.html shell.
  */
-export const injectProductSeoIntoHtml = (indexHtml, fragments) => {
+export const injectSeoIntoHtml = (indexHtml, fragments) => {
   let html = String(indexHtml || '')
   if (!html) return ''
 
@@ -279,6 +279,204 @@ export const injectProductSeoIntoHtml = (indexHtml, fragments) => {
   }
 
   return html
+}
+
+export const injectProductSeoIntoHtml = injectSeoIntoHtml
+
+/**
+ * Head fragments + visible SEO body for blog articles.
+ */
+export const buildBlogSeoFragments = ({
+  title,
+  description,
+  keywords = '',
+  image,
+  images,
+  lcpImage = '',
+  canonical,
+  siteName = 'AppleBear Baby',
+  brand = 'AppleBearBaby',
+  author = '',
+  datePublished = '',
+  dateModified = '',
+  fullDescription = '',
+}) => {
+  const pageTitle = formatPageTitle(title, siteName)
+  const safeTitle = escapeHtml(pageTitle)
+  const safeDescription = escapeHtml(description)
+  const safeKeywords = escapeHtml(keywords)
+  const safeCanonical = escapeHtml(canonical)
+  const safeSite = escapeHtml(siteName)
+  const safeBrand = escapeHtml(brand)
+  const ogImages = Array.isArray(images) && images.length ? images : image ? [image] : []
+  const primaryImage = ogImages[0] || ''
+  const safePrimaryImage = escapeHtml(primaryImage)
+  const lcpSrc = lcpImage || optimizeDeliveryImage(primaryImage, { width: 800 })
+  const safeLcpImage = escapeHtml(lcpSrc)
+  const ogImageMeta = buildOgImageMetaTags(ogImages)
+  const bodyText = escapeHtml(fullDescription || description || '')
+  const h1 = escapeHtml(title || pageTitle)
+  const lcpPreload = safeLcpImage
+    ? `\n  <link rel="preload" as="image" href="${safeLcpImage}" fetchpriority="high" />`
+    : ''
+  const keywordsMeta = safeKeywords
+    ? `\n  <meta name="keywords" content="${safeKeywords}" />`
+    : ''
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title || pageTitle,
+    description: description || undefined,
+    image: ogImages.length ? ogImages : undefined,
+    datePublished: datePublished || undefined,
+    dateModified: dateModified || datePublished || undefined,
+    author: { '@type': 'Organization', name: brand || siteName },
+    publisher: {
+      '@type': 'Organization',
+      name: siteName,
+      logo: { '@type': 'ImageObject', url: 'https://applebearbaby.net/applebear.png' },
+    },
+    mainEntityOfPage: canonical,
+  }
+
+  const headInjection = `
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDescription}" />${keywordsMeta}
+  <link rel="canonical" href="${safeCanonical}" />${lcpPreload}
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="${escapeHtml(author || brand)}" />
+  <meta property="og:site_name" content="${safeSite}" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDescription}" />${ogImageMeta}
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:url" content="${safeCanonical}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDescription}" />
+  <meta name="twitter:image" content="${safePrimaryImage}" />
+  <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
+  <style id="seo-content-hide">html.js #seo-content{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+`
+
+  const imgTag = primaryImage
+    ? `\n  <img src="${safePrimaryImage}" alt="${h1}" width="1200" height="630" />`
+    : ''
+
+  const bodyInjection = `
+<article id="seo-content">
+  <h1>${h1}</h1>${imgTag}
+  <p>${bodyText}</p>
+  <p><a href="${safeCanonical}">${h1}</a></p>
+</article>
+<script>document.documentElement.classList.add('js')</script>
+`
+
+  return { pageTitle, headInjection, bodyInjection, jsonLd }
+}
+
+export const buildBlogOgHtml = (input) => {
+  const fragments = buildBlogSeoFragments(input)
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/applebear.png" />
+${fragments.headInjection}
+</head>
+<body>
+${fragments.bodyInjection}
+</body>
+</html>`
+}
+
+/**
+ * Head fragments for static marketing pages (home, collection, about, …).
+ */
+export const buildPageSeoFragments = ({
+  title,
+  description,
+  keywords = '',
+  canonical,
+  siteName = 'AppleBear Baby',
+  brand = 'AppleBearBaby',
+  ogType = 'website',
+  robots = 'index, follow',
+  heading = '',
+  image = '',
+  jsonLd,
+}) => {
+  const pageTitle = formatPageTitle(title, siteName)
+  const safeTitle = escapeHtml(pageTitle)
+  const safeDescription = escapeHtml(description)
+  const safeKeywords = escapeHtml(keywords)
+  const safeCanonical = escapeHtml(canonical)
+  const safeSite = escapeHtml(siteName)
+  const h1 = escapeHtml(heading || title || siteName)
+  const ogImages = image ? [image] : []
+  const ogImageMeta = buildOgImageMetaTags(ogImages)
+  const keywordsMeta = safeKeywords
+    ? `\n  <meta name="keywords" content="${safeKeywords}" />`
+    : ''
+  const graph = jsonLd || {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: pageTitle,
+    description,
+    url: canonical,
+    isPartOf: { '@type': 'WebSite', name: siteName, url: canonical.replace(/\/[^/]*$/, '/') },
+  }
+
+  const headInjection = `
+  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDescription}" />${keywordsMeta}
+  <link rel="canonical" href="${safeCanonical}" />
+  <meta name="robots" content="${escapeHtml(robots)}" />
+  <meta name="author" content="${escapeHtml(brand)}" />
+  <meta property="og:site_name" content="${safeSite}" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:type" content="${escapeHtml(ogType)}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDescription}" />${ogImageMeta}
+  <meta property="og:url" content="${safeCanonical}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDescription}" />
+  <script type="application/ld+json">${JSON.stringify(graph).replace(/</g, '\\u003c')}</script>
+  <style id="seo-content-hide">html.js #seo-content{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
+`
+
+  const bodyInjection = `
+<article id="seo-content">
+  <h1>${h1}</h1>
+  <p>${safeDescription}</p>
+  <p><a href="${safeCanonical}">${safeSite}</a></p>
+</article>
+<script>document.documentElement.classList.add('js')</script>
+`
+
+  return { pageTitle, headInjection, bodyInjection, jsonLd: graph }
+}
+
+export const buildPageOgHtml = (input) => {
+  const fragments = buildPageSeoFragments(input)
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/applebear.png" />
+${fragments.headInjection}
+</head>
+<body>
+${fragments.bodyInjection}
+</body>
+</html>`
 }
 
 /**

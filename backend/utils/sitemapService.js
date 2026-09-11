@@ -67,9 +67,14 @@ export async function collectSitemapEntries() {
 
   try {
     await backfillMissingProductSlugs()
+  } catch (err) {
+    console.error('sitemap product slug backfill:', err)
+  }
+
+  try {
     await backfillMissingBlogSlugs()
   } catch (err) {
-    console.error('sitemap slug backfill:', err)
+    console.error('sitemap blog slug backfill:', err)
   }
 
   const staticEntries = INDEXABLE_STATIC_ROUTES.map((route) =>
@@ -81,14 +86,26 @@ export async function collectSitemapEntries() {
     })
   )
 
-  const [products, blogs] = await Promise.all([
-    productModel.find().select('_id slug date updatedAt').sort({ updatedAt: -1, date: -1 }).lean(),
-    blogModel
-      .find({ isPublished: true })
+  let products = []
+  let blogs = []
+  try {
+    products = await productModel
+      .find()
+      .select('_id slug date updatedAt')
+      .sort({ updatedAt: -1, date: -1 })
+      .lean()
+  } catch (err) {
+    console.error('sitemap products:', err)
+  }
+  try {
+    blogs = await blogModel
+      .find({ isPublished: { $ne: false } })
       .select('_id slug updatedAt createdAt')
       .sort({ updatedAt: -1 })
-      .lean(),
-  ])
+      .lean()
+  } catch (err) {
+    console.error('sitemap blogs:', err)
+  }
 
   const productEntries = products
     .filter((p) => hasUsableProductSlug(p.slug))
@@ -101,18 +118,18 @@ export async function collectSitemapEntries() {
       })
     )
 
-  const blogEntries = blogs
-    .filter((b) => hasUsableBlogSlug(b.slug))
-    .map((b) =>
-      normalizeEntry({
-        loc: `${origin}/blog/${b.slug}`,
-        lastmod: toW3CDate(b.updatedAt || b.createdAt) || today,
-        changefreq: 'monthly',
-        priority: '0.7',
-      })
-    )
+  // Always emit published articles (slug preferred; ObjectId fallback so none are dropped).
+  const blogEntries = blogs.map((b) => {
+    const key = hasUsableBlogSlug(b.slug) ? b.slug : String(b._id)
+    return normalizeEntry({
+      loc: `${origin}/blog/${key}`,
+      lastmod: toW3CDate(b.updatedAt || b.createdAt) || today,
+      changefreq: 'monthly',
+      priority: '0.7',
+    })
+  })
 
-  return [...staticEntries, ...productEntries, ...blogEntries]
+  return [...staticEntries, ...blogEntries, ...productEntries]
 }
 
 export function buildSitemapXml(entries) {

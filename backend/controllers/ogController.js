@@ -2,9 +2,13 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  buildBlogOgHtml,
+  buildBlogSeoFragments,
+  buildPageOgHtml,
+  buildPageSeoFragments,
   buildProductOgHtml,
   buildProductSeoFragments,
-  injectProductSeoIntoHtml,
+  injectSeoIntoHtml,
   normalizeOgImages,
   optimizeDeliveryImage,
   stripHtml,
@@ -15,6 +19,8 @@ import {
   getProductUrlKey,
   isObjectIdString,
 } from '../utils/productSlug.js'
+import { findBlogBySlugOrId, getBlogUrlKey } from '../utils/blogSlug.js'
+import { resolveStaticPageKey, STATIC_PAGE_SEO } from '../utils/pageSeo.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -33,25 +39,35 @@ let cachedDistMtime = 0
 let cachedViteHtml = null
 let cachedViteAt = 0
 const VITE_INDEX_TTL_MS = 10_000
-const productSeoHtmlCache = new Map()
-const PRODUCT_SEO_HTML_TTL_MS = 5 * 60 * 1000
+const seoHtmlCache = new Map()
+const SEO_HTML_TTL_MS = 5 * 60 * 1000
 
-function getCachedProductSeoHtml(cacheKey) {
-  const hit = productSeoHtmlCache.get(cacheKey)
+function getCachedSeoHtml(cacheKey) {
+  const hit = seoHtmlCache.get(cacheKey)
   if (!hit) return null
-  if (Date.now() - hit.at > PRODUCT_SEO_HTML_TTL_MS) {
-    productSeoHtmlCache.delete(cacheKey)
+  if (Date.now() - hit.at > SEO_HTML_TTL_MS) {
+    seoHtmlCache.delete(cacheKey)
     return null
   }
   return hit.html
 }
 
-function setCachedProductSeoHtml(cacheKey, html) {
-  productSeoHtmlCache.set(cacheKey, { html, at: Date.now() })
-  if (productSeoHtmlCache.size > 200) {
-    const oldest = productSeoHtmlCache.keys().next().value
-    productSeoHtmlCache.delete(oldest)
+function setCachedSeoHtml(cacheKey, html) {
+  seoHtmlCache.set(cacheKey, { html, at: Date.now() })
+  if (seoHtmlCache.size > 200) {
+    const oldest = seoHtmlCache.keys().next().value
+    seoHtmlCache.delete(oldest)
   }
+}
+
+function sendSeoHtml(res, html, cacheState = 'MISS') {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.setHeader(
+    'Cache-Control',
+    'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
+  )
+  res.setHeader('X-SEO-Cache', cacheState)
+  return res.status(200).send(html)
 }
 
 async function fetchLiveIndexHtml() {
@@ -150,15 +166,9 @@ export const productOgPage = async (req, res) => {
     }
 
     const cacheKey = `product:${urlKey}`
-    const cachedHtml = getCachedProductSeoHtml(cacheKey)
+    const cachedHtml = getCachedSeoHtml(cacheKey)
     if (cachedHtml) {
-      res.setHeader('Content-Type', 'text/html; charset=utf-8')
-      res.setHeader(
-        'Cache-Control',
-        'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
-      )
-      res.setHeader('X-SEO-Cache', 'HIT')
-      return res.status(200).send(cachedHtml)
+      return sendSeoHtml(res, cachedHtml, 'HIT')
     }
 
     const title = product.name || 'Product'
@@ -193,21 +203,152 @@ export const productOgPage = async (req, res) => {
     let html
     if (spaIndex) {
       const fragments = buildProductSeoFragments(seoInput)
-      html = injectProductSeoIntoHtml(spaIndex, fragments)
+      html = injectSeoIntoHtml(spaIndex, fragments)
     } else {
       html = buildProductOgHtml(seoInput)
     }
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8')
-    res.setHeader(
-      'Cache-Control',
-      'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
-    )
-    res.setHeader('X-SEO-Cache', 'MISS')
-    setCachedProductSeoHtml(cacheKey, html)
-    return res.status(200).send(html)
+    setCachedSeoHtml(cacheKey, html)
+    return sendSeoHtml(res, html, 'MISS')
   } catch (error) {
     console.error('OG product page error:', error)
+    return res.status(500).type('text/plain').send('Failed to render preview')
+  }
+}
+
+export const blogOgPage = async (req, res) => {
+  try {
+    const { blogKey } = req.params
+    if (!blogKey) {
+      return res.status(404).type('text/plain').send('Article not found')
+    }
+
+    const blog = await findBlogBySlugOrId(blogKey, {
+      select: 'title slug excerpt content image author category tags createdAt updatedAt isPublished',
+      lean: true,
+    })
+
+    if (!blog || blog.isPublished === false) {
+      return res.status(404).type('text/plain').send('Article not found')
+    }
+
+    const frontendOrigin = getFrontendOrigin()
+    const urlKey = getBlogUrlKey(blog)
+
+    if (isObjectIdString(blogKey) && blog.slug && blog.slug !== blogKey) {
+      res.setHeader('Cache-Control', 'public, max-age=300')
+      return res.redirect(301, `/blog/${blog.slug}`)
+    }
+
+    const cacheKey = `blog:${urlKey}`
+    const cachedHtml = getCachedSeoHtml(cacheKey)
+    if (cachedHtml) {
+      return sendSeoHtml(res, cachedHtml, 'HIT')
+    }
+
+    const title = blog.title || 'Article'
+    const plain = stripHtml(blog.excerpt || blog.content || '')
+    const description = plain.slice(0, 160)
+    const images = normalizeOgImages(blog.image ? [blog.image] : [], frontendOrigin)
+    const shareImages = buildOgShareImages(images, process.env.CLOUDINARY_NAME)
+    const lcpImage = optimizeDeliveryImage(images[0] || '', { width: 800 })
+    const keywordParts = [title, blog.category, ...(Array.isArray(blog.tags) ? blog.tags : [])]
+    const keywords = [...new Set(keywordParts.filter(Boolean))].slice(0, 12).join(', ')
+    const canonical = `${frontendOrigin}/blog/${urlKey}`
+
+    const seoInput = {
+      title,
+      description,
+      keywords,
+      images: shareImages,
+      image: shareImages[0],
+      lcpImage,
+      canonical,
+      siteName: 'AppleBear Baby',
+      brand: 'AppleBearBaby',
+      author: blog.author || 'AppleBearBaby',
+      datePublished: blog.createdAt ? new Date(blog.createdAt).toISOString() : '',
+      dateModified: blog.updatedAt
+        ? new Date(blog.updatedAt).toISOString()
+        : blog.createdAt
+          ? new Date(blog.createdAt).toISOString()
+          : '',
+      fullDescription: stripHtml(blog.content || blog.excerpt || '').slice(0, 2000),
+    }
+
+    const spaIndex = await loadSpaIndexHtml()
+    const html = spaIndex
+      ? injectSeoIntoHtml(spaIndex, buildBlogSeoFragments(seoInput))
+      : buildBlogOgHtml(seoInput)
+
+    setCachedSeoHtml(cacheKey, html)
+    return sendSeoHtml(res, html, 'MISS')
+  } catch (error) {
+    console.error('OG blog page error:', error)
+    return res.status(500).type('text/plain').send('Failed to render preview')
+  }
+}
+
+export const pageOgPage = async (req, res) => {
+  try {
+    const pageKey = resolveStaticPageKey(req.params.pageKey)
+    if (!pageKey) {
+      return res.status(404).type('text/plain').send('Page not found')
+    }
+
+    const page = STATIC_PAGE_SEO[pageKey]
+    const cacheKey = `page:${pageKey}`
+    const cachedHtml = getCachedSeoHtml(cacheKey)
+    if (cachedHtml) {
+      return sendSeoHtml(res, cachedHtml, 'HIT')
+    }
+
+    const frontendOrigin = getFrontendOrigin()
+    const canonical = `${frontendOrigin}${page.path}`
+    const seoInput = {
+      title: page.title,
+      description: page.description,
+      keywords: page.keywords,
+      canonical,
+      heading: page.heading,
+      siteName: 'AppleBear Baby',
+      brand: 'AppleBearBaby',
+      image: `${frontendOrigin}/applebear.png`,
+      jsonLd:
+        pageKey === 'home'
+          ? {
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  name: 'AppleBear Baby',
+                  url: frontendOrigin,
+                  logo: `${frontendOrigin}/applebear.png`,
+                },
+                {
+                  '@type': 'WebSite',
+                  name: 'AppleBear Baby',
+                  url: frontendOrigin,
+                  potentialAction: {
+                    '@type': 'SearchAction',
+                    target: `${frontendOrigin}/collection?search={search_term_string}`,
+                    'query-input': 'required name=search_term_string',
+                  },
+                },
+              ],
+            }
+          : undefined,
+    }
+
+    const spaIndex = await loadSpaIndexHtml()
+    const html = spaIndex
+      ? injectSeoIntoHtml(spaIndex, buildPageSeoFragments(seoInput))
+      : buildPageOgHtml(seoInput)
+
+    setCachedSeoHtml(cacheKey, html)
+    return sendSeoHtml(res, html, 'MISS')
+  } catch (error) {
+    console.error('OG static page error:', error)
     return res.status(500).type('text/plain').send('Failed to render preview')
   }
 }
