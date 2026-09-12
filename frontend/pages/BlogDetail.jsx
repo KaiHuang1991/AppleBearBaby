@@ -8,6 +8,7 @@ import { SITE } from '../src/seo/config';
 import { toAbsoluteUrl } from '../src/seo/utils';
 import NotFound from './NotFound';
 import { getBlogPath, isMongoObjectId } from '../src/utils/blogPath';
+import { getProductPath } from '../src/utils/productPath';
 
 const BlogDetail = () => {
   const { blogKey, id } = useParams();
@@ -212,6 +213,40 @@ const BlogDetail = () => {
             <BlogShare blog={{ ...blog, excerpt: computedExcerpt || blog.excerpt }} />
           </div>
         </article>
+
+        {Array.isArray(blog.productIds) && blog.productIds.some((item) => item && typeof item === 'object') ? (
+          <div className="mt-8 bg-white rounded-lg shadow-lg p-8">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">
+              Related products
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {blog.productIds
+                .filter((item) => item && typeof item === 'object')
+                .map((product) => (
+                  <Link
+                    key={product._id}
+                    to={getProductPath(product)}
+                    className="flex items-center gap-4 p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all"
+                  >
+                    {product.image?.[0] ? (
+                      <img
+                        src={product.image[0]}
+                        alt={product.name}
+                        className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+                      />
+                    ) : null}
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                      {product.modelNumber ? (
+                        <p className="text-sm text-gray-500">Model {product.modelNumber}</p>
+                      ) : null}
+                      <span className="text-sm text-blue-600">View product →</span>
+                    </div>
+                  </Link>
+                ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Comments Section */}
         <div className="mt-8 bg-white rounded-lg shadow-lg p-8">

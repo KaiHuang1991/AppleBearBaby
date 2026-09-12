@@ -6,6 +6,7 @@ import { backendUrl as defaultBackendUrl } from '../src/App.jsx'
 import { storeUrl } from '../src/resolveStoreUrl'
 import { assets } from '../src/admin_assets/assets'
 import RichTextEditor from '../components/RichTextEditor'
+import RelatedPicker from '../components/RelatedPicker'
 
 const Single = ({ token, backendUrl: propBackendUrl }) => {
   const backendUrl = propBackendUrl || defaultBackendUrl
@@ -34,6 +35,8 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
   const [sizes, setSizes] = useState([])
   const [newSizeInput, setNewSizeInput] = useState('')
   const [loadingProduct, setLoadingProduct] = useState(true)
+  const [blogOptions, setBlogOptions] = useState([])
+  const [linkedBlogIds, setLinkedBlogIds] = useState([])
 
   const image2Ref = useRef(null)
   const image3Ref = useRef(null)
@@ -62,6 +65,26 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       await axios.post(`${backendUrl}/api/categories/sync`, {}, { headers: { token } })
     } catch (error) {
       console.warn('Category sync warning:', error.response?.data?.message || error.message)
+    }
+  }
+
+  const fetchBlogLinks = async () => {
+    if (!token) return
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/blogs/admin/all`, {
+        params: { limit: 500 },
+        headers: { token },
+      })
+      if (!data.success) return
+      const blogs = data.blogs || []
+      setBlogOptions(blogs)
+      setLinkedBlogIds(
+        blogs
+          .filter((blog) => (blog.productIds || []).some((id) => String(id._id || id) === String(productId)))
+          .map((blog) => String(blog._id))
+      )
+    } catch (error) {
+      console.error('Failed to load related blogs', error)
     }
   }
 
@@ -126,6 +149,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       await syncCategoriesFromProducts()
       await fetchCategories()
       await fetchProduct()
+      await fetchBlogLinks()
     }
     init()
   }, [])
@@ -214,6 +238,16 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       const apiUrl = backendUrl
       const response = await axios.post(apiUrl + '/api/product/update', formData, { headers: { token } })
       if (response.data.success) {
+        try {
+          await axios.put(
+            `${backendUrl}/api/blogs/product/${productId}`,
+            { blogIds: linkedBlogIds },
+            { headers: { token } }
+          )
+        } catch (linkError) {
+          console.error(linkError)
+          toast.warn('Product saved, but related blogs failed to sync')
+        }
         toast.success(response.data.message)
       } else {
         toast.error(response.data.message || 'Failed to update product')
@@ -447,6 +481,18 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
             Add Size
           </button>
         </div>
+      </div>
+
+      <div className='w-full'>
+        <RelatedPicker
+          label="Related blog guides"
+          hint="Same as videos: selected articles appear on this product page, and each article links back here."
+          items={blogOptions}
+          selectedIds={linkedBlogIds}
+          onChange={setLinkedBlogIds}
+          getLabel={(blog) => `${blog.title || 'Untitled'}${blog.isPublished ? '' : ' (draft)'}`}
+          searchPlaceholder="Search blog titles"
+        />
       </div>
 
       <div className='flex gap-2 mt-2'>

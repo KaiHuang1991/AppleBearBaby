@@ -10,6 +10,7 @@ import { flyToCart } from '../src/utils/flyToCart'
 import '../styles/ProductDescription.css'
 import YouTubeEmbed from '../componets/YouTubeEmbed'
 import { getProductPath, isMongoObjectId } from '../src/utils/productPath'
+import { getBlogPath } from '../src/utils/blogPath'
 import { getProductCanonicalUrl } from '../src/utils/productShareUrl'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
 import NotFound from './NotFound'
@@ -40,6 +41,7 @@ const Product = () => {
   const [averageRating, setAverageRating] = useState(5)
   const [loadingComments, setLoadingComments] = useState(true)
   const [productVideos, setProductVideos] = useState([])
+  const [productBlogs, setProductBlogs] = useState([])
   const [zoomViewer, setZoomViewer] = useState(null)
 
   const userId = localStorage.getItem("userId")
@@ -249,6 +251,20 @@ const Product = () => {
       }
     }
     loadVideos()
+  }, [resolvedProductId, api])
+
+  useEffect(() => {
+    if (!resolvedProductId) return
+    const loadBlogs = async () => {
+      try {
+        const { data } = await api.blogsByProduct(resolvedProductId)
+        if (data?.success) setProductBlogs(data.blogs || [])
+        else setProductBlogs([])
+      } catch {
+        setProductBlogs([])
+      }
+    }
+    loadBlogs()
   }, [resolvedProductId, api])
 
   useEffect(() => {
@@ -759,6 +775,19 @@ const Product = () => {
               Videos ({productVideos.length})
             </button>
           ) : null}
+          {productBlogs.length > 0 ? (
+            <button
+              type="button"
+              role="tab"
+              id="tab-guides"
+              aria-controls="panel-guides"
+              onClick={() => setTabs('guides')}
+              aria-selected={tabs === 'guides'}
+              className={tabClass('guides')}
+            >
+              Guides ({productBlogs.length})
+            </button>
+          ) : null}
           <button
             type="button"
             role="tab"
@@ -803,6 +832,36 @@ const Product = () => {
                     <p className="text-sm text-[var(--color-ink-muted)] mt-3">{video.description}</p>
                   ) : null}
                 </div>
+              ))}
+            </div>
+          </div>
+        ) : tabs === 'guides' && productBlogs.length > 0 ? (
+          <div
+            id="panel-guides"
+            role="tabpanel"
+            aria-labelledby="tab-guides"
+            className="product-tab-panel"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full min-w-0 max-w-4xl">
+              {productBlogs.map((blog) => (
+                <Link
+                  key={blog._id}
+                  to={getBlogPath(blog)}
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  {blog.image ? (
+                    <div className="aspect-video overflow-hidden">
+                      <img src={blog.image} alt={blog.title} className="w-full h-full object-cover" />
+                    </div>
+                  ) : null}
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold text-[var(--color-ink)] line-clamp-2">{blog.title}</h2>
+                    {blog.excerpt ? (
+                      <p className="text-sm text-[var(--color-ink-muted)] mt-2 line-clamp-3">{blog.excerpt}</p>
+                    ) : null}
+                    <span className="inline-block mt-3 text-sm font-medium text-blue-600">Read guide →</span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>

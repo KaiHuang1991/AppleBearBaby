@@ -1,7 +1,11 @@
+import mongoose from 'mongoose';
 import { BLOG_CATEGORY_VALUES } from '../constants/blogCategories.js';
 import blogModel from '../models/blogModel.js';
 import { ensureUniqueBlogSlug, findBlogBySlugOrId } from '../utils/blogSlug.js';
+import { normalizeObjectIds } from '../utils/objectIds.js';
 import { invalidateSitemapCache } from '../utils/sitemapService.js';
+
+const PRODUCT_LINK_FIELDS = 'name slug modelNumber image';
 
 // Get all blogs with optional filtering
 export const getAllBlogs = async (req, res) => {
@@ -69,6 +73,7 @@ export const getBlogById = async (req, res) => {
     // Increment view count
     blog.views += 1;
     await blog.save();
+    await blog.populate('productIds', PRODUCT_LINK_FIELDS);
     
     res.status(200).json({
       success: true,
@@ -86,7 +91,7 @@ export const getBlogById = async (req, res) => {
 // Create new blog (Admin only)
 export const createBlog = async (req, res) => {
   try {
-    const { title, content, category, author, image, excerpt, tags, readTime, isPublished } = req.body;
+    const { title, content, category, author, image, excerpt, tags, readTime, isPublished, productIds } = req.body;
     const slug = await ensureUniqueBlogSlug(title);
     
     const newBlog = new blogModel({
@@ -100,6 +105,7 @@ export const createBlog = async (req, res) => {
       tags: tags || [],
       readTime: readTime || 5,
       isPublished: isPublished === undefined ? true : Boolean(isPublished),
+      productIds: normalizeObjectIds(productIds),
     });
     
     const savedBlog = await newBlog.save();
@@ -137,6 +143,9 @@ export const updateBlog = async (req, res) => {
     const nextTitle = updateData.title !== undefined ? updateData.title : existing.title;
     if (!existing.slug || (updateData.title && updateData.title !== existing.title)) {
       updateData.slug = await ensureUniqueBlogSlug(nextTitle, { excludeId: existing._id });
+    }
+    if (updateData.productIds !== undefined) {
+      updateData.productIds = normalizeObjectIds(updateData.productIds);
     }
     
     const blog = await blogModel.findByIdAndUpdate(
@@ -242,6 +251,70 @@ export const getAdminBlogs = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching blogs',
+      error: error.message
+    });
+  }
+};
+
+export const getBlogsByProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ success: false, message: 'Invalid product id' });
+    }
+
+    const blogs = await blogModel
+      .find({ productIds: productId, isPublished: true })
+      .sort({ createdAt: -1 })
+      .select('-content')
+      .lean();
+
+    res.json({ success: true, blogs });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching product blogs',
+      error: error.message
+    });
+  }
+};
+
+export const syncProductBlogs = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ success: false, message: 'Invalid product id' });
+    }
+
+    const nextIds = normalizeObjectIds(req.body.blogIds);
+    const currentlyLinked = await blogModel.find({ productIds: productId }).select('_id');
+    const currentIds = currentlyLinked.map((blog) => String(blog._id));
+    const toAdd = nextIds.filter((id) => !currentIds.includes(id));
+    const toRemove = currentIds.filter((id) => !nextIds.includes(id));
+
+    if (toAdd.length) {
+      await blogModel.updateMany(
+        { _id: { $in: toAdd } },
+        { $addToSet: { productIds: productId } }
+      );
+    }
+    if (toRemove.length) {
+      await blogModel.updateMany(
+        { _id: { $in: toRemove } },
+        { $pull: { productIds: productId } }
+      );
+    }
+
+    const blogs = await blogModel
+      .find({ productIds: productId })
+      .sort({ createdAt: -1 })
+      .select('-content');
+
+    res.json({ success: true, blogs });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error syncing product blogs',
       error: error.message
     });
   }

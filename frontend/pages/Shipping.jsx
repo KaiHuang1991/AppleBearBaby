@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { assets } from '../src/assets/assets'
+import ShipmentTracker from '../componets/ShipmentTracker'
 import { BULK_OPTIONS, RETURN_POLICY_DAYS, SAMPLE_CARRIERS } from '../src/commercePolicy'
 
 const IconBox = () => (
@@ -145,8 +146,11 @@ const Shipping = () => {
         </div>
       </section>
 
-      <section className='section-alt py-16 md:py-24'>
-        <div className='section-container'>
+      <section className='section-alt'>
+        <ShipmentTracker />
+      </section>
+
+      <section className='section-container py-16 md:py-24'>
           <div className='text-center mb-12'>
             <h2 className='corp-section-title'>How to quote freight</h2>
             <p className='corp-section-subtitle mx-auto'>
@@ -162,7 +166,6 @@ const Shipping = () => {
               </div>
             ))}
           </div>
-        </div>
       </section>
 
       <section id='returns' className='section-container py-16 md:py-24'>

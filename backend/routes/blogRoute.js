@@ -7,7 +7,9 @@ import {
   deleteBlog,
   getBlogCategories,
   getPopularBlogs,
-  getAdminBlogs
+  getAdminBlogs,
+  getBlogsByProduct,
+  syncProductBlogs
 } from '../controllers/blogController.js';
 import adminAuth  from '../middleware/adminAuth.js';
 
@@ -18,6 +20,8 @@ router.get('/all', getAllBlogs);
 router.get('/categories', getBlogCategories);
 router.get('/popular', getPopularBlogs);
 router.get('/admin/all', adminAuth, getAdminBlogs);
+router.get('/product/:productId', getBlogsByProduct);
+router.put('/product/:productId', adminAuth, syncProductBlogs);
 router.get('/:id', getBlogById);
 
 // Admin routes (protected)

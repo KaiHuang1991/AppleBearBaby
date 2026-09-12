@@ -74,6 +74,10 @@ const ProductShipping = ({ compact = false }) => {
         <Link to='/shipping' className='product-shipping-link'>
           Full shipping &amp; return policy
         </Link>
+        {' · '}
+        <Link to='/shipping#track' className='product-shipping-link'>
+          Track shipment
+        </Link>
       </div>
     </section>
   )

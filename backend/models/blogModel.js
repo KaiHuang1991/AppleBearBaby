@@ -17,13 +17,16 @@ const blogSchema = new mongoose.Schema(
     slug: { type: String, trim: true, lowercase: true, sparse: true, unique: true },
     readTime: { type: Number, default: 5 }, // in minutes
     views: { type: Number, default: 0 },
-    isPublished: { type: Boolean, default: true }
+    isPublished: { type: Boolean, default: true },
+    /** Products this guide belongs to — same idea as video.productId, but a guide can cover a family */
+    productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }]
   },
   { timestamps: true }
 );
 
 // Create text index for search functionality
 blogSchema.index({ title: 'text', content: 'text', excerpt: 'text', tags: 'text' });
+blogSchema.index({ productIds: 1, isPublished: 1 });
 
 const blogModel = mongoose.models.blog || mongoose.model('blog', blogSchema);
 

@@ -2,9 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import RichTextEditor from '../components/RichTextEditor'
+import RelatedPicker from '../components/RelatedPicker'
 import axios from 'axios'
 import { BLOG_CATEGORIES } from '../src/blogCategories'
 import { backendUrl } from '../src/resolveBackendUrl'
+
+const productLabel = (product) => {
+  const model = product.modelNumber ? ` (${product.modelNumber})` : ''
+  return `${product.name || 'Untitled'}${model}`
+}
 
 const AddBlog = ({ token }) => {
   const { id } = useParams()
@@ -24,12 +30,29 @@ const AddBlog = ({ token }) => {
     tags: '',
     isPublished: true
   })
+  const [productIds, setProductIds] = useState([])
+  const [productOptions, setProductOptions] = useState([])
 
   useEffect(() => {
     if (id) {
       fetchBlog()
     }
   }, [id, token])
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/product/list`, {
+          params: { all: 'true' },
+          headers: { token },
+        })
+        if (data.success) setProductOptions(data.products || [])
+      } catch (error) {
+        console.error('Error fetching products:', error)
+      }
+    }
+    loadProducts()
+  }, [token])
 
   const fetchBlog = async () => {
     try {
@@ -50,6 +73,9 @@ const AddBlog = ({ token }) => {
           tags: blog.tags ? blog.tags.join(', ') : '',
           isPublished: blog.isPublished !== undefined ? blog.isPublished : true
         })
+        setProductIds(
+          (blog.productIds || []).map((item) => String(item._id || item)).filter(Boolean)
+        )
       }
     } catch (error) {
       console.error('Error fetching blog:', error)
@@ -119,7 +145,8 @@ const AddBlog = ({ token }) => {
       const submitData = {
         ...formData,
         author: formData.author.trim() || 'AppleBear Baby',
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        productIds
       }
 
       const url = id ? `${backendUrl}/api/blogs/${id}` : `${backendUrl}/api/blogs`
@@ -376,6 +403,16 @@ const AddBlog = ({ token }) => {
                 />
               </div>
             </div>
+
+            <RelatedPicker
+              label="Related products"
+              hint="Same as videos: linked products show this article on their product page, and this article links back to those products."
+              items={productOptions}
+              selectedIds={productIds}
+              onChange={setProductIds}
+              getLabel={productLabel}
+              searchPlaceholder="Search products by name or model"
+            />
 
             {/* Published Status */}
             <div className="flex items-center">
