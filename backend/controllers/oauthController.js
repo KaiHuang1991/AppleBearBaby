@@ -85,8 +85,7 @@ export const googleOAuthConfig = (req, res) => {
         redirectUri,
         alsoAddInConsole: [
             redirectUri,
-            'http://localhost:4000/api/user/auth/google/callback',
-            'http://127.0.0.1:4000/api/user/auth/google/callback'
+            `${getBackendPublicUrl()}/api/user/auth/google/callback`,
         ].filter((v, i, a) => a.indexOf(v) === i),
         startUrl: `${getBackendPublicUrl()}/api/user/auth/google/start`,
         hint: 'Add every URI in alsoAddInConsole to Authorized redirect URIs. clientId must match the OAuth client you edited.'

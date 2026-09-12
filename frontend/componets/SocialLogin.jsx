@@ -1,7 +1,8 @@
 import React from 'react'
+import { resolveBackendUrl } from '../src/resolveBackendUrl'
 
 const SocialLogin = ({ disabled }) => {
-  const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000').replace(/\/$/, '')
+  const backendUrl = resolveBackendUrl()
   const googleRedirectLoginUrl = `${backendUrl}/api/user/auth/google/start`
 
   return (

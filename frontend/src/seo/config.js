@@ -36,6 +36,14 @@ export const ROUTE_SEO = {
     ogType: 'website',
     robots: 'index, follow',
   },
+  '/shipping': {
+    title: 'Shipping & Returns',
+    description:
+      'AppleBear Baby factory shipping: samples by China Post, Alibaba express, DHL, FedEx or TNT; bulk by FCL/LCL sea freight or your China forwarder. Quality returns within 15 days.',
+    keywords: `${DEFAULT_KEYWORDS}, wholesale shipping, sample courier, sea freight, FCL LCL, factory return policy`,
+    ogType: 'website',
+    robots: 'index, follow',
+  },
   '/contact': {
     title: 'Contact',
     description:

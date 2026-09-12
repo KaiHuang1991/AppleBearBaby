@@ -13,6 +13,8 @@ import { getProductPath, isMongoObjectId } from '../src/utils/productPath'
 import { getProductCanonicalUrl } from '../src/utils/productShareUrl'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
 import NotFound from './NotFound'
+import ProductShipping from '../componets/ProductShipping'
+import { buildProductJsonLdOffer } from '../src/commercePolicy'
 
 const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
@@ -499,6 +501,25 @@ const Product = () => {
           {/* 额外的SEO标签 */}
           <meta name="robots" content="index, follow" />
           <meta name="author" content={seoMeta.brand} />
+          {seoMeta.canonical && seoMeta.price != null ? (
+            <script type="application/ld+json">
+              {JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Product',
+                name: productData.name,
+                image: seoMeta.images,
+                brand: { '@type': 'Brand', name: seoMeta.brand },
+                sku: productData.modelNumber || productData.slug || productData._id,
+                url: seoMeta.canonical,
+                offers: buildProductJsonLdOffer({
+                  url: seoMeta.canonical,
+                  price: seoMeta.price,
+                  currency: seoMeta.currency || 'USD',
+                  origin: typeof window !== 'undefined' ? window.location.origin : '',
+                }),
+              })}
+            </script>
+          ) : null}
         </Helmet>
       )}
       {/* Breadcrumb Navigation */}
@@ -697,7 +718,7 @@ const Product = () => {
                 <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                 <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
               </svg>
-              Fast Shipping
+              Sample courier / bulk sea
             </li>
             {productData.bestseller ? (
               <li>
@@ -708,6 +729,7 @@ const Product = () => {
               </li>
             ) : null}
           </ul>
+          <ProductShipping compact />
         </div>
       </div>
       {/* Description / Videos / Reviews */}
@@ -737,6 +759,17 @@ const Product = () => {
               Videos ({productVideos.length})
             </button>
           ) : null}
+          <button
+            type="button"
+            role="tab"
+            id="tab-shipping"
+            aria-controls="panel-shipping"
+            onClick={() => setTabs('shipping')}
+            aria-selected={tabs === 'shipping'}
+            className={tabClass('shipping')}
+          >
+            Shipping
+          </button>
           <button
             type="button"
             role="tab"
@@ -784,6 +817,15 @@ const Product = () => {
               className="product-description-detail w-full min-w-0"
               dangerouslySetInnerHTML={{ __html: productData.description }}
             />
+          </div>
+        ) : tabs === 'shipping' ? (
+          <div
+            id="panel-shipping"
+            role="tabpanel"
+            aria-labelledby="tab-shipping"
+            className="product-tab-panel"
+          >
+            <ProductShipping />
           </div>
         ) : (
           <div

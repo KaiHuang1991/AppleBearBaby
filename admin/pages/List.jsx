@@ -157,7 +157,7 @@ const List = ({ token, currency }) => {
   })
   const limit = 20
 
-  const apiUrl = backendUrl || 'http://localhost:4000'
+  const apiUrl = backendUrl
 
   useEffect(() => {
     const fetchCategories = async () => {

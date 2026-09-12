@@ -22,7 +22,7 @@ const emptyForm = {
 }
 
 const Videos = ({ token, backendUrl: propBackendUrl }) => {
-  const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
+  const backendUrl = propBackendUrl || defaultBackendUrl
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

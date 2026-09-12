@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const Inquiries = ({ token }) => {
   const [inquiries, setInquiries] = useState([])
@@ -12,7 +13,7 @@ const Inquiries = ({ token }) => {
   const fetchInquiries = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:4000/api/inquiries/admin/all', {
+      const response = await fetch(`${backendUrl}/api/inquiries/admin/all`, {
         headers: {
           'token': token
         }

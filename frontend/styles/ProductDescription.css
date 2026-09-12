@@ -685,6 +685,177 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
+.product-shipping {
+  position: relative;
+  overflow: hidden;
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.15rem 1.15rem;
+  border: 1px solid #dbeafe;
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 55%);
+}
+
+.product-shipping-pattern {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.45;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(37, 99, 235, 0.1) 0 18%, transparent 19%),
+    radial-gradient(circle at 88% 8%, rgba(14, 165, 233, 0.12) 0 14%, transparent 15%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(37, 99, 235, 0.035) 0 10px,
+      transparent 10px 22px
+    );
+}
+
+.product-shipping-head,
+.product-shipping-grid,
+.product-shipping-return {
+  position: relative;
+}
+
+.product-shipping-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--color-brand);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.product-shipping-title {
+  margin: 0 0 0.45rem;
+  color: var(--color-ink);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.product-shipping-lead {
+  margin: 0 0 1rem;
+  color: var(--color-ink-muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.product-shipping-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.product-ship-card {
+  padding: 1rem;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.product-ship-card--sample {
+  border: 1px solid #bfdbfe;
+}
+
+.product-ship-card--bulk {
+  border: 1px solid #bae6fd;
+}
+
+.product-ship-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.product-ship-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.product-ship-badge--bulk {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.product-ship-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-brand);
+}
+
+.product-ship-card h3 {
+  margin: 0 0 0.4rem;
+  color: var(--color-ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.product-ship-card p {
+  margin: 0 0 0.65rem;
+  color: var(--color-ink-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.product-ship-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.product-ship-card li {
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: var(--color-ink);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.product-shipping-return {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed #bfdbfe;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+}
+
+.product-shipping-return p {
+  margin: 0 0 0.45rem;
+}
+
+.product-shipping-link {
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+.product-shipping-link:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+  .product-shipping-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .product-shipping {
+    padding: 1.4rem 1.35rem 1.25rem;
+  }
+}
+
 @media (min-width: 1024px) {
   .product-zoom-overlay {
     padding: 2.5rem 4.5rem;

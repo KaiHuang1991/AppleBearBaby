@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import { backendUrl as defaultBackendUrl } from '../src/App.jsx'
 
 const Hero = ({ token, backendUrl: propBackendUrl }) => {
-  const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
+  const backendUrl = propBackendUrl || defaultBackendUrl
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [slides, setSlides] = useState([])

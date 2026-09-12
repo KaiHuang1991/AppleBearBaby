@@ -1,3 +1,5 @@
+import { buildProductOfferExtras, getCommercePolicyOrigin } from './commercePolicy.js'
+
 const escapeHtml = (value = '') =>
   String(value)
     .replace(/&/g, '&amp;')
@@ -136,6 +138,10 @@ const buildProductJsonLd = ({
       priceCurrency: currency,
       price: String(price),
       availability: 'https://schema.org/InStock',
+      ...buildProductOfferExtras({
+        origin: getCommercePolicyOrigin(),
+        currency,
+      }),
     }
   }
   return jsonLd
@@ -239,6 +245,9 @@ export const buildProductSeoFragments = ({
 <article id="seo-content">
   <h1>${h1}</h1>${imgTag}
   <p>${bodyText}</p>
+  <h2>Shipping</h2>
+  <p>Samples typically ship by China Post small packet, Alibaba online express, or DHL / FedEx / TNT. Bulk orders go by FCL or LCL sea freight, or by a China freight forwarder the buyer appoints for air, rail, or sea. Freight is quoted with the inquiry.</p>
+  <p>Factory defects can be raised within 15 days of arrival. Custom OEM or printed goods are not returnable for a change of mind.</p>
   <p><a href="${safeCanonical}">${h1}</a></p>
 </article>
 <script>document.documentElement.classList.add('js')</script>

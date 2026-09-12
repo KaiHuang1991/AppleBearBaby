@@ -117,7 +117,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    location ~ ^/(collection|about|contact|blogs|videos)/?$ {
+    location ~ ^/(collection|about|contact|shipping|blogs|videos)/?$ {
         proxy_pass http://backend/og/page/$1;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

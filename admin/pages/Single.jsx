@@ -7,7 +7,7 @@ import { assets } from '../src/admin_assets/assets'
 import RichTextEditor from '../components/RichTextEditor'
 
 const Single = ({ token, backendUrl: propBackendUrl }) => {
-  const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
+  const backendUrl = propBackendUrl || defaultBackendUrl
   const { productId } = useParams()
 
   const [image1, setImage1] = useState(false)
@@ -67,7 +67,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
   const fetchProduct = async () => {
     setLoadingProduct(true)
     try {
-      const apiUrl = backendUrl || 'http://localhost:4000'
+      const apiUrl = backendUrl
       const response = await axios.post(apiUrl + '/api/product/single', { productId }, { headers: { token } })
       const product = response.data.product
       if (!product) {
@@ -210,7 +210,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
       if (image3) formData.append('image3', image3)
       if (image4) formData.append('image4', image4)
 
-      const apiUrl = backendUrl || 'http://localhost:4000'
+      const apiUrl = backendUrl
       const response = await axios.post(apiUrl + '/api/product/update', formData, { headers: { token } })
       if (response.data.success) {
         toast.success(response.data.message)

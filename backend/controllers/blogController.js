@@ -1,3 +1,4 @@
+import { BLOG_CATEGORY_VALUES } from '../constants/blogCategories.js';
 import blogModel from '../models/blogModel.js';
 import { ensureUniqueBlogSlug, findBlogBySlugOrId } from '../utils/blogSlug.js';
 import { invalidateSitemapCache } from '../utils/sitemapService.js';
@@ -85,7 +86,7 @@ export const getBlogById = async (req, res) => {
 // Create new blog (Admin only)
 export const createBlog = async (req, res) => {
   try {
-    const { title, content, category, author, image, excerpt, tags, readTime } = req.body;
+    const { title, content, category, author, image, excerpt, tags, readTime, isPublished } = req.body;
     const slug = await ensureUniqueBlogSlug(title);
     
     const newBlog = new blogModel({
@@ -93,11 +94,12 @@ export const createBlog = async (req, res) => {
       slug,
       content,
       category,
-      author,
+      author: (author && String(author).trim()) || 'AppleBear Baby',
       image,
       excerpt,
       tags: tags || [],
-      readTime: readTime || 5
+      readTime: readTime || 5,
+      isPublished: isPublished === undefined ? true : Boolean(isPublished),
     });
     
     const savedBlog = await newBlog.save();
@@ -191,16 +193,55 @@ export const deleteBlog = async (req, res) => {
 // Get blog categories
 export const getBlogCategories = async (req, res) => {
   try {
-    const categories = await blogModel.distinct('category');
-    
     res.status(200).json({
       success: true,
-      categories
+      categories: BLOG_CATEGORY_VALUES
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Error fetching categories',
+      error: error.message
+    });
+  }
+};
+
+export const getAdminBlogs = async (req, res) => {
+  try {
+    const { category, search, page = 1, limit = 10 } = req.query;
+    const query = {};
+
+    if (category) query.category = category;
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+        { excerpt: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const blogs = await blogModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-content');
+
+    const total = await blogModel.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      blogs,
+      total,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching blogs',
       error: error.message
     });
   }

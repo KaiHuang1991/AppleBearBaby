@@ -4,7 +4,7 @@ import { toast } from 'react-toastify'
 import { backendUrl as defaultBackendUrl } from '../src/App.jsx'
 
 const Attributes = ({ token, backendUrl: propBackendUrl }) => {
-  const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
+  const backendUrl = propBackendUrl || defaultBackendUrl
   const [attributes, setAttributes] = useState([])
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)

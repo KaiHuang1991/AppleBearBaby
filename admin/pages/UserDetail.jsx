@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const UserDetail = ({ token }) => {
   const { id } = useParams()

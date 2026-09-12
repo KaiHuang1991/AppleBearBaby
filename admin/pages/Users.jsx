@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const PAGE_SIZE = 10
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
 
 const Users = ({ token }) => {
   const [users, setUsers] = useState([])

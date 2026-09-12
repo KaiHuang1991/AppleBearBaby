@@ -26,7 +26,7 @@ const defaultAttributeForm = {
 }
 
 const Categories = ({ token, backendUrl: propBackendUrl }) => {
-  const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
+  const backendUrl = propBackendUrl || defaultBackendUrl
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [categories, setCategories] = useState([])

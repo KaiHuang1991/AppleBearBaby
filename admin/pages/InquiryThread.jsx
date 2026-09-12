@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { backendUrl } from '../src/resolveBackendUrl'
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
 const storeBaseUrl = (
   import.meta.env.VITE_STORE_URL ||
   import.meta.env.VITE_FRONTEND_URL ||

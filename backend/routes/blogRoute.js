@@ -6,7 +6,8 @@ import {
   updateBlog,
   deleteBlog,
   getBlogCategories,
-  getPopularBlogs
+  getPopularBlogs,
+  getAdminBlogs
 } from '../controllers/blogController.js';
 import adminAuth  from '../middleware/adminAuth.js';
 
@@ -16,6 +17,7 @@ const router = express.Router();
 router.get('/all', getAllBlogs);
 router.get('/categories', getBlogCategories);
 router.get('/popular', getPopularBlogs);
+router.get('/admin/all', adminAuth, getAdminBlogs);
 router.get('/:id', getBlogById);
 
 // Admin routes (protected)

@@ -16,7 +16,8 @@ import Videos from '../pages/Videos'
 import Login from '../components/Login'
 import {ToastContainer} from 'react-toastify'
 import Single from '../pages/Single'
-export const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+import { backendUrl } from './resolveBackendUrl'
+export { backendUrl }
 export const currency = "$"
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'):'')

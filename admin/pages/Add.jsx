@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 import RichTextEditor from '../components/RichTextEditor'
 
 const Add = ({ token, backendUrl: propBackendUrl }) => {
-  const backendUrl = propBackendUrl || defaultBackendUrl || 'http://localhost:4000'
+  const backendUrl = propBackendUrl || defaultBackendUrl
   const [images, setImages] = useState([]) // 改用数组存储多张图片
   const [name, setName] = useState('')
   const [modelNumber, setModelNumber] = useState('')
@@ -126,7 +126,7 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
         formData.append(`image${index + 1}`, image)
       })
 
-      const apiUrl = backendUrl || 'http://localhost:4000'
+      const apiUrl = backendUrl
       const response = await axios.post(apiUrl + "/api/product/add", formData, { headers: { token } })
 
       console.log(response.data)

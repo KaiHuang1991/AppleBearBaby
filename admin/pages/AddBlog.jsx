@@ -3,22 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import RichTextEditor from '../components/RichTextEditor'
 import axios from 'axios'
+import { BLOG_CATEGORIES } from '../src/blogCategories'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const AddBlog = ({ token }) => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [categories, setCategories] = useState([])
-  const [imageUploadType, setImageUploadType] = useState('url') // 'url' or 'local'
+  const [imageUploadType, setImageUploadType] = useState('url')
   const [imageFile, setImageFile] = useState(null)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const backendUrl = 'http://localhost:4000'
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     excerpt: '',
-    category: '',
-    author: '',
+    category: 'wholesale',
+    author: 'AppleBear Baby',
     image: '',
     readTime: 5,
     tags: '',
@@ -26,28 +26,15 @@ const AddBlog = ({ token }) => {
   })
 
   useEffect(() => {
-    fetchCategories()
     if (id) {
       fetchBlog()
     }
   }, [id, token])
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('http://localhost:4000/api/blogs/categories')
-      const data = await response.json()
-      if (data.success) {
-        setCategories(data.categories)
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-    }
-  }
-
   const fetchBlog = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:4000/api/blogs/${id}`)
+      const response = await fetch(`${backendUrl}/api/blogs/${id}`)
       const data = await response.json()
       
       if (data.success) {
@@ -131,17 +118,13 @@ const AddBlog = ({ token }) => {
       
       const submitData = {
         ...formData,
+        author: formData.author.trim() || 'AppleBear Baby',
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
       }
 
-      const url = id ? `http://localhost:4000/api/blogs/${id}` : 'http://localhost:4000/api/blogs'
+      const url = id ? `${backendUrl}/api/blogs/${id}` : `${backendUrl}/api/blogs`
       const method = id ? 'PUT' : 'POST'
 
-      console.log('Making request to:', url);
-      console.log('Method:', method);
-      console.log('Token:', token);
-      console.log('Submit data:', submitData);
-      
       const response = await fetch(url, {
         method,
         headers: {
@@ -151,11 +134,7 @@ const AddBlog = ({ token }) => {
         body: JSON.stringify(submitData)
       })
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
       const responseText = await response.text();
-      console.log('Response text:', responseText);
       
       let data;
       try {
@@ -234,9 +213,9 @@ const AddBlog = ({ token }) => {
                   required
                 >
                   <option value="">Select Category</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                  {BLOG_CATEGORIES.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
                     </option>
                   ))}
                 </select>
@@ -286,14 +265,19 @@ const AddBlog = ({ token }) => {
 
               {/* URL Input */}
               {imageUploadType === 'url' && (
-                <input
-                  type="url"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div>
+                  <input
+                    type="url"
+                    name="image"
+                    value={formData.image}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="https://res.cloudinary.com/... or product image URL"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    You can paste a Cloudinary URL from the product page. No need to re-upload.
+                  </p>
+                </div>
               )}
 
               {/* Local File Upload */}
@@ -354,7 +338,11 @@ const AddBlog = ({ token }) => {
                 onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
                 token={token}
                 backendUrl={backendUrl}
+                placeholder="Switch to HTML to paste a full article, or write here and insert product image URLs."
               />
+              <p className="text-xs text-gray-500 mt-2">
+                Click <strong>HTML</strong> to paste source such as &lt;p&gt; and &lt;img src="..."&gt;. Use <strong>Image URL</strong> for existing Cloudinary photos. Then switch back to Visual to preview.
+              </p>
             </div>
 
             {/* Tags and Read Time */}

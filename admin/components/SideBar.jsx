@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { assets } from '../src/admin_assets/assets'
 import { NavLink } from 'react-router-dom'
 import axios from 'axios'
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const SideBar = () => {
   const [inquiryUnread, setInquiryUnread] = useState(0)

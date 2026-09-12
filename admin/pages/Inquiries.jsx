@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import axios from 'axios'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const PAGE_SIZE = 10
 
@@ -17,7 +18,6 @@ const Inquiries = ({ token }) => {
 
   const [unreadCount, setUnreadCount] = useState(0)
   const prevUnreadCountRef = useRef(null)
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000'
 
   const refreshUnreadCount = useCallback(async () => {
     try {

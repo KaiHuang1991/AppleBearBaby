@@ -24,6 +24,25 @@
   font-size: 14px;
 }
 
+.rich-text-editor-html {
+  display: block;
+  width: 100%;
+  min-height: 420px;
+  max-height: 640px;
+  padding: 1rem;
+  border: 0;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111827;
+  background: #f8fafc;
+}
+
+.rich-text-editor-html:focus {
+  outline: none;
+}
+
 .rich-text-editor-content:focus {
   outline: none;
   border: none;

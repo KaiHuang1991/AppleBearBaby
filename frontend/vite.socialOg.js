@@ -1,9 +1,17 @@
 /**
  * Dev: document navigations for product / blog / static pages are proxied
  * to backend SEO HTML (TDK + JSON-LD + visible body in the SPA shell).
- * Matches production nginx behavior.
+ * The backend shell is built from frontend/dist, so hashed /assets/* files
+ * 404 under Vite — rewrite them back to /src/main.jsx for local hydration.
  */
-const STATIC_PAGE_KEYS = new Set(['collection', 'about', 'contact', 'blogs', 'videos'])
+const STATIC_PAGE_KEYS = new Set(['collection', 'about', 'contact', 'shipping', 'blogs', 'videos'])
+
+function adaptOgHtmlForVite(html) {
+  return String(html)
+    .replace(/<script type="module"[^>]*src="\/assets\/[^"]+"><\/script>/gi, '<script type="module" src="/src/main.jsx"></script>')
+    .replace(/<link rel="modulepreload"[^>]*>/gi, '')
+    .replace(/<link rel="stylesheet"[^>]*href="\/assets\/[^"]+"[^>]*>/gi, '')
+}
 
 export function socialOgPreview() {
   const backendUrl = (process.env.VITE_OG_BACKEND_URL || 'http://127.0.0.1:4000').replace(/\/$/, '')
@@ -22,6 +30,16 @@ export function socialOgPreview() {
         }
 
         const urlPath = (req.url || '').split('?')[0]
+        if (
+          urlPath.startsWith('/src/') ||
+          urlPath.startsWith('/@') ||
+          urlPath.startsWith('/node_modules/') ||
+          urlPath.startsWith('/assets/') ||
+          /\.\w+$/.test(urlPath)
+        ) {
+          return next()
+        }
+
         let ogUrl = null
 
         const productMatch = urlPath.match(/^\/product\/([^/]+)\/?$/)
@@ -58,12 +76,13 @@ export function socialOgPreview() {
             }
           }
 
-          const html = await response.text()
+          const html = await server.transformIndexHtml(
+            urlPath || '/',
+            adaptOgHtmlForVite(await response.text())
+          )
           res.statusCode = response.status
           res.setHeader('Content-Type', 'text/html; charset=utf-8')
-          if (response.headers.get('cache-control')) {
-            res.setHeader('Cache-Control', response.headers.get('cache-control'))
-          }
+          res.setHeader('Cache-Control', 'no-store')
           res.end(html)
         } catch (error) {
           console.warn('[seo-prerender]', error.message)

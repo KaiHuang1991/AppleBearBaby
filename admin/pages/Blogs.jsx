@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { BLOG_CATEGORIES, getBlogCategoryLabel } from '../src/blogCategories'
+import { backendUrl } from '../src/resolveBackendUrl'
 
 const storeBaseUrl = (
   import.meta.env.VITE_STORE_URL ||
@@ -13,19 +15,14 @@ const Blogs = ({ token }) => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [categories, setCategories] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [blogToDelete, setBlogToDelete] = useState(null)
 
   useEffect(() => {
-    fetchCategories()
-  }, [token])
-
-  useEffect(() => {
     fetchBlogs()
-  }, [selectedCategory, currentPage])
+  }, [selectedCategory, currentPage, token])
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -35,22 +32,10 @@ const Blogs = ({ token }) => {
     return () => clearTimeout(timeoutId)
   }, [searchTerm])
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('http://localhost:4000/api/blogs/categories')
-      const data = await response.json()
-      if (data.success) {
-        setCategories(data.categories)
-      }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-    }
-  }
-
   const fetchBlogs = async () => {
     try {
       setLoading(true)
-      let url = `http://localhost:4000/api/blogs/all?page=${currentPage}&limit=10`
+      let url = `${backendUrl}/api/blogs/admin/all?page=${currentPage}&limit=10`
       
       if (searchTerm) {
         url += `&search=${encodeURIComponent(searchTerm)}`
@@ -60,7 +45,15 @@ const Blogs = ({ token }) => {
         url += `&category=${encodeURIComponent(selectedCategory)}`
       }
 
-      const response = await fetch(url)
+      let response = await fetch(url, {
+        headers: { token }
+      })
+      if (!response.ok) {
+        url = `${backendUrl}/api/blogs/all?page=${currentPage}&limit=10`
+        if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`
+        if (selectedCategory) url += `&category=${encodeURIComponent(selectedCategory)}`
+        response = await fetch(url)
+      }
       const data = await response.json()
       
       if (data.success) {
@@ -77,7 +70,7 @@ const Blogs = ({ token }) => {
 
   const handleDeleteBlog = async () => {
     try {
-      const response = await fetch(`http://localhost:4000/api/blogs/${blogToDelete}`, {
+      const response = await fetch(`${backendUrl}/api/blogs/${blogToDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -113,21 +106,6 @@ const Blogs = ({ token }) => {
       month: 'long',
       day: 'numeric'
     })
-  }
-
-  const getCategoryLabel = (category) => {
-    const labels = {
-      'baby-nursing': 'Baby Nursing',
-      'baby-feeding': 'Baby Feeding',
-      'baby-products': 'Baby Products',
-      'baby-care': 'Baby Care',
-      'product-guide': 'Product Guide',
-      'wholesale': 'Wholesale',
-      'safety': 'Safety',
-      'sustainability': 'Sustainability',
-      'feeding': 'Feeding'
-    }
-    return labels[category] || category
   }
 
   if (loading) {
@@ -177,9 +155,9 @@ const Blogs = ({ token }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {getCategoryLabel(category)}
+                {BLOG_CATEGORIES.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
                   </option>
                 ))}
               </select>
@@ -249,7 +227,7 @@ const Blogs = ({ token }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {getCategoryLabel(blog.category)}
+                        {getBlogCategoryLabel(blog.category)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
