@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { backendUrl as defaultBackendUrl } from '../src/App.jsx'
+import { storeUrl } from '../src/resolveStoreUrl'
 import { assets } from '../src/admin_assets/assets'
 import RichTextEditor from '../components/RichTextEditor'
 
@@ -297,7 +298,16 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
             className='w-full max-w-[500px] px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600'
             type='text'
           />
-          <p className='text-xs text-gray-500 mt-1'>/product/{slug}</p>
+          <p className='text-xs text-gray-500 mt-1'>
+            <a
+              href={`${storeUrl}/product/${slug}`}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 hover:underline'
+            >
+              {storeUrl}/product/{slug}
+            </a>
+          </p>
         </div>
       ) : null}
 

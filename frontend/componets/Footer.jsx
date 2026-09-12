@@ -156,7 +156,13 @@ const Footer = () => {
         </div>
 
         <div className='border-t border-slate-200 mt-10 pt-6 text-center text-xs text-slate-500'>
-          <p>Copyright 2025 @ applebearbaby.com — All Rights Reserved</p>
+          <p>
+            Copyright 2026 @{' '}
+            <a href='https://applebearbaby.net' className='hover:text-blue-600 transition-colors'>
+              applebearbaby.net
+            </a>
+            {' '}— All Rights Reserved
+          </p>
         </div>
       </div>
     </footer>

@@ -1,16 +1,17 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { BULK_OPTIONS, RETURN_POLICY_DAYS, SAMPLE_CARRIERS } from '../src/commercePolicy'
+import '../styles/ProductDescription.css'
 
 const IconParcel = () => (
-  <svg className='product-ship-icon' viewBox='0 0 48 48' fill='none' aria-hidden='true'>
+  <svg className='product-ship-icon' width='40' height='40' viewBox='0 0 48 48' fill='none' aria-hidden='true'>
     <rect x='8' y='14' width='32' height='24' rx='3' stroke='currentColor' strokeWidth='1.8' />
     <path d='M8 22h32M24 14v24M16 14l8-6 8 6' stroke='currentColor' strokeWidth='1.8' strokeLinejoin='round' />
   </svg>
 )
 
 const IconShip = () => (
-  <svg className='product-ship-icon' viewBox='0 0 48 48' fill='none' aria-hidden='true'>
+  <svg className='product-ship-icon' width='40' height='40' viewBox='0 0 48 48' fill='none' aria-hidden='true'>
     <path d='M8 30l4 8h24l4-8H8z' stroke='currentColor' strokeWidth='1.8' strokeLinejoin='round' />
     <path d='M12 30V18h16l6 12' stroke='currentColor' strokeWidth='1.8' strokeLinejoin='round' />
     <path d='M20 18V12h8v6' stroke='currentColor' strokeWidth='1.8' />

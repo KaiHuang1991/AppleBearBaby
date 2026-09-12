@@ -25,9 +25,15 @@ async function main() {
   await fs.writeFile(path.join(publicDir, 'robots.txt'), robots, 'utf8')
 
   const origin = (process.env.SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')
+  const shippingLoc = `${origin}/shipping`
+  const hasShipping = entries.some((entry) => entry.loc === shippingLoc)
   console.log(`✅ Sitemap written (${entries.length} URLs) → frontend/public/sitemap.xml`)
   console.log(`✅ robots.txt written → frontend/public/robots.txt`)
   console.log(`   Public URL: ${origin}/sitemap.xml`)
+  console.log(`   Shipping: ${hasShipping ? shippingLoc : 'MISSING'}`)
+  if (!hasShipping) {
+    throw new Error(`sitemap is missing required URL ${shippingLoc}`)
+  }
   process.exit(0)
 }
 

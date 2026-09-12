@@ -1503,6 +1503,17 @@ body {
   min-height: clamp(380px, 48vh, 560px);
 }
 
+/* Shipping hero: 3:1 box matches the cropped banner photo */
+.page-hero--shipping {
+  min-height: 180px;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  width: 100%;
+  background-color: #1b2740;
+  background-size: cover;
+  background-position: center center;
+}
+
 .home-hero {
   min-height: clamp(460px, 78vh, 760px);
   background-size: cover;
@@ -1515,6 +1526,14 @@ body {
   position: absolute;
   inset: 0;
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0%, rgba(30, 64, 175, 0.55) 100%);
+}
+
+.page-hero.page-hero--shipping::before {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.22) 0%, rgba(15, 23, 42, 0.12) 50%, rgba(15, 23, 42, 0.28) 100%);
+}
+
+.page-hero--shipping .page-hero-content {
+  text-shadow: 0 1px 8px rgba(15, 23, 42, 0.45);
 }
 
 .page-hero-content {

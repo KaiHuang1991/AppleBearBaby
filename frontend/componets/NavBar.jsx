@@ -83,7 +83,7 @@ const NavBar = () => {
               decoding="async"
             />
         </Link>
-        <ul className="hidden lg:flex flex-1 justify-center gap-4 xl:gap-6 text-sm text-slate-600 min-w-0 px-2">
+        <ul className="hidden lg:flex flex-1 justify-center gap-3 xl:gap-5 text-sm text-slate-600 min-w-0 px-2">
             <NavLink to='/' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
                 <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>HOME</span>
                 <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
@@ -91,7 +91,11 @@ const NavBar = () => {
             <NavLink to='/collection' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
                 <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>WHOLESALE</span>
                 <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
-            </NavLink> 
+            </NavLink>
+            <NavLink to='/shipping' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>SHIPPING</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
+            </NavLink>
             <NavLink to='/about' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
                 <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>ABOUT</span>
                 <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
@@ -220,6 +224,7 @@ const NavBar = () => {
                 </div>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/'>HOME</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/collection'>WHOLESALE</NavLink>
+                <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/shipping'>SHIPPING</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/about'>ABOUT</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/contact'>CONTACT</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/blogs'>BLOG</NavLink>

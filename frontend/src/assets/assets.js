@@ -65,6 +65,7 @@ import about_bottles from './about_bottles.jpg'
 import about_company from './about_company.jpg'
 import about_hero from './about_hero.jpg'
 import about_factory from './about_factory.jpg'
+import shipping_hero from './shipping_hero.jpg'
 
 // Hero Images
 import slide2 from './slide2.jpg'
@@ -107,6 +108,7 @@ export const assets = {
     about_company,
     about_hero,
     about_factory,
+    shipping_hero,
     
     // Hero Images
     slide2,

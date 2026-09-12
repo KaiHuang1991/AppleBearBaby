@@ -3,23 +3,18 @@ import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { backendUrl } from '../src/resolveBackendUrl'
-
-const storeBaseUrl = (
-  import.meta.env.VITE_STORE_URL ||
-  import.meta.env.VITE_FRONTEND_URL ||
-  'http://localhost:5173'
-).replace(/\/$/, '')
+import { storeUrl } from '../src/resolveStoreUrl'
 
 const storefrontProductUrl = (productId) => {
   if (!productId) return null
   if (typeof productId === 'object') {
     const key = productId.slug || productId._id
     if (!key) return null
-    return `${storeBaseUrl}/product/${key}`
+    return `${storeUrl}/product/${key}`
   }
   const id = String(productId)
   if (!id || id === 'undefined' || id === 'null') return null
-  return `${storeBaseUrl}/product/${id}`
+  return `${storeUrl}/product/${id}`
 }
 
 const formatWhen = (d) =>

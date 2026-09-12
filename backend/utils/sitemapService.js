@@ -1,21 +1,36 @@
 import productModel from '../models/productModel.js'
 import blogModel from '../models/blogModel.js'
+import { STATIC_PAGE_SEO } from './pageSeo.js'
 import { backfillMissingProductSlugs, hasUsableProductSlug } from './productSlug.js'
 import { backfillMissingBlogSlugs, hasUsableBlogSlug } from './blogSlug.js'
 
+/** Must always appear in sitemap.xml, even if a static-route list drifts. */
+export const REQUIRED_SITEMAP_PATHS = ['/', '/collection', '/about', '/contact', '/shipping', '/blogs', '/videos']
+
+const SITEMAP_ROUTE_META = {
+  '/': { changefreq: 'daily', priority: '1.0' },
+  '/collection': { changefreq: 'daily', priority: '0.9' },
+  '/about': { changefreq: 'monthly', priority: '0.6' },
+  '/contact': { changefreq: 'monthly', priority: '0.7' },
+  '/shipping': { changefreq: 'monthly', priority: '0.7' },
+  '/blogs': { changefreq: 'weekly', priority: '0.8' },
+  '/videos': { changefreq: 'weekly', priority: '0.7' },
+}
+
 /**
- * Indexable static routes — keep in sync with frontend `src/App.jsx` and `src/seo/config.js`.
- * Only paths with robots: index, follow (or no robots override) belong here.
+ * Indexable static routes — derived from `pageSeo.js` so /shipping cannot be omitted.
  */
-export const INDEXABLE_STATIC_ROUTES = [
-  { path: '/', changefreq: 'daily', priority: '1.0' },
-  { path: '/collection', changefreq: 'daily', priority: '0.9' },
-  { path: '/about', changefreq: 'monthly', priority: '0.6' },
-  { path: '/contact', changefreq: 'monthly', priority: '0.7' },
-  { path: '/shipping', changefreq: 'monthly', priority: '0.6' },
-  { path: '/blogs', changefreq: 'weekly', priority: '0.8' },
-  { path: '/videos', changefreq: 'weekly', priority: '0.7' },
-]
+export const INDEXABLE_STATIC_ROUTES = Object.values(STATIC_PAGE_SEO).map((page) => {
+  const meta = SITEMAP_ROUTE_META[page.path] || { changefreq: 'monthly', priority: '0.6' }
+  return { path: page.path, changefreq: meta.changefreq, priority: meta.priority }
+})
+
+for (const path of REQUIRED_SITEMAP_PATHS) {
+  if (!INDEXABLE_STATIC_ROUTES.some((route) => route.path === path)) {
+    const meta = SITEMAP_ROUTE_META[path] || { changefreq: 'monthly', priority: '0.6' }
+    INDEXABLE_STATIC_ROUTES.push({ path, ...meta })
+  }
+}
 
 function getSiteOrigin() {
   const raw = process.env.SITE_URL || process.env.FRONTEND_URL || 'http://localhost:5173'
@@ -78,14 +93,36 @@ export async function collectSitemapEntries() {
     console.error('sitemap blog slug backfill:', err)
   }
 
-  const staticEntries = INDEXABLE_STATIC_ROUTES.map((route) =>
-    normalizeEntry({
-      loc: `${origin}${route.path === '/' ? '/' : route.path}`,
-      lastmod: today,
-      changefreq: route.changefreq,
-      priority: route.priority,
-    })
-  )
+  const seen = new Set()
+  const staticEntries = []
+  for (const route of INDEXABLE_STATIC_ROUTES) {
+    const loc = `${origin}${route.path === '/' ? '/' : route.path}`
+    if (seen.has(loc)) continue
+    seen.add(loc)
+    staticEntries.push(
+      normalizeEntry({
+        loc,
+        lastmod: today,
+        changefreq: route.changefreq,
+        priority: route.priority,
+      })
+    )
+  }
+
+  for (const path of REQUIRED_SITEMAP_PATHS) {
+    const loc = `${origin}${path === '/' ? '/' : path}`
+    if (seen.has(loc)) continue
+    seen.add(loc)
+    const meta = SITEMAP_ROUTE_META[path] || { changefreq: 'monthly', priority: '0.6' }
+    staticEntries.push(
+      normalizeEntry({
+        loc,
+        lastmod: today,
+        changefreq: meta.changefreq,
+        priority: meta.priority,
+      })
+    )
+  }
 
   let products = []
   let blogs = []

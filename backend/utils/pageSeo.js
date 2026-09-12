@@ -38,6 +38,15 @@ export const STATIC_PAGE_SEO = {
       'Contact AppleBear Baby for wholesale quotes, bulk orders, and product inquiries. Our team supports hospitals, daycare centers, and distributors worldwide.',
     keywords: 'contact, wholesale inquiry, request quote, AppleBear Baby',
   },
+  shipping: {
+    path: '/shipping',
+    title: 'Shipping & Returns',
+    heading: 'Shipping & returns for wholesale buyers',
+    description:
+      'AppleBear Baby factory shipping: samples by China Post, Alibaba express, DHL, FedEx or TNT; bulk by FCL/LCL sea freight or your China forwarder. Quality returns within 15 days.',
+    keywords:
+      'wholesale shipping, sample courier, sea freight, FCL LCL, factory return policy, AppleBearBaby',
+  },
   blogs: {
     path: '/blogs',
     title: 'Blog',

@@ -8,9 +8,11 @@ sitemapRoute.get('/sitemap.xml', async (req, res) => {
     const { xml, entries } = await getSitemapXml({
       bypassCache: req.query.refresh === '1',
     })
+    const hasShipping = entries.some((entry) => /\/shipping\/?$/.test(entry.loc))
     res.set('Content-Type', 'application/xml; charset=utf-8')
     res.set('Cache-Control', 'public, max-age=3600')
     res.set('X-Sitemap-Url-Count', String(entries.length))
+    res.set('X-Sitemap-Has-Shipping', hasShipping ? '1' : '0')
     res.send(xml)
   } catch (err) {
     console.error('sitemap.xml:', err)
