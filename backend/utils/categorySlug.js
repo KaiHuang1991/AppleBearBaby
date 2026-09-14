@@ -1,3 +1,5 @@
+import categoryModel from '../models/categoryModel.js'
+
 export function slugifyCategory(value) {
   return String(value || '')
     .trim()
@@ -5,26 +7,6 @@ export function slugifyCategory(value) {
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-}
-
-export function resolveCategoryIdFromSlug(categories, slug) {
-  if (!slug || !Array.isArray(categories)) return null
-
-  const target = slugifyCategory(slug)
-  if (!target) return null
-
-  for (const cat of categories) {
-    const id = String(cat?.id || cat?._id || '')
-    if (!id) continue
-
-    const candidates = [cat.slug, cat.name, ...(cat.aliases || [])]
-      .map(slugifyCategory)
-      .filter(Boolean)
-
-    if (candidates.includes(target)) return id
-  }
-
-  return null
 }
 
 export function getCategorySlug(category) {
@@ -42,4 +24,28 @@ export function getCategoryLandingSeo(category) {
     description: `AppleBear Baby ${name} for OEM, ODM, and wholesale buyers. Factory quotes from Yiwu include MOQ, packing, and destination freight.`,
     keywords: `${name}, wholesale ${name}, OEM baby products, ODM, AppleBearBaby`,
   }
+}
+
+export async function findCategoryBySlug(slug) {
+  const target = slugifyCategory(slug)
+  if (!target) return null
+
+  const categories = await categoryModel
+    .find({ isActive: { $ne: false } })
+    .select('name slug parent isActive updatedAt')
+    .lean()
+
+  return (
+    categories.find((category) => {
+      const candidates = [category.slug, category.name].map(slugifyCategory).filter(Boolean)
+      return candidates.includes(target)
+    }) || null
+  )
+}
+
+export async function listIndexableCategories() {
+  return categoryModel
+    .find({ isActive: { $ne: false } })
+    .select('name slug updatedAt')
+    .lean()
 }

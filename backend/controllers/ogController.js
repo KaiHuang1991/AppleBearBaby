@@ -21,6 +21,8 @@ import {
 } from '../utils/productSlug.js'
 import { findBlogBySlugOrId, getBlogUrlKey } from '../utils/blogSlug.js'
 import { resolveStaticPageKey, STATIC_PAGE_SEO } from '../utils/pageSeo.js'
+import { wholesaleProductDescription } from '../utils/productSnippet.js'
+import { findCategoryBySlug, getCategoryLandingSeo, getCategorySlug } from '../utils/categorySlug.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -73,7 +75,9 @@ function sendSeoHtml(res, html, cacheState = 'MISS') {
 async function fetchLiveIndexHtml() {
   const frontendOrigin = getFrontendOrigin()
   try {
-    const response = await fetch(`${frontendOrigin}/`)
+    const response = await fetch(`${frontendOrigin}/`, {
+      headers: { Accept: 'text/html', 'x-seo-shell': '1' },
+    })
     if (!response.ok) return null
     return await response.text()
   } catch {
@@ -90,6 +94,7 @@ async function fetchLocalViteIndexHtml() {
   try {
     const response = await fetch('http://127.0.0.1:5173/', {
       signal: AbortSignal.timeout(800),
+      headers: { Accept: 'text/html', 'x-seo-shell': '1' },
     })
     if (!response.ok) return null
     const html = await response.text()
@@ -173,7 +178,7 @@ export const productOgPage = async (req, res) => {
 
     const title = product.name || 'Product'
     const plainDescription = stripHtml(product.description || '')
-    const description = plainDescription.slice(0, 160)
+    const description = wholesaleProductDescription(product.name, product.description || '')
     const images = normalizeOgImages(product.image, frontendOrigin)
     const shareImages = buildOgShareImages(images, process.env.CLOUDINARY_NAME)
     const lcpImage = optimizeDeliveryImage(images[0] || '', { width: 800 })
@@ -193,7 +198,6 @@ export const productOgPage = async (req, res) => {
       siteName: 'AppleBear Baby',
       brand: 'AppleBearBaby',
       sku,
-      price: product.price,
       currency: 'USD',
       fbAppId: process.env.FACEBOOK_APP_ID,
       fullDescription: plainDescription.slice(0, 2000),
@@ -224,7 +228,7 @@ export const blogOgPage = async (req, res) => {
     }
 
     const blog = await findBlogBySlugOrId(blogKey, {
-      select: 'title slug excerpt content image author category tags createdAt updatedAt isPublished',
+      select: 'title slug excerpt content image author category tags createdAt updatedAt isPublished indexable',
       lean: true,
     })
 
@@ -274,6 +278,7 @@ export const blogOgPage = async (req, res) => {
           ? new Date(blog.createdAt).toISOString()
           : '',
       fullDescription: stripHtml(blog.content || blog.excerpt || '').slice(0, 2000),
+      robots: blog.indexable === false ? 'noindex, follow' : 'index, follow',
     }
 
     const spaIndex = await loadSpaIndexHtml()
@@ -352,3 +357,46 @@ export const pageOgPage = async (req, res) => {
     return res.status(500).type('text/plain').send('Failed to render preview')
   }
 }
+
+export const collectionCategoryOgPage = async (req, res) => {
+  try {
+    const slug = String(req.params.slug || '')
+    const category = await findCategoryBySlug(slug)
+    if (!category) {
+      return res.status(404).type('text/plain').send('Category not found')
+    }
+
+    const frontendOrigin = getFrontendOrigin()
+    const canonicalSlug = getCategorySlug(category) || String(slug).toLowerCase()
+    const seo = getCategoryLandingSeo(category)
+    const canonical = `${frontendOrigin}/collection/${canonicalSlug}`
+    const cacheKey = `page:collection:${canonicalSlug}`
+    const cachedHtml = getCachedSeoHtml(cacheKey)
+    if (cachedHtml) {
+      return sendSeoHtml(res, cachedHtml, 'HIT')
+    }
+
+    const seoInput = {
+      title: seo.title,
+      description: seo.description,
+      keywords: seo.keywords,
+      canonical,
+      heading: seo.heading,
+      siteName: 'AppleBear Baby',
+      brand: 'AppleBearBaby',
+      image: `${frontendOrigin}/applebear.png`,
+    }
+
+    const spaIndex = await loadSpaIndexHtml()
+    const html = spaIndex
+      ? injectSeoIntoHtml(spaIndex, buildPageSeoFragments(seoInput))
+      : buildPageOgHtml(seoInput)
+
+    setCachedSeoHtml(cacheKey, html)
+    return sendSeoHtml(res, html, 'MISS')
+  } catch (error) {
+    console.error('OG collection category error:', error)
+    return res.status(500).type('text/plain').send('Failed to render preview')
+  }
+}
+

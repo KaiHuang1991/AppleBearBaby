@@ -6,13 +6,14 @@ import { normalizeObjectIds } from '../utils/objectIds.js';
 import { invalidateSitemapCache } from '../utils/sitemapService.js';
 
 const PRODUCT_LINK_FIELDS = 'name slug modelNumber image';
+const PUBLIC_BLOG_QUERY = { isPublished: true, indexable: { $ne: false } };
 
 // Get all blogs with optional filtering
 export const getAllBlogs = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 10 } = req.query;
     
-    let query = { isPublished: true };
+    let query = { ...PUBLIC_BLOG_QUERY };
     
     // Filter by category
     if (category) {
@@ -63,7 +64,7 @@ export const getBlogById = async (req, res) => {
     
     const blog = await findBlogBySlugOrId(id);
     
-    if (!blog) {
+    if (!blog || blog.isPublished === false) {
       return res.status(404).json({
         success: false,
         message: 'Blog not found'
@@ -105,6 +106,7 @@ export const createBlog = async (req, res) => {
       tags: tags || [],
       readTime: readTime || 5,
       isPublished: isPublished === undefined ? true : Boolean(isPublished),
+      indexable: req.body.indexable === undefined ? true : Boolean(req.body.indexable),
       productIds: normalizeObjectIds(productIds),
     });
     
@@ -264,7 +266,7 @@ export const getBlogsByProduct = async (req, res) => {
     }
 
     const blogs = await blogModel
-      .find({ productIds: productId, isPublished: true })
+      .find({ productIds: productId, ...PUBLIC_BLOG_QUERY })
       .sort({ createdAt: -1 })
       .select('-content')
       .lean();
@@ -324,7 +326,7 @@ export const syncProductBlogs = async (req, res) => {
 export const getPopularBlogs = async (req, res) => {
   try {
     const blogs = await blogModel
-      .find({ isPublished: true })
+      .find(PUBLIC_BLOG_QUERY)
       .sort({ views: -1 })
       .limit(5)
       .select('-content');

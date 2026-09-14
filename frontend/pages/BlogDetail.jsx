@@ -163,6 +163,7 @@ const BlogDetail = () => {
         image={blog.image}
         keywords={Array.isArray(blog.tags) ? blog.tags.join(', ') : undefined}
         canonical={toAbsoluteUrl(getBlogPath(blog))}
+        robots={blog.indexable === false ? 'noindex, follow' : 'index, follow'}
       />
       
       {/* Floating decorative elements */}

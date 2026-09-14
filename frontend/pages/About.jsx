@@ -21,9 +21,9 @@ const About = () => {
         style={{ backgroundImage: `url(${assets.about_hero})`, backgroundPosition: 'center center' }}
       >
         <div className='page-hero-content'>
-          <h1>About Applebear: Trusted Partner in Baby Product Manufacturing</h1>
+          <h1>About AppleBear Baby</h1>
           <p>
-            We are a professional baby product manufacturer dedicated to quality, safety, and innovation — serving wholesale buyers worldwide.
+            Brand headquarters of Zhejiang YouZhi in Yiwu — ISO 9001 baby-bottle OEM/ODM since 1998. Alibaba is a sales channel for RFQs; this site is the factory brand HQ.
           </p>
         </div>
       </section>
@@ -38,13 +38,13 @@ const About = () => {
           <div>
             <h2 className='corp-section-title mb-4'>Our Company</h2>
             <p className='text-slate-600 leading-relaxed mb-6'>
-              Established in 1998, Applebear has grown into a trusted wholesale supplier serving healthcare facilities, hospitals, daycare centers, and retailers across the globe. Our comprehensive product line includes feeding supplies, safety products, and hygiene essentials.
+              Established in 1998, Zhejiang YouZhi Maternal and Child Co., Ltd. manufactures under the AppleBear Baby brand from Yiwu. This website is the brand headquarters. Our Alibaba store is a sales channel for buyers who already source on that marketplace — not a separate brand.
             </p>
             <ul className='corp-check-list mb-8'>
-              <li>International safety standards compliance</li>
-              <li>Rigorous quality control at every production stage</li>
-              <li>Competitive wholesale pricing for bulk orders</li>
-              <li>Reliable supply chain and dedicated account support</li>
+              <li>ISO 9001:2015 quality management and food-contact test reports</li>
+              <li>OEM/ODM from mold to packing for hospitals, daycare, and retailers</li>
+              <li>Factory quotes on inquiry — MOQ, packing, and destination freight</li>
+              <li>Export to 30+ countries with dedicated wholesale account support</li>
             </ul>
             <Link to='/contact' className='corp-btn'>
               Learn More About Us
@@ -97,10 +97,10 @@ const About = () => {
 
       <section className='corp-stat-bar py-12 md:py-14'>
         <div className='section-container grid grid-cols-2 lg:grid-cols-4 gap-8'>
-          <StatItem value='20+' label='Years Experience' />
-          <StatItem value='50+' label='Team Members' />
-          <StatItem value='20+' label='Product Lines' />
-          <StatItem value='30+' label='Countries Served' />
+          <StatItem value='12,000㎡' label='Factory Area' />
+          <StatItem value='7' label='Production Lines' />
+          <StatItem value='2.5M+' label='Monthly Output' />
+          <StatItem value='ISO 9001' label='Quality System' />
         </div>
       </section>
 
@@ -109,13 +109,13 @@ const About = () => {
           <div className='order-2 lg:order-1'>
             <h2 className='corp-section-title mb-4'>Our Factory</h2>
             <p className='text-slate-600 leading-relaxed mb-6'>
-              From design to production, every step follows strict national quality system requirements. Our advanced manufacturing facilities ensure each product meets international testing standards.
+              The Yiwu plant covers about 12,000㎡ with seven production lines and more than 2.5 million pieces of monthly capacity. From design to mass production, every step follows ISO 9001 and food-contact testing for baby feeding products.
             </p>
             <ul className='corp-check-list mb-8'>
-              <li>Advanced automated production lines</li>
-              <li>Certified quality management systems</li>
-              <li>Comprehensive product testing laboratory</li>
-              <li>Scalable capacity for bulk wholesale orders</li>
+              <li>12,000㎡ manufacturing area in Yiwu, Zhejiang</li>
+              <li>7 injection, assembly, and packing lines</li>
+              <li>2.5M+ monthly output for wholesale and private label</li>
+              <li>ISO 9001:2015 certified quality management</li>
             </ul>
             <Link to='/videos' className='corp-btn'>
               View Factory Tour
@@ -155,6 +155,28 @@ const About = () => {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className='section-container py-16 md:py-24'>
+        <div className='max-w-3xl'>
+          <h2 className='corp-section-title mb-4'>Alibaba is a sales channel</h2>
+          <p className='text-slate-600 leading-relaxed mb-6'>
+            Buyers who already search on Alibaba can RFQ at{' '}
+            <a
+              href='https://ywyouzhi.en.alibaba.com'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 font-medium hover:underline'
+            >
+              ywyouzhi.en.alibaba.com
+            </a>
+            . AppleBear Baby on this site is the same factory brand — use either channel for samples and bulk, and treat this website as the brand HQ for catalogs, shipping policy, and OEM notes.
+          </p>
+          <Link to='/contact' className='corp-btn'>
+            Request a Factory Quote
+            <span aria-hidden='true'>→</span>
+          </Link>
         </div>
       </section>
     </div>

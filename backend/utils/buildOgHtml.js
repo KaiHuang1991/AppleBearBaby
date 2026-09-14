@@ -115,7 +115,6 @@ const buildProductJsonLd = ({
   canonical,
   brand,
   sku,
-  price,
   currency = 'USD',
 }) => {
   const jsonLd = {
@@ -131,18 +130,17 @@ const buildProductJsonLd = ({
     url: canonical,
   }
   if (sku) jsonLd.sku = sku
-  if (price != null && price !== '' && !Number.isNaN(Number(price))) {
-    jsonLd.offers = {
-      '@type': 'Offer',
-      url: canonical,
-      priceCurrency: currency,
-      price: String(price),
-      availability: 'https://schema.org/InStock',
-      ...buildProductOfferExtras({
-        origin: getCommercePolicyOrigin(),
-        currency,
-      }),
-    }
+  jsonLd.offers = {
+    '@type': 'Offer',
+    url: canonical,
+    priceCurrency: currency,
+    availability: 'https://schema.org/InStock',
+    businessFunction: 'http://purl.org/goodrelations/v1#Sell',
+    description: 'Wholesale factory price quoted on inquiry (MOQ, packing, destination).',
+    ...buildProductOfferExtras({
+      origin: getCommercePolicyOrigin(),
+      currency,
+    }),
   }
   return jsonLd
 }
@@ -161,7 +159,6 @@ export const buildProductSeoFragments = ({
   siteName = 'AppleBear Baby',
   brand = 'AppleBearBaby',
   sku = '',
-  price,
   currency = 'USD',
   fbAppId,
   fullDescription = '',
@@ -185,13 +182,6 @@ export const buildProductSeoFragments = ({
     ? `\n  <link rel="preload" as="image" href="${safeLcpImage}" fetchpriority="high" />`
     : ''
 
-  const priceMeta =
-    price != null && price !== ''
-      ? `
-  <meta property="product:price:amount" content="${escapeHtml(String(price))}" />
-  <meta property="product:price:currency" content="${escapeHtml(currency)}" />`
-      : ''
-
   const fbAppIdMeta =
     fbAppId && String(fbAppId).trim()
       ? `\n  <meta property="fb:app_id" content="${escapeHtml(String(fbAppId).trim())}" />`
@@ -208,7 +198,6 @@ export const buildProductSeoFragments = ({
     canonical,
     brand,
     sku,
-    price,
     currency,
   })
 
@@ -226,7 +215,7 @@ export const buildProductSeoFragments = ({
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:url" content="${safeCanonical}" />${priceMeta}
+  <meta property="og:url" content="${safeCanonical}" />
   <meta property="product:availability" content="in stock" />
   <meta property="product:brand" content="${safeBrand}" />${fbAppIdMeta}
   <meta name="twitter:card" content="summary_large_image" />
@@ -269,6 +258,9 @@ export const injectSeoIntoHtml = (indexHtml, fragments) => {
   html = html.replace(/<title>[^<]*<\/title>\s*/i, '')
   html = html.replace(/<meta\s+name=["']description["'][^>]*>\s*/gi, '')
   html = html.replace(/<meta\s+name=["']robots["'][^>]*>\s*/gi, '')
+  html = html.replace(/<article[^>]*id=["']seo-content["'][^>]*>[\s\S]*?<\/article>/i, '')
+  html = html.replace(/<style id=["']seo-content-hide["']>[\s\S]*?<\/style>/i, '')
+  html = html.replace(/<script>document\.documentElement\.classList\.add\(['"]js['"]\)<\/script>/i, '')
 
   if (/<\/head>/i.test(html)) {
     html = html.replace(/<\/head>/i, `${headInjection}</head>`)
@@ -309,6 +301,7 @@ export const buildBlogSeoFragments = ({
   datePublished = '',
   dateModified = '',
   fullDescription = '',
+  robots = 'index, follow',
 }) => {
   const pageTitle = formatPageTitle(title, siteName)
   const safeTitle = escapeHtml(pageTitle)
@@ -353,7 +346,7 @@ export const buildBlogSeoFragments = ({
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDescription}" />${keywordsMeta}
   <link rel="canonical" href="${safeCanonical}" />${lcpPreload}
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="${escapeHtml(robots)}" />
   <meta name="author" content="${escapeHtml(author || brand)}" />
   <meta property="og:site_name" content="${safeSite}" />
   <meta property="og:locale" content="en_US" />
@@ -502,7 +495,6 @@ export const buildProductOgHtml = ({
   siteName = 'AppleBear Baby',
   brand = 'AppleBearBaby',
   sku = '',
-  price,
   currency = 'USD',
   fbAppId,
   fullDescription = '',
@@ -518,7 +510,6 @@ export const buildProductOgHtml = ({
     siteName,
     brand,
     sku,
-    price,
     currency,
     fbAppId,
     fullDescription,

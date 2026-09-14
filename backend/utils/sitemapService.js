@@ -3,6 +3,7 @@ import blogModel from '../models/blogModel.js'
 import { STATIC_PAGE_SEO } from './pageSeo.js'
 import { backfillMissingProductSlugs, hasUsableProductSlug } from './productSlug.js'
 import { backfillMissingBlogSlugs, hasUsableBlogSlug } from './blogSlug.js'
+import { getCategorySlug, listIndexableCategories } from './categorySlug.js'
 
 /** Must always appear in sitemap.xml, even if a static-route list drifts. */
 export const REQUIRED_SITEMAP_PATHS = ['/', '/collection', '/about', '/contact', '/shipping', '/blogs', '/videos']
@@ -137,7 +138,7 @@ export async function collectSitemapEntries() {
   }
   try {
     blogs = await blogModel
-      .find({ isPublished: { $ne: false } })
+      .find({ isPublished: { $ne: false }, indexable: { $ne: false } })
       .select('_id slug updatedAt createdAt')
       .sort({ updatedAt: -1 })
       .lean()
@@ -156,6 +157,31 @@ export async function collectSitemapEntries() {
       })
     )
 
+  let categories = []
+  try {
+    categories = await listIndexableCategories()
+  } catch (err) {
+    console.error('sitemap categories:', err)
+  }
+
+  const categoryEntries = categories
+    .map((cat) => {
+      const slug = getCategorySlug(cat)
+      if (!slug) return null
+      return normalizeEntry({
+        loc: `${origin}/collection/${slug}`,
+        lastmod: toW3CDate(cat.updatedAt) || today,
+        changefreq: 'weekly',
+        priority: '0.7',
+      })
+    })
+    .filter(Boolean)
+    .filter((entry) => {
+      if (seen.has(entry.loc)) return false
+      seen.add(entry.loc)
+      return true
+    })
+
   // Always emit published articles (slug preferred; ObjectId fallback so none are dropped).
   const blogEntries = blogs.map((b) => {
     const key = hasUsableBlogSlug(b.slug) ? b.slug : String(b._id)
@@ -167,7 +193,7 @@ export async function collectSitemapEntries() {
     })
   })
 
-  return [...staticEntries, ...blogEntries, ...productEntries]
+  return [...staticEntries, ...categoryEntries, ...blogEntries, ...productEntries]
 }
 
 export function buildSitemapXml(entries) {

@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets'
-import Title from '../componets/Title'
 import ProductItem from '../componets/ProductItem'
+import Seo from '../componets/Seo'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getCategorySlug, resolveCategoryIdFromSlug } from '../src/utils/categorySlug'
+import { getCategoryLandingSeo, getCategorySlug, resolveCategoryIdFromSlug } from '../src/utils/categorySlug'
+import { toAbsoluteUrl } from '../src/seo/utils'
 
 const buildCollectionUrl = ({ slug, search } = {}) => {
   const params = new URLSearchParams(search || '')
@@ -66,6 +67,28 @@ const Collection = () => {
     }
     return map
   }, [categories])
+
+  const activeCategory = useMemo(() => {
+    const id = selectedCategoryIds[0]
+    if (!id) return null
+    return categoryMap.get(id) || null
+  }, [selectedCategoryIds, categoryMap])
+
+  const categorySeo = useMemo(() => {
+    if (!categorySlug) return null
+    if (activeCategory) return { ...getCategoryLandingSeo(activeCategory), robots: 'index, follow' }
+    if (!loadingCategories) {
+      return {
+        title: 'Wholesale',
+        heading: 'Wholesale Catalog',
+        description:
+          'Browse the AppleBear Baby wholesale catalog for OEM and ODM buyers.',
+        keywords: 'wholesale catalog, OEM baby products, AppleBearBaby',
+        robots: 'noindex, follow',
+      }
+    }
+    return null
+  }, [categorySlug, activeCategory, loadingCategories])
 
   const toggleNodeExpansion = (categoryId) => {
     if (!categoryId) return
@@ -283,6 +306,15 @@ const Collection = () => {
   }
   return (
     <div className='page-shell flex flex-col lg:flex-row gap-1 lg:gap-10 min-h-screen'>
+      {categorySeo ? (
+        <Seo
+          title={categorySeo.title}
+          description={categorySeo.description}
+          keywords={categorySeo.keywords}
+          robots={categorySeo.robots}
+          canonical={toAbsoluteUrl(`/collection/${categorySlug}`)}
+        />
+      ) : null}
       <div className='relative z-10 flex flex-col lg:flex-row gap-4 lg:gap-10 w-full max-w-full box-border section-container py-8'>
       {/*filter options*/}
       <div className='w-full lg:w-auto lg:min-w-40 lg:max-w-[14rem] shrink-0'>
@@ -329,7 +361,13 @@ const Collection = () => {
       {/*right side*/}
       <div className='flex-1 min-w-0 w-full'>
         <div className='flex flex-wrap items-center justify-between gap-3 text-base lg:text-2xl mb-4'>
-          <Title text1="WHOLESALE" text2="CATALOG"/>
+          <h1 className='corp-section-title text-base lg:text-2xl mb-0'>
+            WHOLESALE
+            <span className='text-blue-600'>
+              {' '}
+              {activeCategory ? String(activeCategory.name).toUpperCase() : 'CATALOG'}
+            </span>
+          </h1>
           {/*product sort*/}
           <select onChange={(e)=>setSortType(e.target.value)} className='cartoon-border text-sm px-2 py-1.5 bg-white max-w-full shrink-0'>
             <option value={"relevent"}>Sort By: Relevent</option>

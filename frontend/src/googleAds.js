@@ -1,9 +1,23 @@
 /**
- * Google Ads global site tag (gtag.js).
- * Set VITE_GOOGLE_ADS_ID=AW-xxxxxxxx in frontend/.env or .env.production.
+ * Google Ads + optional GA4 (gtag.js).
+ * Ads: VITE_GOOGLE_ADS_ID=AW-xxxxxxxx
+ * Analytics: VITE_GA_MEASUREMENT_ID=G-xxxxxxxx
  */
 
-const GOOGLE_ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID?.trim()
+const GOOGLE_ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID?.trim() || 'AW-11136202142'
+/**
+ * GA4 测量 ID — 与 Ads 共用 gtag。不要只依赖 VPS .env；漏配会导致实时报告空白。
+ */
+const GA_MEASUREMENT_ID =
+  import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || 'G-XD4XX5X9FW'
+
+function hasHeadGtag() {
+  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return false
+  return Boolean(
+    document.querySelector('script[src*="googletagmanager.com/gtag/js"]') ||
+      document.querySelector('script[data-gtag-install]')
+  )
+}
 const PURCHASE_CONVERSION_LABEL = import.meta.env.VITE_GOOGLE_ADS_PURCHASE_CONVERSION?.trim()
 /**
  * 提交潜在客户表单 — 必须与 Google Ads 后台标签完全一致（区分大小写）。
@@ -22,24 +36,34 @@ export function getGoogleAdsId() {
   return GOOGLE_ADS_ID || ''
 }
 
-/** Load gtag.js once (skipped when env id is empty). */
+/** Use the head snippet when present; otherwise inject gtag.js once. */
 export function initGoogleAds() {
-  if (!GOOGLE_ADS_ID || initialized || typeof window === 'undefined') return
-  initialized = true
+  if (initialized || typeof window === 'undefined') return
+  const adsId = GOOGLE_ADS_ID
+  const gaId = GA_MEASUREMENT_ID
+  if (!adsId && !gaId) return
 
+  if (hasHeadGtag()) {
+    initialized = true
+    return
+  }
+
+  initialized = true
   window.dataLayer = window.dataLayer || []
   window.gtag = function gtag() {
     window.dataLayer.push(arguments)
   }
   window.gtag('js', new Date())
-  window.gtag('config', GOOGLE_ADS_ID)
+  if (adsId) window.gtag('config', adsId)
+  if (gaId) window.gtag('config', gaId)
 
-  if (document.querySelector(`script[data-google-ads="${GOOGLE_ADS_ID}"]`)) return
+  const loaderId = gaId || adsId
+  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`)) return
 
   const script = document.createElement('script')
   script.async = true
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GOOGLE_ADS_ID)}`
-  script.setAttribute('data-google-ads', GOOGLE_ADS_ID)
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(loaderId)}`
+  script.setAttribute('data-gtag-install', 'fallback')
   document.head.appendChild(script)
 }
 
@@ -93,13 +117,22 @@ export function trackGoogleAdsLeadForm({ transactionId } = {}) {
   })
 }
 
+export function trackGenerateLead(extra = {}) {
+  if (!GA_MEASUREMENT_ID || typeof window.gtag !== 'function') return
+  window.gtag('event', 'generate_lead', {
+    send_to: GA_MEASUREMENT_ID,
+    ...extra,
+  })
+}
+
 /**
- * Inquiry form: fire lead + purchase after API success (Cart handleInquirySubmit).
+ * Inquiry form: fire Ads lead + GA4 generate_lead after API success (Cart handleInquirySubmit).
  * Use separate transaction_id per action — same id can make Ads count only the first hit.
  */
 export function trackInquiryFormConversions({ value, currency = PURCHASE_CURRENCY, transactionId } = {}) {
   const base = transactionId ? String(transactionId) : `guest-${Date.now()}`
   trackGoogleAdsLeadForm({ transactionId: `lead-${base}` })
+  trackGenerateLead({ transaction_id: `ga-lead-${base}` })
   if (TRACK_PURCHASE_ON_INQUIRY) {
     trackGoogleAdsPurchase({ value, currency, transactionId: `purchase-${base}` })
   }

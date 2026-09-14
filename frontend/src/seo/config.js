@@ -31,8 +31,8 @@ export const ROUTE_SEO = {
   '/about': {
     title: 'About',
     description:
-      'Learn about AppleBear Baby — trusted wholesale baby care partner since 1998, serving healthcare facilities, daycare centers, and retailers with quality and reliable supply.',
-    keywords: `${DEFAULT_KEYWORDS}, about AppleBear Baby, baby product manufacturer`,
+      'AppleBear Baby is the brand HQ of Zhejiang YouZhi in Yiwu: ISO 9001, 12,000㎡, 7 lines, 2.5M monthly bottles. Alibaba (ywyouzhi.en.alibaba.com) is a sales channel for RFQs.',
+    keywords: `${DEFAULT_KEYWORDS}, about AppleBear Baby, baby bottle factory Yiwu, ISO 9001, Alibaba sales channel`,
     ogType: 'website',
     robots: 'index, follow',
   },
@@ -53,10 +53,10 @@ export const ROUTE_SEO = {
     robots: 'index, follow',
   },
   '/blogs': {
-    title: 'Blog',
+    title: 'OEM Buyer Guides',
     description:
-      'Expert articles on baby nursing, feeding, safety, and wholesale buying guides from the AppleBear Baby team.',
-    keywords: `${DEFAULT_KEYWORDS}, baby blog, feeding tips, baby care advice`,
+      'Factory notes for OEM/ODM buyers: MOQ, samples, lead time, PP vs PPSU, and AppleBear Baby wholesale packing from Yiwu.',
+    keywords: `${DEFAULT_KEYWORDS}, OEM baby bottles, wholesale buying guide, MOQ, samples, lead time`,
     ogType: 'website',
     robots: 'index, follow',
   },
@@ -108,7 +108,12 @@ const PATTERN_SEO = [
 ]
 
 /** Routes that provide their own full SEO (Helmet) */
-export const SEO_OWNED_PATTERNS = ['/product/:productId', '/blog/:blogKey', '/blog/:id']
+export const SEO_OWNED_PATTERNS = [
+  '/product/:productId',
+  '/blog/:blogKey',
+  '/blog/:id',
+  '/collection/:categorySlug',
+]
 
 export function isSeoOwnedRoute(pathname) {
   return SEO_OWNED_PATTERNS.some((pattern) => matchPath({ path: pattern, end: true }, pathname))

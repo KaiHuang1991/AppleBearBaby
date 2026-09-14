@@ -31,6 +31,7 @@ export function socialOgPreview() {
 
         const urlPath = (req.url || '').split('?')[0]
         if (
+          req.headers['x-seo-shell'] === '1' ||
           urlPath.startsWith('/src/') ||
           urlPath.startsWith('/@') ||
           urlPath.startsWith('/node_modules/') ||
@@ -44,12 +45,15 @@ export function socialOgPreview() {
 
         const productMatch = urlPath.match(/^\/product\/([^/]+)\/?$/)
         const blogMatch = urlPath.match(/^\/blog\/([^/]+)\/?$/)
+        const collectionMatch = urlPath.match(/^\/collection\/([^/]+)\/?$/)
         const staticKey = urlPath.replace(/^\/|\/$/g, '')
 
         if (productMatch) {
           ogUrl = `${backendUrl}/og/product/${encodeURIComponent(productMatch[1])}`
         } else if (blogMatch) {
           ogUrl = `${backendUrl}/og/blog/${encodeURIComponent(blogMatch[1])}`
+        } else if (collectionMatch) {
+          ogUrl = `${backendUrl}/og/page/collection/${encodeURIComponent(collectionMatch[1])}`
         } else if (urlPath === '/' || urlPath === '') {
           ogUrl = `${backendUrl}/og/page/home`
         } else if (STATIC_PAGE_KEYS.has(staticKey)) {

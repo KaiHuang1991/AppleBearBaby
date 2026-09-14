@@ -63,9 +63,9 @@ const Blogs = () => {
     <div className="page-shell bg-white">
       <div className="section-container py-10 md:py-14">
         <div className="text-center mb-12">
-          <h1 className="corp-section-title">Baby Care Blog</h1>
+          <h1 className="corp-section-title">OEM & Wholesale Buyer Guides</h1>
           <p className="corp-section-subtitle mx-auto">
-            Expert advice on baby nursing, feeding, and essential products.
+            Factory notes on MOQ, samples, lead time, materials, and packing — written for OEM and wholesale buyers.
           </p>
           
           {/* Search Bar */}
@@ -76,7 +76,7 @@ const Blogs = () => {
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search blogs by title or content..."
+                  placeholder="Search buyer guides..."
                   className="w-full px-5 py-3 pl-12 pr-12 border-2 border-blue-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm"
                 />
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 text-xl">

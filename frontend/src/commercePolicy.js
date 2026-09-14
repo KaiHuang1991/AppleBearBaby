@@ -100,14 +100,14 @@ export function buildProductOfferExtras({ origin = '', currency = 'USD' } = {}) 
   }
 }
 
-export function buildProductJsonLdOffer({ url, price, currency = 'USD', origin = '' }) {
-  if (price == null || price === '' || Number.isNaN(Number(price))) return undefined
+export function buildProductJsonLdOffer({ url, currency = 'USD', origin = '' }) {
   return {
     '@type': 'Offer',
     url,
     priceCurrency: currency,
-    price: String(price),
     availability: 'https://schema.org/InStock',
+    businessFunction: 'http://purl.org/goodrelations/v1#Sell',
+    description: 'Wholesale factory price quoted on inquiry (MOQ, packing, destination).',
     ...buildProductOfferExtras({ origin, currency }),
   }
 }

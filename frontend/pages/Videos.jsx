@@ -264,6 +264,7 @@ const Videos = () => {
         </aside>
 
         <main className="flex-1 min-w-0">
+          <h1 className="sr-only">Product Videos</h1>
           <nav className="lg:hidden px-4 pb-4 flex flex-col gap-0.5 border-b border-[#e5e5e5] mb-4" aria-label="Video categories">
             {SIDEBAR_ITEMS.map((item) => {
               const active = category === item.value

@@ -18,6 +18,8 @@ const blogSchema = new mongoose.Schema(
     readTime: { type: Number, default: 5 }, // in minutes
     views: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: true },
+    /** Parent-advice / off-brand posts stay live but out of Google and the public list */
+    indexable: { type: Boolean, default: true },
     /** Products this guide belongs to — same idea as video.productId, but a guide can cover a family */
     productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }]
   },

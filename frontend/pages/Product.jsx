@@ -16,6 +16,7 @@ import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
 import NotFound from './NotFound'
 import ProductShipping from '../componets/ProductShipping'
 import { buildProductJsonLdOffer } from '../src/commercePolicy'
+import { wholesaleProductDescription } from '../src/utils/productSnippet'
 
 const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
@@ -312,14 +313,6 @@ const Product = () => {
   const generateSEOMeta = () => {
     if (!productData) return null
 
-    const stripHtml = (html = '') =>
-      (html || '')
-        .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<script[\s\S]*?<\/script>/gi, '')
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-
     const ensureAbsoluteUrl = (path = '') => {
       if (!path) return ''
       try {
@@ -352,7 +345,7 @@ const Product = () => {
 
     const canonical = getProductCanonicalUrl(productData)
     const title = productData.name || 'Product'
-    const description = stripHtml(productData.description || '').slice(0, 160)
+    const description = wholesaleProductDescription(productData.name, productData.description || '')
     const sourceImages = normalizeImages(productData.image)
     const images = buildOgShareImages(sourceImages)
     const image = images[0] || ''
@@ -399,12 +392,8 @@ const Product = () => {
       images,
       canonical,
       ogType: 'product',
-      // 添加产品价格（用于结构化数据）
-      price: productData.price,
       currency: currency.replace('$', 'USD'),
-      // 添加产品可用性
       availability: 'in stock',
-      // 添加品牌信息（如果有）
       brand: productData.brand || 'AppleBearBaby'
     }
   }
@@ -499,12 +488,6 @@ const Product = () => {
           {import.meta.env.VITE_FACEBOOK_APP_ID ? (
             <meta property="fb:app_id" content={import.meta.env.VITE_FACEBOOK_APP_ID} />
           ) : null}
-          {seoMeta.price && (
-            <>
-              <meta property="product:price:amount" content={seoMeta.price.toString()} />
-              <meta property="product:price:currency" content={seoMeta.currency} />
-            </>
-          )}
           <meta property="product:availability" content={seoMeta.availability} />
           <meta property="product:brand" content={seoMeta.brand} />
           
@@ -517,19 +500,19 @@ const Product = () => {
           {/* 额外的SEO标签 */}
           <meta name="robots" content="index, follow" />
           <meta name="author" content={seoMeta.brand} />
-          {seoMeta.canonical && seoMeta.price != null ? (
+          {seoMeta.canonical ? (
             <script type="application/ld+json">
               {JSON.stringify({
                 '@context': 'https://schema.org',
                 '@type': 'Product',
                 name: productData.name,
+                description: seoMeta.description,
                 image: seoMeta.images,
                 brand: { '@type': 'Brand', name: seoMeta.brand },
                 sku: productData.modelNumber || productData.slug || productData._id,
                 url: seoMeta.canonical,
                 offers: buildProductJsonLdOffer({
                   url: seoMeta.canonical,
-                  price: seoMeta.price,
                   currency: seoMeta.currency || 'USD',
                   origin: typeof window !== 'undefined' ? window.location.origin : '',
                 }),

@@ -41,6 +41,13 @@ const App = () => {
   const [showDeferredWidgets, setShowDeferredWidgets] = useState(false)
 
   useEffect(() => {
+    const seoNode = document.getElementById('seo-content')
+    if (seoNode) seoNode.remove()
+    const hideStyle = document.getElementById('seo-content-hide')
+    if (hideStyle) hideStyle.remove()
+  }, [location.pathname])
+
+  useEffect(() => {
     let idleId
     let timerId
     const enable = () => setShowDeferredWidgets(true)
