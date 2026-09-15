@@ -56,6 +56,11 @@ export default function CollectionScreen() {
           <Text numberOfLines={2} style={styles.rowTitle}>
             {item.name}
           </Text>
+          {item.modelNumber ? (
+            <Text numberOfLines={1} style={styles.rowModel}>
+              Model {String(item.modelNumber).trim()}
+            </Text>
+          ) : null}
           <Text style={styles.rowPrice}>${item.price}</Text>
         </View>
       </TouchableOpacity>
@@ -164,6 +169,7 @@ const styles = StyleSheet.create({
   rowImg: { width: 72, height: 72, borderRadius: 8, backgroundColor: '#e2e8f0' },
   rowBody: { flex: 1, marginLeft: 12, justifyContent: 'center' },
   rowTitle: { fontSize: 15, fontWeight: '600', color: '#0f172a' },
+  rowModel: { marginTop: 2, fontSize: 12, color: '#64748b' },
   rowPrice: { marginTop: 6, fontSize: 16, color: '#2563eb', fontWeight: '700' },
   empty: { textAlign: 'center', color: '#94a3b8', marginTop: 24 },
 })

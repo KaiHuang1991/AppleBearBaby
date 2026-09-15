@@ -336,15 +336,15 @@ const Collection = () => {
         {/* search input */}
         <div className={`cartoon-card px-4 py-4 ${showFilter ? '' : 'hidden'} lg:block`}>
           <label className='text-xs font-semibold text-blue-600 uppercase tracking-wide'>Search Products</label>
-          <div className='mt-2 flex items-center gap-2 rounded-full border border-blue-200 bg-white pl-3 pr-2 py-2 shadow-sm focus-within:border-blue-500 transition-colors'>
-            <img src={assets.search_icon} alt='Search' className='w-4 h-4 opacity-70'/>
+          <div className='mt-2 flex items-center gap-2 rounded-full border border-blue-200 bg-white pl-3 pr-2 py-2 shadow-sm focus-within:border-blue-500 transition-colors min-w-0'>
+            <img src={assets.search_icon} alt='Search' className='w-4 h-4 opacity-70 shrink-0'/>
             <input
               ref={searchInputRef}
               type='text'
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder='Search name, model, or specs...'
-              className='flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400'
+              placeholder='Name, model, specs'
+              className='min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-gray-400 placeholder:truncate'
             />
           </div>
         </div>
@@ -390,7 +390,7 @@ const Collection = () => {
          <div className='catalog-product-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-10 gap-y-6 lg:gap-y-15 w-full min-w-0 max-w-full sm:max-w-none lg:max-w-none mx-auto sm:mx-0 box-border'>
           {
             currentProducts.map((product,productIndex)=>(
-              <ProductItem key={productIndex} id={product._id} slug={product.slug} image={product.image} name={product.name} price={product.price} />
+              <ProductItem key={productIndex} id={product._id} slug={product.slug} image={product.image} name={product.name} price={product.price} modelNumber={product.modelNumber} />
             ))
           }
         </div>

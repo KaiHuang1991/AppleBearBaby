@@ -14,7 +14,6 @@ import { getBlogPath } from '../src/utils/blogPath'
 import { getProductCanonicalUrl } from '../src/utils/productShareUrl'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
 import NotFound from './NotFound'
-import ProductShipping from '../componets/ProductShipping'
 import { buildProductJsonLdOffer } from '../src/commercePolicy'
 import { wholesaleProductDescription } from '../src/utils/productSnippet'
 
@@ -728,7 +727,6 @@ const Product = () => {
               </li>
             ) : null}
           </ul>
-          <ProductShipping compact />
         </div>
       </div>
       {/* Description / Videos / Reviews */}
@@ -771,17 +769,6 @@ const Product = () => {
               Guides ({productBlogs.length})
             </button>
           ) : null}
-          <button
-            type="button"
-            role="tab"
-            id="tab-shipping"
-            aria-controls="panel-shipping"
-            onClick={() => setTabs('shipping')}
-            aria-selected={tabs === 'shipping'}
-            className={tabClass('shipping')}
-          >
-            Shipping
-          </button>
           <button
             type="button"
             role="tab"
@@ -859,15 +846,6 @@ const Product = () => {
               className="product-description-detail w-full min-w-0"
               dangerouslySetInnerHTML={{ __html: productData.description }}
             />
-          </div>
-        ) : tabs === 'shipping' ? (
-          <div
-            id="panel-shipping"
-            role="tabpanel"
-            aria-labelledby="tab-shipping"
-            className="product-tab-panel"
-          >
-            <ProductShipping />
           </div>
         ) : (
           <div

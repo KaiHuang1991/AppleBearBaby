@@ -5,7 +5,7 @@ import { flyToCart } from '../src/utils/flyToCart'
 import { getProductPath } from '../src/utils/productPath'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
 
-const ProductItem = ({ id, slug, image, name, price }) => {
+const ProductItem = ({ id, slug, image, name, price, modelNumber }) => {
   const { currency, addToCart } = useContext(ShopContext)
   const productPath = getProductPath({ _id: id, slug })
   const thumb = image?.[0]
@@ -42,6 +42,9 @@ const ProductItem = ({ id, slug, image, name, price }) => {
         </div>
         <div className="space-y-2 flex-1 flex flex-col">
           <p className="text-base font-medium text-gray-800 line-clamp-2 min-h-[3rem]">{name}</p>
+          {modelNumber && String(modelNumber).trim() ? (
+            <p className="text-xs text-slate-500 -mt-1">Model {String(modelNumber).trim()}</p>
+          ) : null}
           <div className="flex flex-col  flex-start justify-between sm:flex-row">
             <p className="text-base font-bold text-blue-600">
               {currency}

@@ -4,6 +4,12 @@ export function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+export function compactCode(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/g, '')
+}
+
 export function normalizeSearchText(text) {
   return String(text || '')
     .toLowerCase()
@@ -13,10 +19,24 @@ export function normalizeSearchText(text) {
     .trim()
 }
 
+const UNIT_TOKENS = new Set(['ml', 'cc', 'oz', '毫升'])
+
 export function tokenizeSearchQuery(text) {
   const normalized = normalizeSearchText(String(text || '').slice(0, 80))
   if (!normalized) return []
-  return [...new Set(normalized.split(' ').filter(Boolean))].slice(0, 12)
+  const raw = normalized.split(' ').filter(Boolean)
+  const merged = []
+  for (let i = 0; i < raw.length; i += 1) {
+    const cur = raw[i]
+    const next = raw[i + 1]
+    if (next && /^\d+(?:\.\d+)?$/.test(cur) && UNIT_TOKENS.has(next)) {
+      merged.push(`${cur}${next === '毫升' ? 'ml' : next}`)
+      i += 1
+      continue
+    }
+    merged.push(cur)
+  }
+  return [...new Set(merged)].slice(0, 12)
 }
 
 function pushPart(parts, value) {
@@ -25,10 +45,32 @@ function pushPart(parts, value) {
   if (s) parts.push(s)
 }
 
+const CAPACITY_RE = /(\d+(?:\.\d+)?)\s*(ml|cc|毫升)/gi
+
+export function extractCapacityMlValues(product) {
+  const chunks = [product?.name]
+  if (Array.isArray(product?.attributes)) {
+    for (const row of product.attributes) chunks.push(row?.value)
+  }
+  const found = []
+  for (const chunk of chunks) {
+    if (!chunk) continue
+    const text = String(chunk)
+    CAPACITY_RE.lastIndex = 0
+    let match
+    while ((match = CAPACITY_RE.exec(text))) {
+      const n = Number(match[1])
+      if (Number.isFinite(n) && n >= 10 && n <= 2000) found.push(n)
+    }
+  }
+  return [...new Set(found)]
+}
+
 export function collectProductSearchParts(product) {
   const parts = []
   pushPart(parts, product?.name)
   pushPart(parts, product?.modelNumber)
+  pushPart(parts, compactCode(product?.modelNumber))
   pushPart(parts, product?.slug)
   pushPart(parts, product?.category)
   pushPart(parts, product?.subCategory)
@@ -46,6 +88,10 @@ export function collectProductSearchParts(product) {
       }
     }
   }
+  for (const ml of extractCapacityMlValues(product)) {
+    pushPart(parts, String(ml))
+    pushPart(parts, `${ml}ml`)
+  }
   return parts
 }
 
@@ -56,17 +102,34 @@ export function productSearchHaystack(product) {
 export function haystackContainsToken(haystack, token) {
   if (!token) return true
   if (!haystack) return false
-  if (token.length <= 2 && /^[a-z0-9]+$/.test(token)) {
-    return new RegExp(`(?:^| )${escapeRegex(token)}(?: |$)`).test(haystack)
-  }
-  return haystack.includes(token)
+  return new RegExp(`(?:^| )${escapeRegex(token)}(?: |$)`).test(haystack)
 }
 
 export function productMatchesSearch(product, query) {
-  const tokens = tokenizeSearchQuery(query)
+  const raw = String(query || '').trim()
+  if (!raw) return true
+
+  const compactQuery = compactCode(raw)
+  const compactModel = compactCode(product?.modelNumber)
+  if (compactQuery && compactModel && compactModel === compactQuery) return true
+
+  const tokens = tokenizeSearchQuery(raw)
   if (!tokens.length) return true
   const haystack = productSearchHaystack(product)
   return tokens.every((token) => haystackContainsToken(haystack, token))
+}
+
+function tokenMongoRegex(tok) {
+  const capacity = tok.match(/^(\d+(?:\.\d+)?)(ml|cc|毫升)?$/i)
+  if (capacity && (!capacity[2] || ['ml', 'cc', '毫升'].includes(capacity[2].toLowerCase()))) {
+    const n = escapeRegex(capacity[1])
+    return new RegExp(`(?:(?:^|[^0-9])${n}\\s*(?:ml|cc|毫升)\\b|\\b${n}\\b)`, 'i')
+  }
+  const groups = tok.match(/[a-z]+|\d+/gi)
+  if (groups && groups.length >= 2 && /[a-z]/i.test(tok) && /\d/.test(tok)) {
+    return new RegExp(groups.map(escapeRegex).join('[-_\\s]*'), 'i')
+  }
+  return new RegExp(escapeRegex(tok), 'i')
 }
 
 function tokenFieldClause(rx, attributeIds) {
@@ -91,7 +154,7 @@ export async function buildProductSearchFilter(search) {
   const tokens = tokenizeSearchQuery(search)
   if (!tokens.length) return {}
 
-  const tokenRegexes = tokens.map((tok) => new RegExp(escapeRegex(tok), 'i'))
+  const tokenRegexes = tokens.map((tok) => tokenMongoRegex(tok))
   const combined = new RegExp(tokens.map(escapeRegex).join('|'), 'i')
   const attrDocs = await attributeModel
     .find({ $or: [{ name: combined }, { label: combined }] })
@@ -114,3 +177,4 @@ export async function buildProductSearchFilter(search) {
     $and: tokens.map((tok, i) => tokenFieldClause(tokenRegexes[i], idsForToken(tok))),
   }
 }
+
