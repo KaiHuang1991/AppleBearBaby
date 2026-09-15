@@ -166,7 +166,7 @@ export async function collectSitemapEntries() {
 
   const categoryEntries = categories
     .map((cat) => {
-      const slug = getCategorySlug(cat)
+      const slug = getCategorySlug(cat, categories)
       if (!slug) return null
       return normalizeEntry({
         loc: `${origin}/collection/${slug}`,

@@ -29,7 +29,7 @@ When SITE_STRUCTURE_CONTEXT is included below, use it for questions about site n
 
 ${SITE_OPERATIONS_KNOWLEDGE}
 
-When PRODUCT_CATALOG_JSON is included below your instructions, the shopper typed a product-related query; those rows match the same **product name** search used on the Collection (/collection) catalogue page. Recommend only from that JSON; if none fit, say so. If PRODUCT_CATALOG_JSON is omitted, do not imply that matching product cards were shown—answer normally.`
+When PRODUCT_CATALOG_JSON is included below your instructions, the shopper typed a product-related query; those rows match the same catalogue search used on Collection (/collection): product name, model, categories, sizes, and attribute values. Recommend only from that JSON; if none fit, say so. If PRODUCT_CATALOG_JSON is omitted, do not imply that matching product cards were shown—answer normally.`
 
 function resolveSystemPrompt() {
   let prompt = process.env.AI_CHATBOT_SYSTEM_PROMPT?.trim() || defaultSystemPrompt

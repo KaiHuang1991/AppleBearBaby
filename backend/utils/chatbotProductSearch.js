@@ -1,19 +1,11 @@
 import productModel from '../models/productModel.js'
+import {
+  buildProductSearchFilter,
+  productMatchesSearch,
+  tokenizeSearchQuery,
+} from './productSearch.js'
 
-const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-
-/** Same token splitting as helpful fallback when full-string name match returns nothing. */
-export function tokenizeForProductSearch(text) {
-  if (!text || typeof text !== 'string') return []
-  const t = text.trim()
-  if (!t) return []
-  const parts = t
-    .split(/[\s,，。！？、；：]+/)
-    .map((p) => p.trim())
-    .filter((p) => p.length >= 2)
-  const merged = [...new Set(parts)]
-  return merged.slice(0, 14)
-}
+export { tokenizeSearchQuery as tokenizeForProductSearch }
 
 /** Heuristic: only show “Matching products” when the user is asking about products, not pure site/FAQ chat. */
 const PRODUCT_HINT =
@@ -52,47 +44,19 @@ function attrSummary(attrs) {
     .join('; ')
 }
 
-function rankByNameTokens(products, tokens) {
-  return products
-    .map((p) => ({
-      p,
-      score: tokens.reduce((acc, tok) => {
-        if (!tok) return acc
-        return acc + (new RegExp(escapeRegex(tok), 'i').test(p.name || '') ? 1 : 0)
-      }, 0)
-    }))
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score || (b.p.name || '').length - (a.p.name || '').length)
-    .map((x) => x.p)
-}
-
 /**
- * Mirrors Collection (/collection) search: substring on product **name** only (case-insensitive).
- * If the full user phrase matches nothing, falls back to OR-matching individual keywords on **name** only.
+ * Mirrors Collection (/collection) search: name, model, categories, sizes, and attributes.
  */
 export async function searchProductsForChat(userMessage, { limit = 16 } = {}) {
   const q = userMessage.trim()
   if (!q) return []
 
   const populate = { path: 'attributes.attribute', select: 'name label' }
+  const filter = await buildProductSearchFilter(q)
+  if (!Object.keys(filter).length) return []
 
-  const fullRx = new RegExp(escapeRegex(q), 'i')
-  let raw = await productModel.find({ name: fullRx }).populate(populate).limit(limit).lean()
-
-  if (!raw.length) {
-    const tokens = tokenizeForProductSearch(q)
-    if (!tokens.length) return []
-
-    const orConditions = tokens.map((tok) => ({
-      name: new RegExp(escapeRegex(tok), 'i')
-    }))
-
-    const pool = await productModel.find({ $or: orConditions }).populate(populate).limit(80).lean()
-
-    raw = rankByNameTokens(pool, tokens).slice(0, limit)
-  }
-
-  return raw.slice(0, limit)
+  const pool = await productModel.find(filter).populate(populate).limit(80).lean()
+  return pool.filter((p) => productMatchesSearch(p, q)).slice(0, limit)
 }
 
 export function formatProductsForClient(products) {

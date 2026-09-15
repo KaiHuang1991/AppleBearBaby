@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useShop } from '../context/ShopContext'
+import { productMatchesSearch } from '../utils/productSearch'
 
 export default function CollectionScreen() {
   const navigation = useNavigation()
@@ -31,7 +32,7 @@ export default function CollectionScreen() {
   const filtered = useMemo(() => {
     let list = products.slice()
     const q = search.trim().toLowerCase()
-    if (q) list = list.filter((p) => (p.name || '').toLowerCase().includes(q))
+    if (q) list = list.filter((p) => productMatchesSearch(p, search))
     if (selectedCatIds.size > 0) {
       list = list.filter((p) => {
         const ids = idsForProduct(p)
@@ -65,7 +66,7 @@ export default function CollectionScreen() {
     <View style={styles.root}>
       <TextInput
         style={styles.search}
-        placeholder="Search products"
+        placeholder="Search name, model, or specs"
         value={search}
         onChangeText={setSearch}
         placeholderTextColor="#94a3b8"

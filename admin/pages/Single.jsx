@@ -325,7 +325,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
 
       {slug ? (
         <div className='w-full'>
-          <p className='mb-2'>SEO URL slug (auto)</p>
+          <p className='mb-2'>SEO URL slug (kept when you rename)</p>
           <input
             value={slug}
             readOnly
@@ -333,6 +333,7 @@ const Single = ({ token, backendUrl: propBackendUrl }) => {
             type='text'
           />
           <p className='text-xs text-gray-500 mt-1'>
+            Public URL stays on this slug after a title change, so Google links keep working.{' '}
             <a
               href={`${storeUrl}/product/${slug}`}
               target='_blank'

@@ -7,6 +7,7 @@ import attributeModel from '../models/attributeModel.js'
 import mongoose from 'mongoose'
 import { ensureUniqueProductSlug, findProductBySlugOrId } from '../utils/productSlug.js'
 import { invalidateSitemapCache } from '../utils/sitemapService.js'
+import { buildProductSearchFilter } from '../utils/productSearch.js'
 // function for add product
 const parseJsonField = (value, defaultValue) => {
     if (!value) return defaultValue
@@ -331,9 +332,8 @@ const updateProduct = async (req, res) => {
             }
         }
 
-        const nameChanged = currenctProduct.name !== name
         currenctProduct.name = name
-        if (!currenctProduct.slug || nameChanged) {
+        if (!currenctProduct.slug) {
             currenctProduct.slug = await ensureUniqueProductSlug(name, { excludeId: currenctProduct._id })
         }
         if (modelNumberTrim !== undefined) {
@@ -414,7 +414,7 @@ const listProduct = async (req, res) => {
         const filter = {}
 
         if (search && typeof search === 'string') {
-            filter.name = { $regex: search.trim(), $options: 'i' }
+            Object.assign(filter, await buildProductSearchFilter(search))
         }
 
         if (category && typeof category === 'string' && category.trim()) {

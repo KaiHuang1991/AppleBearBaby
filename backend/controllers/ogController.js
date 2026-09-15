@@ -22,7 +22,7 @@ import {
 import { findBlogBySlugOrId, getBlogUrlKey } from '../utils/blogSlug.js'
 import { resolveStaticPageKey, STATIC_PAGE_SEO } from '../utils/pageSeo.js'
 import { wholesaleProductDescription } from '../utils/productSnippet.js'
-import { findCategoryBySlug, getCategoryLandingSeo, getCategorySlug } from '../utils/categorySlug.js'
+import { findCategoryBySlug, getCategoryLandingSeo, getCategorySlug, slugifyCategory } from '../utils/categorySlug.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -361,14 +361,18 @@ export const pageOgPage = async (req, res) => {
 export const collectionCategoryOgPage = async (req, res) => {
   try {
     const slug = String(req.params.slug || '')
-    const category = await findCategoryBySlug(slug)
+    const { category, categories } = await findCategoryBySlug(slug)
     if (!category) {
       return res.status(404).type('text/plain').send('Category not found')
     }
 
     const frontendOrigin = getFrontendOrigin()
-    const canonicalSlug = getCategorySlug(category) || String(slug).toLowerCase()
-    const seo = getCategoryLandingSeo(category)
+    const canonicalSlug = getCategorySlug(category, categories) || slugifyCategory(slug)
+    if (canonicalSlug && canonicalSlug !== slugifyCategory(slug)) {
+      return res.redirect(301, `/collection/${canonicalSlug}`)
+    }
+
+    const seo = getCategoryLandingSeo(category, categories)
     const canonical = `${frontendOrigin}/collection/${canonicalSlug}`
     const cacheKey = `page:collection:${canonicalSlug}`
     const cachedHtml = getCachedSeoHtml(cacheKey)

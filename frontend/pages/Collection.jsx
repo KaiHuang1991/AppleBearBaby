@@ -4,8 +4,9 @@ import { assets } from '../src/assets/assets'
 import ProductItem from '../componets/ProductItem'
 import Seo from '../componets/Seo'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getCategoryLandingSeo, getCategorySlug, resolveCategoryIdFromSlug } from '../src/utils/categorySlug'
+import { getCategoryAncestors, getCategoryLandingSeo, getCategorySlug, resolveCategoryIdFromSlug, slugifyCategory } from '../src/utils/categorySlug'
 import { toAbsoluteUrl } from '../src/seo/utils'
+import { productMatchesSearch } from '../src/utils/productSearch'
 
 const buildCollectionUrl = ({ slug, search } = {}) => {
   const params = new URLSearchParams(search || '')
@@ -74,9 +75,17 @@ const Collection = () => {
     return categoryMap.get(id) || null
   }, [selectedCategoryIds, categoryMap])
 
+  const activeCategoryLabel = useMemo(() => {
+    if (!activeCategory) return 'CATALOG'
+    const names = getCategoryAncestors(activeCategory, categories)
+      .map((cat) => String(cat?.name || '').trim())
+      .filter(Boolean)
+    return (names.length ? names.join(' / ') : String(activeCategory.name)).toUpperCase()
+  }, [activeCategory, categories])
+
   const categorySeo = useMemo(() => {
     if (!categorySlug) return null
-    if (activeCategory) return { ...getCategoryLandingSeo(activeCategory), robots: 'index, follow' }
+    if (activeCategory) return { ...getCategoryLandingSeo(activeCategory, categories), robots: 'index, follow' }
     if (!loadingCategories) {
       return {
         title: 'Wholesale',
@@ -88,7 +97,7 @@ const Collection = () => {
       }
     }
     return null
-  }, [categorySlug, activeCategory, loadingCategories])
+  }, [categorySlug, activeCategory, loadingCategories, categories])
 
   const toggleNodeExpansion = (categoryId) => {
     if (!categoryId) return
@@ -107,11 +116,8 @@ const Collection = () => {
   const applyFilter = () => {
     let productsCopy = products.slice()
 
-    if (search) {
-      const normalized = search.trim().toLowerCase()
-      if (normalized) {
-        productsCopy = productsCopy.filter(item => item.name.toLowerCase().includes(normalized))
-      }
+    if (search && search.trim()) {
+      productsCopy = productsCopy.filter((item) => productMatchesSearch(item, search))
     }
 
     if (selectedCategorySet.size > 0) {
@@ -177,7 +183,7 @@ const Collection = () => {
                   navigate(buildCollectionUrl({ search: location.search }))
                   return
                 }
-                navigate(buildCollectionUrl({ slug: getCategorySlug(node), search: location.search }))
+                navigate(buildCollectionUrl({ slug: getCategorySlug(node, categories), search: location.search }))
               }}
               className={`flex-1 text-left text-sm font-medium transition-colors truncate ${isSelected ? 'text-blue-600 underline' : 'text-gray-700 hover:text-blue-500'}`}
             >
@@ -200,6 +206,11 @@ const Collection = () => {
 
     if (categorySlug) {
       const resolvedId = resolveCategoryIdFromSlug(categories, categorySlug)
+      const resolvedCategory = resolvedId ? categoryMap.get(String(resolvedId)) : null
+      const canonicalSlug = resolvedCategory ? getCategorySlug(resolvedCategory, categories) : ''
+      if (canonicalSlug && canonicalSlug !== slugifyCategory(categorySlug)) {
+        navigate(buildCollectionUrl({ slug: canonicalSlug, search: location.search }), { replace: true })
+      }
       if (resolvedId) uniqueIds = [resolvedId]
     } else {
       const keys = ['categoryId', 'subCategoryId', 'thirdCategoryId']
@@ -219,7 +230,7 @@ const Collection = () => {
     if (uniqueIds.length || searchFromUrl) {
       setShowFilter(true)
     }
-  }, [categorySlug, location.search, categories, setSearch, setShowFilter])
+  }, [categorySlug, location.search, categories, categoryMap, navigate, setSearch, setShowFilter])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -332,7 +343,7 @@ const Collection = () => {
               type='text'
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder='Search catalog...'
+              placeholder='Search name, model, or specs...'
               className='flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400'
             />
           </div>
@@ -365,7 +376,7 @@ const Collection = () => {
             WHOLESALE
             <span className='text-blue-600'>
               {' '}
-              {activeCategory ? String(activeCategory.name).toUpperCase() : 'CATALOG'}
+              {activeCategoryLabel}
             </span>
           </h1>
           {/*product sort*/}
