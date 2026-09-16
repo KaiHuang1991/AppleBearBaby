@@ -12,6 +12,8 @@ import Blogs from '../pages/Blogs'
 import AddBlog from '../pages/AddBlog'
 import Categories from '../pages/Categories'
 import Hero from '../pages/Hero'
+import HomeCategories from '../pages/HomeCategories'
+import FloatContacts from '../pages/FloatContacts'
 import Videos from '../pages/Videos'
 import Login from '../components/Login'
 import {ToastContainer} from 'react-toastify'
@@ -45,6 +47,8 @@ const App = () => {
                 <Route path='/users/:id' element={<UserDetail token={token} />} />
                 <Route path='/categories' element={<Categories token={token} backendUrl={backendUrl} />} />
                 <Route path='/hero' element={<Hero token={token} backendUrl={backendUrl} />} />
+                <Route path='/home-categories' element={<HomeCategories token={token} backendUrl={backendUrl} />} />
+                <Route path='/float-contacts' element={<FloatContacts token={token} backendUrl={backendUrl} />} />
                 <Route path='/videos' element={<Videos token={token} backendUrl={backendUrl} />} />
                 <Route path='/blogs' element={<Blogs token = {token}/>} />
                 <Route path='/add-blog' element={<AddBlog token = {token}/>} />

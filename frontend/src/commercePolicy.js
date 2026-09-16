@@ -38,11 +38,6 @@ export function buildProductOfferExtras({ origin = '', currency = 'USD' } = {}) 
         '@id': `${shippingUrl}#sample`,
         shippingLabel: 'Sample: China Post small packet, Alibaba online express, or DHL / FedEx / TNT',
         shippingDestination: destinations(),
-        shippingRate: {
-          '@type': 'MonetaryAmount',
-          value: 0,
-          currency,
-        },
         deliveryTime: {
           '@type': 'ShippingDeliveryTime',
           handlingTime: {
@@ -64,11 +59,6 @@ export function buildProductOfferExtras({ origin = '', currency = 'USD' } = {}) 
         '@id': `${shippingUrl}#bulk`,
         shippingLabel: 'Bulk: FCL / LCL sea freight, or buyer-appointed China forwarder (air / rail / sea)',
         shippingDestination: destinations(),
-        shippingRate: {
-          '@type': 'MonetaryAmount',
-          value: 0,
-          currency,
-        },
         deliveryTime: {
           '@type': 'ShippingDeliveryTime',
           handlingTime: {

@@ -79,6 +79,14 @@ const SideBar = () => {
             <span className='w-5 h-5 text-lg'>🎯</span>
             <p className='hidden md:block'>Hero Section</p>
         </NavLink>
+        <NavLink className ='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to='/home-categories'>
+            <span className='w-5 h-5 text-lg'>🏠</span>
+            <p className='hidden md:block'>Home Categories</p>
+        </NavLink>
+        <NavLink className ='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to='/float-contacts'>
+            <span className='w-5 h-5 text-lg'>💬</span>
+            <p className='hidden md:block'>Sales Contacts</p>
+        </NavLink>
         <NavLink className ='flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l' to='/videos'>
             <span className='w-5 h-5 text-lg'>🎬</span>
             <p className='hidden md:block'>Videos</p>

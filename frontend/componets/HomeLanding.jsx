@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { homeImages, factoryCarousel } from '../src/assets/galleryAssets'
 import { productCategories } from '../src/assets/categoryAssets'
 import { certificationItems } from '../src/assets/certificationAssets'
+import { ShopContext } from '../context/ShopContext'
 import OemFlowSection from './OemFlowSection'
 import HomeSection, { SectionHeader } from './HomeSection'
 import HomeImage from './HomeImage'
@@ -121,7 +122,45 @@ const MANUFACTURING_METRICS = [
   { value: '2.5M+', label: 'Monthly Output' },
 ]
 
+const fallbackImageFor = (tile) => {
+  const title = String(tile?.title || '').toLowerCase()
+  const slug = String(tile?.slug || '').toLowerCase()
+  const match = productCategories.find((item) => {
+    const itemTitle = String(item.title || '').toLowerCase()
+    const itemSlug = String(item.slug || '').toLowerCase()
+    return itemTitle === title || itemSlug === slug || itemTitle.includes(title) || title.includes(itemTitle)
+  })
+  return match?.image || ''
+}
+
 const HomeLanding = () => {
+  const { api } = useContext(ShopContext)
+  const [categoryTiles, setCategoryTiles] = useState(productCategories)
+
+  useEffect(() => {
+    let cancelled = false
+    const loadTiles = async () => {
+      try {
+        const response = await api.homeCategoriesList()
+        const remote = response.data?.success ? response.data.tiles : []
+        if (cancelled || !Array.isArray(remote) || remote.length === 0) return
+        setCategoryTiles(remote.map((tile) => ({
+          _id: tile._id,
+          title: tile.title,
+          slug: tile.slug,
+          image: tile.imageUrl || fallbackImageFor(tile),
+          comingSoon: Boolean(tile.comingSoon),
+        })))
+      } catch (error) {
+        console.error('Failed to load homepage categories:', error)
+      }
+    }
+    loadTiles()
+    return () => {
+      cancelled = true
+    }
+  }, [api])
+
   return (
     <>
       <HomeHeroSlider />
@@ -142,7 +181,7 @@ const HomeLanding = () => {
             subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
           />
         </Reveal>
-        <HomeCategorySlider items={productCategories} />
+        <HomeCategorySlider items={categoryTiles} />
         <Reveal delay={120}>
           <div className='text-center mt-10'>
             <Link to='/collection' className='corp-btn-outline px-8'>

@@ -13,9 +13,9 @@ const DEFAULT_KEYWORDS =
 
 export const ROUTE_SEO = {
   '/': {
-    title: 'Home',
+    title: 'OEM Wholesale Baby Bottles',
     description:
-      'AppleBear Baby — wholesale supplier of safe baby feeding bottles, pacifiers, and care products for hospitals, daycare centers, and retailers worldwide since 1998.',
+      'OEM and wholesale baby bottles, sippy cups, and feeding products from AppleBear Baby in Yiwu. Factory quotes for brands, hospitals, and distributors since 1998.',
     keywords: DEFAULT_KEYWORDS,
     ogType: 'website',
     robots: 'index, follow',

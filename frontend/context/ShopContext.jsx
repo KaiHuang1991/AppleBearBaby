@@ -134,7 +134,8 @@ const ShopContextProvider = (props) => {
   const [categories, setCategories] = useState([])
   const [categoryTree, setCategoryTree] = useState([])
   const [categoryMap, setCategoryMap] = useState({})
-  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingProducts, setLoadingProducts] = useState(true)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [token, setToken] = useState(false)
   const tokenRef = useRef(token)
@@ -537,6 +538,8 @@ const ShopContextProvider = (props) => {
       toast.error(
         error.response?.data?.message || error.message || 'Failed to load products'
       )
+    } finally {
+      setLoadingProducts(false)
     }
   }
   useEffect(() => {
@@ -845,7 +848,7 @@ const ShopContextProvider = (props) => {
     inquiryUnreadCount, refreshInquiryUnreadCount, requestCustomerInquiryDesktopAlerts,
     getBlogComments, addBlogComment, updateBlogComment, deleteBlogComment, user, getUserInfo,
     isCartOpen, openCart, closeCart,
-    categories, categoryTree, loadingCategories, fetchCategories,
+    categories, categoryTree, loadingCategories, loadingProducts, fetchCategories,
     getCategoryPathByIds, getProductCategoryPath, getProductCategoryIds,
     updateUserAvatar,
     resendInquiry,

@@ -23,6 +23,14 @@ import { findBlogBySlugOrId, getBlogUrlKey } from '../utils/blogSlug.js'
 import { resolveStaticPageKey, STATIC_PAGE_SEO } from '../utils/pageSeo.js'
 import { wholesaleProductDescription } from '../utils/productSnippet.js'
 import { findCategoryBySlug, getCategoryLandingSeo, getCategorySlug, slugifyCategory } from '../utils/categorySlug.js'
+import { getCategoryProductCounts } from '../utils/categoryProducts.js'
+import {
+  buildProductAggregateRating,
+  buildProductBreadcrumbList,
+  buildProductReviewJsonLd,
+} from '../utils/productJsonLd.js'
+import categoryModel from '../models/categoryModel.js'
+import reviewModel from '../models/reviewModel.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -62,14 +70,16 @@ function setCachedSeoHtml(cacheKey, html) {
   }
 }
 
-function sendSeoHtml(res, html, cacheState = 'MISS') {
+function sendSeoHtml(res, html, cacheState = 'MISS', status = 200) {
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader(
     'Cache-Control',
-    'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
+    status === 200
+      ? 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
+      : 'no-store'
   )
   res.setHeader('X-SEO-Cache', cacheState)
-  return res.status(200).send(html)
+  return res.status(status).send(html)
 }
 
 async function fetchLiveIndexHtml() {
@@ -152,7 +162,7 @@ export const productOgPage = async (req, res) => {
     }
 
     const product = await findProductBySlugOrId(productId, {
-      select: 'name slug description image price modelNumber category subCategory thirdCategory',
+      select: 'name slug description image price modelNumber category subCategory thirdCategory categoryId subCategoryId thirdCategoryId',
       lean: true,
     })
 
@@ -187,6 +197,16 @@ export const productOgPage = async (req, res) => {
       ? String(product.modelNumber).trim()
       : ''
 
+    const [categories, approvedReviews] = await Promise.all([
+      categoryModel.find({ isActive: { $ne: false } }).select('name slug parent').lean(),
+      reviewModel
+        .find({ productId: product._id, isApproved: true })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('userId', 'name')
+        .lean(),
+    ])
+
     const seoInput = {
       title,
       description,
@@ -201,6 +221,14 @@ export const productOgPage = async (req, res) => {
       currency: 'USD',
       fbAppId: process.env.FACEBOOK_APP_ID,
       fullDescription: plainDescription.slice(0, 2000),
+      breadcrumb: buildProductBreadcrumbList({
+        origin: frontendOrigin,
+        categories,
+        product,
+        canonical,
+      }),
+      reviews: buildProductReviewJsonLd(approvedReviews),
+      aggregateRating: buildProductAggregateRating(approvedReviews),
     }
 
     const spaIndex = await loadSpaIndexHtml()
@@ -363,7 +391,22 @@ export const collectionCategoryOgPage = async (req, res) => {
     const slug = String(req.params.slug || '')
     const { category, categories } = await findCategoryBySlug(slug)
     if (!category) {
-      return res.status(404).type('text/plain').send('Category not found')
+      const frontendOrigin = getFrontendOrigin()
+      const spaIndex = await loadSpaIndexHtml()
+      const seoInput = {
+        title: 'Page Not Found',
+        description:
+          'The page you requested could not be found on AppleBear Baby. Browse our wholesale catalog or contact the factory for a quote.',
+        robots: 'noindex, follow',
+        heading: 'Page not found',
+        canonical: `${frontendOrigin}/collection/${slugifyCategory(slug)}`,
+        siteName: 'AppleBear Baby',
+        brand: 'AppleBearBaby',
+      }
+      const html = spaIndex
+        ? injectSeoIntoHtml(spaIndex, buildPageSeoFragments(seoInput))
+        : buildPageOgHtml(seoInput)
+      return sendSeoHtml(res, html, 'MISS', 404)
     }
 
     const frontendOrigin = getFrontendOrigin()
@@ -373,22 +416,28 @@ export const collectionCategoryOgPage = async (req, res) => {
     }
 
     const seo = getCategoryLandingSeo(category, categories)
+    const counts = await getCategoryProductCounts(categories)
+    const productCount = counts.get(String(category._id)) || 0
+    const comingSoon = productCount === 0
     const canonical = `${frontendOrigin}/collection/${canonicalSlug}`
-    const cacheKey = `page:collection:${canonicalSlug}`
+    const cacheKey = `page:collection:${canonicalSlug}:${comingSoon ? 'soon' : 'live'}`
     const cachedHtml = getCachedSeoHtml(cacheKey)
     if (cachedHtml) {
       return sendSeoHtml(res, cachedHtml, 'HIT')
     }
 
     const seoInput = {
-      title: seo.title,
-      description: seo.description,
+      title: comingSoon ? `${seo.title.replace(/ Wholesale$/, '')} Coming Soon` : seo.title,
+      description: comingSoon
+        ? `AppleBear Baby ${category.name} OEM line is coming soon. Request a wholesale quote to be notified when SKUs are listed.`
+        : seo.description,
       keywords: seo.keywords,
       canonical,
-      heading: seo.heading,
+      heading: comingSoon ? `${category.name} — Coming soon` : seo.heading,
       siteName: 'AppleBear Baby',
       brand: 'AppleBearBaby',
       image: `${frontendOrigin}/applebear.png`,
+      robots: comingSoon ? 'noindex, follow' : 'index, follow',
     }
 
     const spaIndex = await loadSpaIndexHtml()

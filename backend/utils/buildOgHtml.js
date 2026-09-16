@@ -116,9 +116,11 @@ const buildProductJsonLd = ({
   brand,
   sku,
   currency = 'USD',
+  breadcrumb,
+  reviews,
+  aggregateRating,
 }) => {
-  const jsonLd = {
-    '@context': 'https://schema.org',
+  const product = {
     '@type': 'Product',
     name: title,
     description: description || undefined,
@@ -129,8 +131,8 @@ const buildProductJsonLd = ({
     },
     url: canonical,
   }
-  if (sku) jsonLd.sku = sku
-  jsonLd.offers = {
+  if (sku) product.sku = sku
+  product.offers = {
     '@type': 'Offer',
     url: canonical,
     priceCurrency: currency,
@@ -142,7 +144,15 @@ const buildProductJsonLd = ({
       currency,
     }),
   }
-  return jsonLd
+  if (aggregateRating) product.aggregateRating = aggregateRating
+  if (reviews?.length) product.review = reviews
+
+  const graph = [product]
+  if (breadcrumb) graph.push(breadcrumb)
+  return {
+    '@context': 'https://schema.org',
+    '@graph': graph,
+  }
 }
 
 /**
@@ -162,6 +172,9 @@ export const buildProductSeoFragments = ({
   currency = 'USD',
   fbAppId,
   fullDescription = '',
+  breadcrumb,
+  reviews,
+  aggregateRating,
 }) => {
   const pageTitle = formatPageTitle(title, siteName)
   const safeTitle = escapeHtml(pageTitle)
@@ -199,6 +212,9 @@ export const buildProductSeoFragments = ({
     brand,
     sku,
     currency,
+    breadcrumb,
+    reviews,
+    aggregateRating,
   })
 
   const headInjection = `
@@ -498,6 +514,9 @@ export const buildProductOgHtml = ({
   currency = 'USD',
   fbAppId,
   fullDescription = '',
+  breadcrumb,
+  reviews,
+  aggregateRating,
 }) => {
   const fragments = buildProductSeoFragments({
     title,
@@ -513,6 +532,9 @@ export const buildProductOgHtml = ({
     currency,
     fbAppId,
     fullDescription,
+    breadcrumb,
+    reviews,
+    aggregateRating,
   })
 
   return `<!DOCTYPE html>

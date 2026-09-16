@@ -22,6 +22,8 @@ export function createShopApi(client) {
 
     // --- Content ---
     heroList: () => client.get('/api/hero'),
+    homeCategoriesList: () => client.get('/api/home-categories'),
+    floatContactsList: () => client.get('/api/float-contacts'),
     chatbotMessage: (body) => client.post('/api/chatbot/message', body),
 
     blogsAll: (params) => client.get('/api/blogs/all', { params }),

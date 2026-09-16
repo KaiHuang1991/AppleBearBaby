@@ -5,10 +5,10 @@
 export const STATIC_PAGE_SEO = {
   home: {
     path: '/',
-    title: 'Home',
+    title: 'OEM Wholesale Baby Bottles',
     heading: 'One-Stop Baby Bottle & Sippy Cup Manufacturer',
     description:
-      'AppleBear Baby — wholesale supplier of safe baby feeding bottles, pacifiers, and care products for hospitals, daycare centers, and retailers worldwide since 1998.',
+      'OEM and wholesale baby bottles, sippy cups, and feeding products from AppleBear Baby in Yiwu. Factory quotes for brands, hospitals, and distributors since 1998.',
     keywords:
       'baby products wholesale, baby feeding bottles, baby care, BPA free bottles, daycare supplies, hospital baby products, AppleBearBaby',
   },

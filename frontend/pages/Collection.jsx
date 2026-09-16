@@ -3,9 +3,10 @@ import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets'
 import ProductItem from '../componets/ProductItem'
 import Seo from '../componets/Seo'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getCategoryAncestors, getCategoryLandingSeo, getCategorySlug, resolveCategoryIdFromSlug, slugifyCategory } from '../src/utils/categorySlug'
 import { toAbsoluteUrl } from '../src/seo/utils'
+import NotFound from './NotFound'
 import { productMatchesSearch } from '../src/utils/productSearch'
 
 const buildCollectionUrl = ({ slug, search } = {}) => {
@@ -19,7 +20,7 @@ const buildCollectionUrl = ({ slug, search } = {}) => {
 }
 
 const Collection = () => {
-  const { products, search, setSearch, showSearch, setShowSearch, categoryTree, loadingCategories, getProductCategoryIds, categories } = useContext(ShopContext)
+  const { products, search, setSearch, showSearch, setShowSearch, categoryTree, loadingCategories, loadingProducts, getProductCategoryIds, categories } = useContext(ShopContext)
   const location = useLocation()
   const navigate = useNavigate()
   const { categorySlug } = useParams()
@@ -83,21 +84,33 @@ const Collection = () => {
     return (names.length ? names.join(' / ') : String(activeCategory.name)).toUpperCase()
   }, [activeCategory, categories])
 
+  const categoryHasSkus = useMemo(() => {
+    if (!activeCategory) return false
+    const selectedId = String(activeCategory.id || activeCategory._id || '')
+    if (!selectedId) return false
+    return products.some((item) => getProductCategoryIds(item).some((id) => String(id) === selectedId))
+  }, [activeCategory, products, getProductCategoryIds])
+
+  const isComingSoon = Boolean(categorySlug && activeCategory && !loadingProducts && !loadingCategories && !categoryHasSkus)
+
   const categorySeo = useMemo(() => {
     if (!categorySlug) return null
-    if (activeCategory) return { ...getCategoryLandingSeo(activeCategory, categories), robots: 'index, follow' }
+    if (activeCategory) {
+      return {
+        ...getCategoryLandingSeo(activeCategory, categories),
+        robots: isComingSoon ? 'noindex, follow' : 'index, follow',
+      }
+    }
     if (!loadingCategories) {
       return {
-        title: 'Wholesale',
-        heading: 'Wholesale Catalog',
-        description:
-          'Browse the AppleBear Baby wholesale catalog for OEM and ODM buyers.',
-        keywords: 'wholesale catalog, OEM baby products, AppleBearBaby',
+        title: 'Page Not Found',
+        heading: 'Page not found',
+        description: 'The page you requested could not be found on AppleBear Baby.',
         robots: 'noindex, follow',
       }
     }
     return null
-  }, [categorySlug, activeCategory, loadingCategories, categories])
+  }, [categorySlug, activeCategory, loadingCategories, categories, isComingSoon])
 
   const toggleNodeExpansion = (categoryId) => {
     if (!categoryId) return
@@ -205,6 +218,9 @@ const Collection = () => {
     let uniqueIds = []
 
     if (categorySlug) {
+      if (loadingCategories) {
+        return
+      }
       const resolvedId = resolveCategoryIdFromSlug(categories, categorySlug)
       const resolvedCategory = resolvedId ? categoryMap.get(String(resolvedId)) : null
       const canonicalSlug = resolvedCategory ? getCategorySlug(resolvedCategory, categories) : ''
@@ -212,6 +228,7 @@ const Collection = () => {
         navigate(buildCollectionUrl({ slug: canonicalSlug, search: location.search }), { replace: true })
       }
       if (resolvedId) uniqueIds = [resolvedId]
+      setSelectedCategoryIds(uniqueIds)
     } else {
       const keys = ['categoryId', 'subCategoryId', 'thirdCategoryId']
       const ids = []
@@ -220,9 +237,8 @@ const Collection = () => {
         if (value) ids.push(String(value))
       })
       uniqueIds = Array.from(new Set(ids)).slice(-1)
+      setSelectedCategoryIds(uniqueIds)
     }
-
-    setSelectedCategoryIds(uniqueIds)
 
     const searchFromUrl = (params.get('search') || params.get('q') || '').trim()
     setSearch(prev => (prev.trim() === searchFromUrl ? prev : searchFromUrl))
@@ -230,7 +246,7 @@ const Collection = () => {
     if (uniqueIds.length || searchFromUrl) {
       setShowFilter(true)
     }
-  }, [categorySlug, location.search, categories, categoryMap, navigate, setSearch, setShowFilter])
+  }, [categorySlug, location.search, categories, categoryMap, navigate, setSearch, setShowFilter, loadingCategories])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -276,9 +292,13 @@ const Collection = () => {
   }, [selectedCategoryIds, categoryMap])
 
   useEffect(() => {
+    if (categorySlug && (loadingCategories || selectedCategoryIds.length === 0)) {
+      setFilterProducts([])
+      return
+    }
     applyFilter()
     setCurrentPage(1)
-  }, [selectedCategoryIds, search, products, getProductCategoryIds])
+  }, [selectedCategoryIds, search, products, getProductCategoryIds, categorySlug, loadingCategories])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -315,6 +335,11 @@ const Collection = () => {
     setCurrentPage(pageNumber)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  if (categorySlug && !loadingCategories && !activeCategory) {
+    return <NotFound />
+  }
+
   return (
     <div className='page-shell flex flex-col lg:flex-row gap-1 lg:gap-10 min-h-screen'>
       {categorySeo ? (
@@ -387,6 +412,20 @@ const Collection = () => {
           </select>
         </div>
          {/*map products*/}
+         {isComingSoon ? (
+          <div className='cartoon-card px-6 py-12 text-center'>
+            <p className='text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 mb-3'>Coming soon</p>
+            <h2 className='text-2xl font-semibold text-slate-800 mb-3'>{activeCategory?.name}</h2>
+            <p className='text-slate-600 max-w-xl mx-auto mb-8'>
+              This OEM line is in the catalog and will be listed here once wholesale SKUs are ready.
+              Request a factory quote if you want samples or to be notified when stock is available.
+            </p>
+            <Link to='/contact' className='corp-btn px-6 py-3 inline-flex'>
+              Request a quote
+            </Link>
+          </div>
+         ) : (
+         <>
          <div className='catalog-product-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-10 gap-y-6 lg:gap-y-15 w-full min-w-0 max-w-full sm:max-w-none lg:max-w-none mx-auto sm:mx-0 box-border'>
           {
             currentProducts.map((product,productIndex)=>(
@@ -397,7 +436,9 @@ const Collection = () => {
        
         {/* Results info */}
         <div className='text-center text-sm text-gray-600 mt-8 mb-3 px-1'>
-          Showing {startIndex + 1} - {Math.min(endIndex, filterProducts.length)} of {filterProducts.length} products
+          {filterProducts.length === 0
+            ? (loadingProducts || loadingCategories ? 'Loading products...' : 'No products match these filters.')
+            : `Showing ${startIndex + 1} - ${Math.min(endIndex, filterProducts.length)} of ${filterProducts.length} products`}
         </div>
 
         {/* Pagination */}
@@ -478,6 +519,8 @@ const Collection = () => {
         )}
 
         {totalPages <= 1 && <div className='mb-6' />}
+         </>
+         )}
 
       </div>
       </div>

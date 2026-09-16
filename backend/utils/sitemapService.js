@@ -3,6 +3,7 @@ import blogModel from '../models/blogModel.js'
 import { STATIC_PAGE_SEO } from './pageSeo.js'
 import { backfillMissingProductSlugs, hasUsableProductSlug } from './productSlug.js'
 import { backfillMissingBlogSlugs, hasUsableBlogSlug } from './blogSlug.js'
+import { getCategoryProductCounts } from './categoryProducts.js'
 import { getCategorySlug, listIndexableCategories } from './categorySlug.js'
 
 /** Must always appear in sitemap.xml, even if a static-route list drifts. */
@@ -164,10 +165,18 @@ export async function collectSitemapEntries() {
     console.error('sitemap categories:', err)
   }
 
+  let categoryCounts = new Map()
+  try {
+    categoryCounts = await getCategoryProductCounts(categories)
+  } catch (err) {
+    console.error('sitemap category product counts:', err)
+  }
+
   const categoryEntries = categories
     .map((cat) => {
       const slug = getCategorySlug(cat, categories)
       if (!slug) return null
+      if ((categoryCounts.get(String(cat._id)) || 0) === 0) return null
       return normalizeEntry({
         loc: `${origin}/collection/${slug}`,
         lastmod: toW3CDate(cat.updatedAt) || today,

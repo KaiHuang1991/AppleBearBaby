@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import HomeImage from './HomeImage'
 import Reveal from './Reveal'
 
-const CategoryCard = ({ image, title, slug }) => (
+const CategoryCard = ({ image, title, slug, comingSoon }) => (
   <Link to={slug ? `/collection/${slug}` : '/collection'} className='group home-category-card corp-feature-card p-0 overflow-hidden block h-full'>
     <div className='relative aspect-square overflow-hidden bg-slate-50'>
       <HomeImage
@@ -12,6 +12,11 @@ const CategoryCard = ({ image, title, slug }) => (
         className='w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300'
         wrapperClassName='w-full h-full'
       />
+      {comingSoon ? (
+        <span className='absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 shadow-sm'>
+          Coming soon
+        </span>
+      ) : null}
     </div>
     <div className='px-3 py-4 text-center'>
       <h3 className='font-semibold text-sm sm:text-base text-slate-800 group-hover:text-blue-600 transition-colors'>{title}</h3>
@@ -81,12 +86,12 @@ const HomeCategorySlider = ({ items = [] }) => {
         >
           {items.map((item, i) => (
             <div
-              key={item.slug || item.title}
+              key={item._id || item.slug || item.title}
               className='home-category-slide'
               style={{ flexBasis: cardWidth, maxWidth: cardWidth }}
             >
               <Reveal delay={Math.min(i, 4) * 80}>
-                <CategoryCard image={item.image} title={item.title} slug={item.slug} />
+                <CategoryCard image={item.image} title={item.title} slug={item.slug} comingSoon={item.comingSoon} />
               </Reveal>
             </div>
           ))}

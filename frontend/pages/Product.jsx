@@ -13,16 +13,22 @@ import { getProductPath, isMongoObjectId } from '../src/utils/productPath'
 import { getBlogPath } from '../src/utils/blogPath'
 import { getProductCanonicalUrl } from '../src/utils/productShareUrl'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
+import { getCategorySlug } from '../src/utils/categorySlug'
 import NotFound from './NotFound'
 import { buildProductJsonLdOffer } from '../src/commercePolicy'
 import { wholesaleProductDescription } from '../src/utils/productSnippet'
+import {
+  buildProductAggregateRating,
+  buildProductBreadcrumbList,
+  buildProductReviewJsonLd,
+} from '../src/seo/productJsonLd'
 
 const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
 const Product = () => {
   const { productId } = useParams()
   const navigate = useNavigate()
-  const { products, currency, addToCart, submitComment, getProductCategoryPath, api } = useContext(ShopContext)
+  const { products, currency, addToCart, submitComment, getProductCategoryPath, api, categories } = useContext(ShopContext)
   const [productData, setProductData] = useState(false)
   const [missingProduct, setMissingProduct] = useState(false)
   const [image, setImage] = useState('')
@@ -101,14 +107,9 @@ const Product = () => {
 
   const breadcrumbCollectionTo = (levelIndex) => {
     if (!categoryPath || levelIndex < 0) return '/collection'
-    const params = new URLSearchParams()
-    const keys = ['categoryId', 'subCategoryId', 'thirdCategoryId']
-    categoryPath.forEach((node, idx) => {
-      if (idx > levelIndex) return
-      if (node?.id && keys[idx]) params.set(keys[idx], node.id)
-    })
-    const queryString = params.toString()
-    return queryString ? `/collection?${queryString}` : '/collection'
+    const node = categoryPath[levelIndex]
+    const slug = getCategorySlug(node, categories)
+    return slug ? `/collection/${slug}` : '/collection'
   }
   const fetchCommentsData = async () => {
     if (!resolvedProductId) return
@@ -503,18 +504,35 @@ const Product = () => {
             <script type="application/ld+json">
               {JSON.stringify({
                 '@context': 'https://schema.org',
-                '@type': 'Product',
-                name: productData.name,
-                description: seoMeta.description,
-                image: seoMeta.images,
-                brand: { '@type': 'Brand', name: seoMeta.brand },
-                sku: productData.modelNumber || productData.slug || productData._id,
-                url: seoMeta.canonical,
-                offers: buildProductJsonLdOffer({
-                  url: seoMeta.canonical,
-                  currency: seoMeta.currency || 'USD',
-                  origin: typeof window !== 'undefined' ? window.location.origin : '',
-                }),
+                '@graph': [
+                  {
+                    '@type': 'Product',
+                    name: productData.name,
+                    description: seoMeta.description,
+                    image: seoMeta.images,
+                    brand: { '@type': 'Brand', name: seoMeta.brand },
+                    sku: productData.modelNumber || productData.slug || productData._id,
+                    url: seoMeta.canonical,
+                    offers: buildProductJsonLdOffer({
+                      url: seoMeta.canonical,
+                      currency: seoMeta.currency || 'USD',
+                      origin: typeof window !== 'undefined' ? window.location.origin : '',
+                    }),
+                    ...(reviews.length && !loadingComments
+                      ? {
+                          aggregateRating: buildProductAggregateRating(reviews, averageRating),
+                          review: buildProductReviewJsonLd(reviews, userNames),
+                        }
+                      : {}),
+                  },
+                  buildProductBreadcrumbList({
+                    origin: typeof window !== 'undefined' ? window.location.origin : '',
+                    categoryPath,
+                    categories,
+                    productName: productData.name,
+                    canonical: seoMeta.canonical,
+                  }),
+                ],
               })}
             </script>
           ) : null}

@@ -14,6 +14,8 @@ import reviewRoute from "./routes/reviewRoute.js";
 import categoryRoute from "./routes/categoryRoute.js";
 import attributeRoute from "./routes/attributeRoute.js";
 import heroRoute from "./routes/heroRoute.js";
+import homeCategoryRoute from "./routes/homeCategoryRoute.js";
+import floatContactRoute from "./routes/floatContactRoute.js";
 import videoRoute from "./routes/videoRoute.js";
 import chatbotRoute from "./routes/chatbotRoute.js";
 import ogRoute from "./routes/ogRoute.js";
@@ -107,6 +109,8 @@ app.use('/api/reviews',reviewRoute)
 app.use('/api/categories', categoryRoute)
 app.use('/api/attributes', attributeRoute)
 app.use('/api/hero', heroRoute)
+app.use('/api/home-categories', homeCategoryRoute)
+app.use('/api/float-contacts', floatContactRoute)
 app.use('/api/videos', videoRoute)
 app.use('/api/chatbot', chatbotRoute)
 // Open Graph HTML for social crawlers (Facebook, WhatsApp, etc.)
