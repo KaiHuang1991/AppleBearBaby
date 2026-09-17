@@ -12,6 +12,7 @@ const Collection = lazy(() => import('../pages/Collection'))
 const About = lazy(() => import('../pages/About'))
 const Contact = lazy(() => import('../pages/Contact'))
 const Shipping = lazy(() => import('../pages/Shipping'))
+const Faq = lazy(() => import('../pages/Faq'))
 const Product = lazy(() => import('../pages/Product'))
 const Cart = lazy(() => import('../pages/Cart'))
 const Login = lazy(() => import('../pages/Login'))
@@ -85,6 +86,7 @@ const App = () => {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/shipping" element={<Shipping />} />
+              <Route path="/faq" element={<Faq />} />
               <Route path="/product/:productId" element={<Product />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/login" element={<Login />} />

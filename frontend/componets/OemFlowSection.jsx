@@ -100,10 +100,13 @@ const OemFlowSection = () => (
       </div>
     </div>
 
-    <div className='text-center mt-10 md:mt-12'>
+    <div className='text-center mt-10 md:mt-12 flex flex-wrap justify-center gap-3'>
       <Link to='/contact' className='corp-btn px-8'>
         Start Your OEM Project
         <span aria-hidden='true'>→</span>
+      </Link>
+      <Link to='/faq' className='corp-btn-outline px-8'>
+        OEM FAQ
       </Link>
     </div>
   </HomeSection>

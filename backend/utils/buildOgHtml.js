@@ -1,4 +1,5 @@
 import { buildProductOfferExtras, getCommercePolicyOrigin } from './commercePolicy.js'
+import { PRODUCT_FAQS, buildInlineFaqJsonLd, buildOrganizationNode, faqBodyHtml } from './oemFaq.js'
 
 const escapeHtml = (value = '') =>
   String(value)
@@ -149,6 +150,7 @@ const buildProductJsonLd = ({
 
   const graph = [product]
   if (breadcrumb) graph.push(breadcrumb)
+  graph.push(buildInlineFaqJsonLd(PRODUCT_FAQS))
   return {
     '@context': 'https://schema.org',
     '@graph': graph,
@@ -253,6 +255,7 @@ export const buildProductSeoFragments = ({
   <h2>Shipping</h2>
   <p>Samples typically ship by China Post small packet, Alibaba online express, or DHL / FedEx / TNT. Bulk orders go by FCL or LCL sea freight, or by a China freight forwarder the buyer appoints for air, rail, or sea. Freight is quoted with the inquiry.</p>
   <p>Factory defects can be raised within 15 days of arrival. Custom OEM or printed goods are not returnable for a change of mind.</p>
+  ${faqBodyHtml(PRODUCT_FAQS)}
   <p><a href="${safeCanonical}">${h1}</a></p>
 </article>
 <script>document.documentElement.classList.add('js')</script>
@@ -349,10 +352,9 @@ export const buildBlogSeoFragments = ({
     image: ogImages.length ? ogImages : undefined,
     datePublished: datePublished || undefined,
     dateModified: dateModified || datePublished || undefined,
-    author: { '@type': 'Organization', name: brand || siteName },
+    author: buildOrganizationNode('https://applebearbaby.net'),
     publisher: {
-      '@type': 'Organization',
-      name: siteName,
+      ...buildOrganizationNode('https://applebearbaby.net'),
       logo: { '@type': 'ImageObject', url: 'https://applebearbaby.net/applebear.png' },
     },
     mainEntityOfPage: canonical,
@@ -428,6 +430,7 @@ export const buildPageSeoFragments = ({
   heading = '',
   image = '',
   jsonLd,
+  extraBodyHtml = '',
 }) => {
   const pageTitle = formatPageTitle(title, siteName)
   const safeTitle = escapeHtml(pageTitle)
@@ -469,10 +472,11 @@ export const buildPageSeoFragments = ({
   <style id="seo-content-hide">html.js #seo-content{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
 `
 
+  const extra = extraBodyHtml ? `\n  ${extraBodyHtml}` : ''
   const bodyInjection = `
 <article id="seo-content">
   <h1>${h1}</h1>
-  <p>${safeDescription}</p>
+  <p>${safeDescription}</p>${extra}
   <p><a href="${safeCanonical}">${safeSite}</a></p>
 </article>
 <script>document.documentElement.classList.add('js')</script>

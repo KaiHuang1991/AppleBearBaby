@@ -13,7 +13,8 @@ const excerpt =
   'A Yiwu factory checklist for OEM buyers: realistic MOQ, how many samples to request, and lead time from mold to FCL — before you send a baby-bottle RFQ.'
 const image = 'https://res.cloudinary.com/dzskx10vu/image/upload/v1763529649/logo_mrflxn.png'
 
-const content = `<h2>Start with the decision, not the SKU photo</h2>
+const content = `<p class="geo-answer">AppleBear Baby (Zhejiang YouZhi, Yiwu) typically starts stock PP bottles with an existing mold from one carton — 144 pieces on models such as AB-101. Custom color, private-label print, or gift-set packing can raise the floor to several thousand pieces. Quotes take 1–3 working days; stock samples pack in about 3–7 days; mass production after sample sign-off is commonly 15–25 days. Split the RFQ into stock, print, and gift-set lines so each MOQ is usable.</p>
+<h2>Start with the decision, not the SKU photo</h2>
 <p>Most first RFQs to a Chinese baby-bottle factory list a capacity and a color. The quote that comes back is only useful if you also lock three commercial facts: minimum order quantity, what a sample run actually includes, and how many calendar days sit between approved sample and loaded container. This note is how AppleBear Baby (Zhejiang YouZhi, Yiwu) answers those three questions for OEM and wholesale buyers.</p>
 <p>applebearbaby.net is the brand headquarters. If you already source on Alibaba, the same factory also takes RFQs at ywyouzhi.en.alibaba.com — treat that store as a sales channel, not a second brand.</p>
 
@@ -30,7 +31,7 @@ const content = `<h2>Start with the decision, not the SKU photo</h2>
 <h2>Samples: what to request before you approve a mold</h2>
 <p>A useful sample pack is not one pretty bottle. Ask for:</p>
 <ul>
-<li>The bottle body in the resin you will buy (PP vs PPSU) and the neck type (standard or wide).</li>
+<li>The bottle body in the resin you will buy (PP or glass) and the neck type (standard or wide).</li>
 <li>The nipple/teat in the silicone grade and hole size you will sell.</li>
 <li>The collar, handle, and any gift-set extras in the same color family.</li>
 <li>Export carton markings and a photo of inner packing, so your warehouse can plan.</li>
@@ -47,17 +48,18 @@ const content = `<h2>Start with the decision, not the SKU photo</h2>
 </ul>
 <p>New molds, new silicone tools, or a full gift-set redesign sit on a longer clock. Ask for mold lead time as its own line — do not bury it inside “production 20 days.”</p>
 
-<h2>PP vs PPSU, EU vs US — put it in the same RFQ</h2>
-<p>Resin and market decide testing, not just price. PP is the everyday OEM workhorse for many gift sets and handled bottles. PPSU costs more, handles higher heat, and is what some hospital and premium retail buyers specify. If you sell into the EU, say so and we attach the food-contact reports that match that SKU family. US buyers should name the state or channel so packing and warnings can follow. Mixing “EU listing” and “US daycare” on one unlabeled RFQ is how quotes miss a test or a carton mark.</p>
+<h2>PP vs glass, EU vs US — put it in the same RFQ</h2>
+<p>Resin and market decide testing, not just price. PP is the everyday OEM workhorse for gift sets and handled bottles — that is the line we run. We also make borosilicate glass (60ml / 120ml / 200ml standard-neck). We do not manufacture PPSU; do not send a PPSU spec expecting a quote on our PP molds. If you sell into the EU, say so and we attach the food-contact reports that match that SKU family. US buyers should name the state or channel so packing and warnings can follow. Mixing “EU listing” and “US daycare” on one unlabeled RFQ is how quotes miss a test or a carton mark.</p>
 
 <h2>What to send so the first quote is usable</h2>
 <ul>
 <li>Target monthly or first-order quantity, and whether that is trial or ongoing.</li>
-<li>Resin (PP / PPSU / other), capacity, neck, and whether you need private-label print.</li>
+<li>Resin (PP or glass), capacity, neck, and whether you need private-label print. We do not run PPSU.</li>
 <li>Destination country, sample vs bulk, and whether you already have a China forwarder.</li>
 <li>Any certificate you must show your customer (ISO 9001 is factory-level; product reports are SKU-level).</li>
 </ul>
 <p>Reply with those four blocks and we can quote MOQ, sample contents, and a dated production window — not a catalog unit price that looks like retail. Use the contact form or WhatsApp on this site, or RFQ on Alibaba if that is already your buying desk.</p>
+<p>See also: <a href="https://applebearbaby.net/faq">OEM FAQ</a>, <a href="https://applebearbaby.net/blog/how-we-ship-oem-orders-from-yiwu-your-agent-alibaba-logistics-or-fcl">how we ship OEM orders from Yiwu</a>, <a href="https://applebearbaby.net/blog/pp-vs-ppsu-vs-glass-baby-bottles-which-material-to-specify-in-an-oem-rfq">PP vs glass</a>, and stock PP models such as <a href="https://applebearbaby.net/product/240ml-bpa-free-baby-feeding-bottle-with-silicone-nipple">812 240ml wide-neck</a> or <a href="https://applebearbaby.net/blog/8005c-5-piece-pp-bottle-gift-set-oem-160ml-and-240ml-with-bib-and-brush">8005C gift set</a>.</p>
 `
 
 async function main() {
@@ -72,7 +74,7 @@ async function main() {
     image,
     category: 'wholesale',
     author: 'AppleBear Baby',
-    tags: ['MOQ', 'samples', 'lead time', 'OEM', 'wholesale', 'PP vs PPSU'],
+    tags: ['MOQ', 'samples', 'lead time', 'OEM', 'wholesale', 'PP bottles'],
     readTime: 7,
     isPublished: true,
     indexable: true,

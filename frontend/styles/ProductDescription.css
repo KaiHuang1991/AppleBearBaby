@@ -67,6 +67,15 @@
   line-height: 1.55;
 }
 
+.product-description p.geo-answer,
+.product-description-detail p.geo-answer {
+  margin: 0.6em 0 1em;
+  padding: 0.85em 1em;
+  background: #f8fafc;
+  border-left: 3px solid #2563eb;
+  color: #1e293b;
+}
+
 .product-description-detail > div:not(.product-description-image-wrapper) {
   margin: 0.15em 0;
   line-height: 1.55;

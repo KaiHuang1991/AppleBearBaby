@@ -1,4 +1,5 @@
 import { matchPath } from 'react-router-dom'
+import { buildOrganizationNode } from '../oemFaq'
 
 export const SITE = {
   name: 'AppleBear Baby',
@@ -55,8 +56,16 @@ export const ROUTE_SEO = {
   '/blogs': {
     title: 'OEM Buyer Guides',
     description:
-      'Factory notes for OEM/ODM buyers: MOQ, samples, lead time, PP vs PPSU, and AppleBear Baby wholesale packing from Yiwu.',
+      'Factory notes for OEM/ODM buyers: MOQ, samples, lead time, PP vs glass, and AppleBear Baby wholesale packing from Yiwu.',
     keywords: `${DEFAULT_KEYWORDS}, OEM baby bottles, wholesale buying guide, MOQ, samples, lead time`,
+    ogType: 'website',
+    robots: 'index, follow',
+  },
+  '/faq': {
+    title: 'OEM FAQ',
+    description:
+      'AppleBear Baby OEM FAQ from the Yiwu factory: MOQ, lead time, ISO 9001, PP and glass bottles, private-label print, samples, and bulk shipping for wholesale buyers.',
+    keywords: `${DEFAULT_KEYWORDS}, OEM baby bottle FAQ, baby bottle MOQ China, OEM lead time`,
     ogType: 'website',
     robots: 'index, follow',
   },
@@ -113,6 +122,7 @@ export const SEO_OWNED_PATTERNS = [
   '/blog/:blogKey',
   '/blog/:id',
   '/collection/:categorySlug',
+  '/faq',
 ]
 
 export function isSeoOwnedRoute(pathname) {
@@ -144,12 +154,7 @@ export function getHomeJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'Organization',
-        name: SITE.name,
-        url: origin || undefined,
-        logo: origin ? `${origin}${SITE.defaultImage}` : undefined,
-      },
+      buildOrganizationNode(origin),
       {
         '@type': 'WebSite',
         name: SITE.name,

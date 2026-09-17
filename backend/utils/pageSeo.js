@@ -52,8 +52,8 @@ export const STATIC_PAGE_SEO = {
     title: 'OEM Buyer Guides',
     heading: 'OEM & Wholesale Buyer Guides',
     description:
-      'Factory notes for OEM/ODM buyers: MOQ, samples, lead time, PP vs PPSU, and AppleBear Baby wholesale packing from Yiwu.',
-    keywords: 'OEM baby bottles, wholesale buying guide, MOQ, samples, lead time, PPSU vs PP, AppleBearBaby',
+      'Factory notes for OEM/ODM buyers: MOQ, samples, lead time, PP vs glass, and AppleBear Baby wholesale packing from Yiwu.',
+    keywords: 'OEM baby bottles, wholesale buying guide, MOQ, samples, lead time, PP vs glass, AppleBearBaby',
   },
   videos: {
     path: '/videos',
@@ -62,6 +62,15 @@ export const STATIC_PAGE_SEO = {
     description:
       'Watch AppleBear Baby product demos, factory tours, and how-to videos for wholesale buyers and childcare professionals.',
     keywords: 'product videos, factory tour, baby bottle demo, AppleBearBaby',
+  },
+  faq: {
+    path: '/faq',
+    title: 'OEM FAQ',
+    heading: 'OEM FAQ for AppleBear Baby',
+    description:
+      'AppleBear Baby OEM FAQ from the Yiwu factory: MOQ, lead time, ISO 9001, PP and glass bottles, private-label print, samples, and bulk shipping for wholesale buyers.',
+    keywords:
+      'OEM baby bottle FAQ, baby bottle MOQ China, OEM lead time, ISO 9001 baby bottle factory Yiwu, AppleBearBaby',
   },
 }
 

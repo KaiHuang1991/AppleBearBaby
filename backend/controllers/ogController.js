@@ -21,6 +21,12 @@ import {
 } from '../utils/productSlug.js'
 import { findBlogBySlugOrId, getBlogUrlKey } from '../utils/blogSlug.js'
 import { resolveStaticPageKey, STATIC_PAGE_SEO } from '../utils/pageSeo.js'
+import {
+  OEM_FAQS,
+  buildFaqPageJsonLd,
+  buildOrganizationNode,
+  faqBodyHtml,
+} from '../utils/oemFaq.js'
 import { wholesaleProductDescription } from '../utils/productSnippet.js'
 import { findCategoryBySlug, getCategoryLandingSeo, getCategorySlug, slugifyCategory } from '../utils/categorySlug.js'
 import { getCategoryProductCounts } from '../utils/categoryProducts.js'
@@ -347,17 +353,13 @@ export const pageOgPage = async (req, res) => {
       siteName: 'AppleBear Baby',
       brand: 'AppleBearBaby',
       image: `${frontendOrigin}/applebear.png`,
+      extraBodyHtml: pageKey === 'faq' ? faqBodyHtml(OEM_FAQS) : '',
       jsonLd:
         pageKey === 'home'
           ? {
               '@context': 'https://schema.org',
               '@graph': [
-                {
-                  '@type': 'Organization',
-                  name: 'AppleBear Baby',
-                  url: frontendOrigin,
-                  logo: `${frontendOrigin}/applebear.png`,
-                },
+                buildOrganizationNode(frontendOrigin),
                 {
                   '@type': 'WebSite',
                   name: 'AppleBear Baby',
@@ -370,7 +372,9 @@ export const pageOgPage = async (req, res) => {
                 },
               ],
             }
-          : undefined,
+          : pageKey === 'faq'
+            ? buildFaqPageJsonLd(frontendOrigin, OEM_FAQS)
+            : undefined,
     }
 
     const spaIndex = await loadSpaIndexHtml()

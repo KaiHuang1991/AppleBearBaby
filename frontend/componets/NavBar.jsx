@@ -104,6 +104,10 @@ const NavBar = () => {
                 <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>CONTACT</span>
                 <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
             </NavLink>
+            <NavLink to='/faq' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
+                <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>FAQ</span>
+                <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
+            </NavLink>
             <NavLink to='/blogs' className="flex flex-col items-center gap-1 hover:text-blue-600 transition-colors shrink-0">
                 <span className='font-semibold pointer-events-none whitespace-nowrap tracking-wide'>BLOG</span>
                 <hr className="w-2/4 border-none h-[2px] bg-blue-600 invisible"/>
@@ -227,6 +231,7 @@ const NavBar = () => {
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/shipping'>SHIPPING</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/about'>ABOUT</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/contact'>CONTACT</NavLink>
+                <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/faq'>FAQ</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/blogs'>BLOG</NavLink>
                 <NavLink onClick={()=>{setVisiable(false)}} className='py-2 pl-6 border hover:bg-blue-50 transition-colors duration-300' to='/videos'>VIDEOS</NavLink>
             </div>

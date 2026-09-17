@@ -7,7 +7,7 @@ import { getCategoryProductCounts } from './categoryProducts.js'
 import { getCategorySlug, listIndexableCategories } from './categorySlug.js'
 
 /** Must always appear in sitemap.xml, even if a static-route list drifts. */
-export const REQUIRED_SITEMAP_PATHS = ['/', '/collection', '/about', '/contact', '/shipping', '/blogs', '/videos']
+export const REQUIRED_SITEMAP_PATHS = ['/', '/collection', '/about', '/contact', '/shipping', '/faq', '/blogs', '/videos']
 
 const SITEMAP_ROUTE_META = {
   '/': { changefreq: 'daily', priority: '1.0' },
@@ -15,6 +15,7 @@ const SITEMAP_ROUTE_META = {
   '/about': { changefreq: 'monthly', priority: '0.6' },
   '/contact': { changefreq: 'monthly', priority: '0.7' },
   '/shipping': { changefreq: 'monthly', priority: '0.7' },
+  '/faq': { changefreq: 'monthly', priority: '0.8' },
   '/blogs': { changefreq: 'weekly', priority: '0.8' },
   '/videos': { changefreq: 'weekly', priority: '0.7' },
 }

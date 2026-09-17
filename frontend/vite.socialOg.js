@@ -4,7 +4,7 @@
  * The backend shell is built from frontend/dist, so hashed /assets/* files
  * 404 under Vite — rewrite them back to /src/main.jsx for local hydration.
  */
-const STATIC_PAGE_KEYS = new Set(['collection', 'about', 'contact', 'shipping', 'blogs', 'videos'])
+const STATIC_PAGE_KEYS = new Set(['collection', 'about', 'contact', 'shipping', 'faq', 'blogs', 'videos'])
 
 function adaptOgHtmlForVite(html) {
   return String(html)

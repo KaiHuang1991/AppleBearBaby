@@ -173,6 +173,34 @@ const About = () => {
             </a>
             . AppleBear Baby on this site is the same factory brand — use either channel for samples and bulk, and treat this website as the brand HQ for catalogs, shipping policy, and OEM notes.
           </p>
+          <p className='text-slate-600 leading-relaxed mb-6'>
+            Factory buying notes for OEM desks:{' '}
+            <Link to='/faq' className='text-blue-600 font-medium hover:underline'>
+              OEM FAQ
+            </Link>
+            ,{' '}
+            <Link
+              to='/blog/moq-samples-and-lead-time-what-to-ask-before-ordering-baby-bottles'
+              className='text-blue-600 font-medium hover:underline'
+            >
+              MOQ, samples, and lead time
+            </Link>
+            ,{' '}
+            <Link
+              to='/blog/how-we-ship-oem-orders-from-yiwu-your-agent-alibaba-logistics-or-fcl'
+              className='text-blue-600 font-medium hover:underline'
+            >
+              shipping from Yiwu
+            </Link>
+            , and{' '}
+            <Link
+              to='/blog/pp-vs-ppsu-vs-glass-baby-bottles-which-material-to-specify-in-an-oem-rfq'
+              className='text-blue-600 font-medium hover:underline'
+            >
+              PP vs glass
+            </Link>
+            .
+          </p>
           <Link to='/contact' className='corp-btn'>
             Request a Factory Quote
             <span aria-hidden='true'>→</span>

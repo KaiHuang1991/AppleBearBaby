@@ -22,6 +22,8 @@ import {
   buildProductBreadcrumbList,
   buildProductReviewJsonLd,
 } from '../src/seo/productJsonLd'
+import { PRODUCT_FAQS, buildInlineFaqJsonLd } from '../src/oemFaq'
+import ProductOemFaq from '../componets/ProductOemFaq'
 
 const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
@@ -532,6 +534,7 @@ const Product = () => {
                     productName: productData.name,
                     canonical: seoMeta.canonical,
                   }),
+                  buildInlineFaqJsonLd(PRODUCT_FAQS),
                 ],
               })}
             </script>
@@ -1032,6 +1035,8 @@ const Product = () => {
           </div>
         )}
       </div>
+
+      <ProductOemFaq />
 
       <div className='section-container'>
         <Suspense fallback={null}>

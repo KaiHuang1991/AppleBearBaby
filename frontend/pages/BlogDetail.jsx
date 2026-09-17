@@ -5,6 +5,7 @@ import '../styles/ProductDescription.css';
 import BlogShare from '../componets/BlogShare';
 import Seo from '../componets/Seo';
 import { SITE } from '../src/seo/config';
+import { buildOrganizationNode } from '../src/oemFaq';
 import { toAbsoluteUrl } from '../src/seo/utils';
 import NotFound from './NotFound';
 import { getBlogPath, isMongoObjectId } from '../src/utils/blogPath';
@@ -122,10 +123,10 @@ const BlogDetail = () => {
       image: blog.image ? [blog.image] : undefined,
       datePublished: blog.createdAt,
       dateModified: blog.updatedAt || blog.createdAt,
-      author: { '@type': 'Organization', name: SITE.brand },
+      author: buildOrganizationNode(origin),
       publisher: {
+        ...buildOrganizationNode(origin),
         '@type': 'Organization',
-        name: SITE.name,
         logo: origin ? { '@type': 'ImageObject', url: `${origin}${SITE.defaultImage}` } : undefined,
       },
       mainEntityOfPage: origin ? `${origin}${getBlogPath(blog)}` : undefined,

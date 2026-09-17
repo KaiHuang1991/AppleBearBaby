@@ -18,6 +18,8 @@ Routes:
 - /inquiries — Signed-in: past inquiries list when available.
 - /profile — Signed-in: account profile.
 - /blogs — Blog listing; /blog/{slug} — single article (title slug; ObjectId still resolves).
+- /faq — OEM FAQ for wholesale buyers (MOQ, lead time, materials, shipping).
+- /shipping — Factory shipping models and shipment tracker.
 - /about — About the shop.
 
 Use these paths when directing users (prepend your public site origin only if the user explicitly needs a full URL).`
