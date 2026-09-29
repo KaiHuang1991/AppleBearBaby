@@ -5,12 +5,45 @@
  * 404 under Vite — rewrite them back to /src/main.jsx for local hydration.
  */
 const STATIC_PAGE_KEYS = new Set(['collection', 'about', 'contact', 'shipping', 'faq', 'blogs', 'videos'])
+const PREFIX_LOCALES = new Set(['zh', 'es', 'ar', 'fr'])
 
 function adaptOgHtmlForVite(html) {
   return String(html)
     .replace(/<script type="module"[^>]*src="\/assets\/[^"]+"><\/script>/gi, '<script type="module" src="/src/main.jsx"></script>')
     .replace(/<link rel="modulepreload"[^>]*>/gi, '')
     .replace(/<link rel="stylesheet"[^>]*href="\/assets\/[^"]+"[^>]*>/gi, '')
+}
+
+function resolveOgTarget(urlPath, backendUrl) {
+  const parts = String(urlPath || '/').split('/').filter(Boolean)
+  let locale = 'en'
+  if (parts[0] && PREFIX_LOCALES.has(parts[0])) {
+    locale = parts.shift()
+  }
+  const rest = parts.length ? `/${parts.join('/')}` : '/'
+  const localeQuery = locale === 'en' ? '' : `?locale=${locale}`
+
+  const productMatch = rest.match(/^\/product\/([^/]+)\/?$/)
+  const blogMatch = rest.match(/^\/blog\/([^/]+)\/?$/)
+  const collectionMatch = rest.match(/^\/collection\/([^/]+)\/?$/)
+  const staticKey = rest.replace(/^\/|\/$/g, '')
+
+  if (productMatch) {
+    return `${backendUrl}/og/product/${encodeURIComponent(productMatch[1])}${localeQuery}`
+  }
+  if (blogMatch) {
+    return `${backendUrl}/og/blog/${encodeURIComponent(blogMatch[1])}${localeQuery}`
+  }
+  if (collectionMatch) {
+    return `${backendUrl}/og/page/collection/${encodeURIComponent(collectionMatch[1])}${localeQuery}`
+  }
+  if (rest === '/' || rest === '') {
+    return `${backendUrl}/og/page/home${localeQuery}`
+  }
+  if (STATIC_PAGE_KEYS.has(staticKey)) {
+    return `${backendUrl}/og/page/${encodeURIComponent(staticKey)}${localeQuery}`
+  }
+  return null
 }
 
 export function socialOgPreview() {
@@ -41,25 +74,7 @@ export function socialOgPreview() {
           return next()
         }
 
-        let ogUrl = null
-
-        const productMatch = urlPath.match(/^\/product\/([^/]+)\/?$/)
-        const blogMatch = urlPath.match(/^\/blog\/([^/]+)\/?$/)
-        const collectionMatch = urlPath.match(/^\/collection\/([^/]+)\/?$/)
-        const staticKey = urlPath.replace(/^\/|\/$/g, '')
-
-        if (productMatch) {
-          ogUrl = `${backendUrl}/og/product/${encodeURIComponent(productMatch[1])}`
-        } else if (blogMatch) {
-          ogUrl = `${backendUrl}/og/blog/${encodeURIComponent(blogMatch[1])}`
-        } else if (collectionMatch) {
-          ogUrl = `${backendUrl}/og/page/collection/${encodeURIComponent(collectionMatch[1])}`
-        } else if (urlPath === '/' || urlPath === '') {
-          ogUrl = `${backendUrl}/og/page/home`
-        } else if (STATIC_PAGE_KEYS.has(staticKey)) {
-          ogUrl = `${backendUrl}/og/page/${encodeURIComponent(staticKey)}`
-        }
-
+        const ogUrl = resolveOgTarget(urlPath, backendUrl)
         if (!ogUrl) {
           return next()
         }

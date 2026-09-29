@@ -2,12 +2,18 @@ import React, { useContext, useEffect, useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from '../componets/Title'
 import { assets } from '../src/assets/assets'
-import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { trackInquiryFormConversions } from '../src/googleAds'
+import { getProductPath } from '../src/utils/productPath'
+import { localizedField, useShopLocale } from '../src/i18n/localized'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from '../componets/LocaleLink'
+import { getProductMoq, clampQuantityToMoq } from '../src/utils/productMoq'
 
 const Cart = () => {
-  const { cartItems, currency, updateQuantity, sendInquiryEmail, token } = useContext(ShopContext)
+  const { cartItems, currency, updateQuantity, sendInquiryEmail, token, products: contextProducts } = useContext(ShopContext)
+  const { t } = useTranslation()
+  const locale = useShopLocale()
   const [cartData, setCartData] = useState([])
   const [email,setEmail] = useState('')
   const [name,setName] = useState('')
@@ -16,7 +22,9 @@ const Cart = () => {
   const [message, setMessage] = useState('')
   const [attachments, setAttachments] = useState([]) // {name,type,base64}
   const [qtyDraft, setQtyDraft] = useState({})
-  const products = JSON.parse(localStorage.getItem("products"))
+  const products = Array.isArray(contextProducts) && contextProducts.length
+    ? contextProducts
+    : (JSON.parse(localStorage.getItem('products') || '[]') || [])
   //let newCartData = JSON.parse(localStorage.getItem("cartItems"))
   console.log(products)
   useEffect(() => {
@@ -51,7 +59,7 @@ const Cart = () => {
     e.preventDefault()
 
     if (!message || message.trim() === '') {
-      toast.error('Please enter an inquiry message')
+      toast.error(t('cart.messageRequired'))
       return
     }
 
@@ -67,7 +75,7 @@ const Cart = () => {
 
       const result = await sendInquiryEmail(formData)
 
-      toast.success('Inquiry sent successfully! We will contact you soon.')
+      toast.success(t('cart.sent'))
       if (result?.conversion) {
         trackInquiryFormConversions(result.conversion)
       }
@@ -78,7 +86,7 @@ const Cart = () => {
       setMessage('')
       setAttachments([])
     } catch (error) {
-      toast.error('Failed to send inquiry. Please try again.')
+      toast.error(t('cart.fail'))
     } finally {
       setLoading(false)
     }
@@ -105,7 +113,10 @@ const Cart = () => {
       })
       return
     }
-    if (v === item.quantity) {
+    const productData = Array.isArray(products) ? products.find((product) => product._id === item._id) : null
+    const moq = getProductMoq(productData)
+    const clamped = clampQuantityToMoq(v, moq, { allowZero: true })
+    if (clamped === item.quantity) {
       setQtyDraft((prev) => {
         const next = { ...prev }
         delete next[key]
@@ -113,10 +124,10 @@ const Cart = () => {
       })
       return
     }
-    if (v === 0) {
+    if (clamped === 0) {
       updateQuantity(item._id, item.size, 0)
     } else {
-      updateQuantity(item._id, item.size, v)
+      updateQuantity(item._id, item.size, clamped)
     }
     setQtyDraft((prev) => {
       const next = { ...prev }
@@ -128,7 +139,7 @@ const Cart = () => {
   return (
     <div className='border-t pt-28 bg-gradient-to-br from-blue-50 to-cyan-50 min-h-screen'>
       <div className='text-2xl mb-3'>
-        <Title text1={'WHOLESALE'} text2={'INQUIRY'} />
+        <Title text1={t('cart.title1')} text2={t('cart.title2')} />
       </div>
       <div>
         {
@@ -139,19 +150,19 @@ const Cart = () => {
               return (
                 <div key={index} className='py-4 border-t border-b text-gray-700 grid grid-cols-[4fr_0.5fr_0.5fr] sm:grid-cols-[4fr_2fr_0.5fr] items-center gap-4'>
                   <div className='flex items-start gap-6'>
-                    <Link to={`/product/${productData.slug || productData._id}`}><img className='w-16 sm:w-20' src={productData.image[0]} alt="" /></Link>
+                    <LocaleLink to={getProductPath(productData)}><img className='w-16 sm:w-20' src={productData.image[0]} alt="" /></LocaleLink>
                     <div>
-                      <p className='text-xs sm:text-lg font-medium '>{productData.name}</p>
+                      <p className='text-xs sm:text-lg font-medium '>{localizedField(productData, 'name', locale) || productData.name}</p>
                       <div className='flex items-center gap-5 mt-2'>
                         <p>{currency}{productData.price}</p>
-                        <p className='px-2 sm:px-3 sm:py-1 border bg-slate-50'>{item.size}</p>
+                        <p className='px-2 sm:px-3 sm:py-1 border bg-slate-50'>{t(`attributes.${item.size}`, { defaultValue: item.size })}</p>
                       </div>
                     </div>
                   </div>
                   <input
                     className='border max-w-10 sm:max-w-20 px-1 sm:px-2 py-1'
                     type="number"
-                    min={0}
+                    min={getProductMoq(productData)}
                     value={qtyDraft[lineKey(item)] !== undefined ? qtyDraft[lineKey(item)] : item.quantity}
                     onChange={(e) => {
                       setQtyDraft((prev) => ({ ...prev, [lineKey(item)]: e.target.value }))
@@ -182,8 +193,8 @@ const Cart = () => {
             })
           ) : (
             <div className='py-8 text-center border-t border-b'>
-              <p className='text-gray-500 mb-2'>No products selected</p>
-              <p className='text-sm text-gray-400'>You can still send a general inquiry using the form below</p>
+              <p className='text-gray-500 mb-2'>{t('cart.empty')}</p>
+              <p className='text-sm text-gray-400'>{t('cart.emptyHint')}</p>
             </div>
           )
         }
@@ -193,17 +204,17 @@ const Cart = () => {
           {/* Left: Inquiry editor */}
           <div className='bg-white rounded-lg shadow-md p-6'>
             <p className='text-lg font-semibold mb-3'>
-              Inquiry Message <span className='text-red-500'>*</span>
+              {t('cart.message')} <span className='text-red-500'>*</span>
             </p>
             <textarea
               className='w-full h-48 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm'
-              placeholder='Describe your request, customization, quantities, delivery terms, etc.'
+              placeholder={t('cart.messagePh')}
               value={message}
               onChange={(e)=>setMessage(e.target.value)}
               required
             />
             <div className='mt-4'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Images / Attachments</label>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>{t('cart.attachments')}</label>
               <div className='flex items-start gap-3'>
                 <input
                   id='inquiry-attachments-input'
@@ -223,10 +234,10 @@ const Cart = () => {
                   className='hidden'
                 />
                 <label htmlFor='inquiry-attachments-input' className='inline-flex items-center justify-center px-4 py-2 rounded-md bg-blue-600 text-white text-sm cursor-pointer hover:bg-blue-700'>
-                  Choose Files
+                  {t('cart.chooseFiles')}
                 </label>
                 <span className='text-sm text-gray-500 mt-1'>
-                  {attachments.length>0 ? `${attachments.length} file(s) selected` : 'No file selected'}
+                  {attachments.length>0 ? t('cart.filesSelected', { count: attachments.length }) : t('cart.noFile')}
                 </span>
               </div>
               {attachments.length>0 ? (
@@ -236,10 +247,10 @@ const Cart = () => {
                       {att.type.startsWith("image/") ? (
                         <img src={att.base64} alt={att.name} className='w-full h-20 object-cover rounded' />
                       ) : (
-                        <div className='w-full h-20 flex items-center justify-center bg-gray-50 rounded'>File</div>
+                        <div className='w-full h-20 flex items-center justify-center bg-gray-50 rounded'>{t('cart.file')}</div>
                       )}
                       <p className='truncate w-full mt-1'>{att.name}</p>
-                      <button type='button' className='text-red-500 mt-1' onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}>Remove</button>
+                      <button type='button' className='text-red-500 mt-1' onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}>{t('common.remove')}</button>
                     </div>
                   ))}
                 </div>
@@ -255,7 +266,7 @@ const Cart = () => {
           >
             <div>
               <label htmlFor="email" className='block text-sm font-medium text-gray-700'>
-                Email <span className='text-red-500'>*</span>
+                {t('common.email')} <span className='text-red-500'>*</span>
               </label>
               <input
                 type="email"
@@ -263,35 +274,35 @@ const Cart = () => {
                 name="email"
                 required
                 className='mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                placeholder="Enter your email"
+                placeholder={t('cart.emailPh')}
                 value={email}
                 onChange={e=>{setEmail(e.target.value)}}
               />
             </div>
             <div>
               <label htmlFor="name" className='block text-sm font-medium text-gray-700'>
-                Name (Optional)
+                {t('cart.nameOptional')}
               </label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 className='mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                placeholder="Enter your name"
+                placeholder={t('cart.namePh')}
                 value={name}
                 onChange={e=>setName(e.target.value)}
               />
             </div>
             <div>
               <label htmlFor="number" className='block text-sm font-medium text-gray-700'>
-                Phone Number (Optional)
+                {t('cart.phoneOptional')}
               </label>
               <input
                 type="tel"
                 id="number"
                 name="number"
                 className='mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                placeholder="Enter your phone number"
+                placeholder={t('cart.phonePh')}
                 value={number}
                 onChange={e=>setNumber(e.target.value)}
               />
@@ -302,7 +313,7 @@ const Cart = () => {
                 disabled={loading}
                 className='bg-black text-white text-sm px-8 py-3 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed'
               >
-                {loading ? 'Sending...' : 'Request Quote'}
+                {loading ? t('common.sending') : t('common.requestQuote')}
               </button>
             </div>
           </form>

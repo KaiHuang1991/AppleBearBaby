@@ -1,6 +1,7 @@
 import categoryModel from '../models/categoryModel.js'
 import attributeModel from '../models/attributeModel.js'
 import productModel from '../models/productModel.js'
+import { parseTranslations } from '../utils/locales.js'
 
 const buildTree = (categories, parent = null) => {
   return categories
@@ -22,6 +23,7 @@ export const createCategory = async (req, res) => {
     const category = new categoryModel({
       name: name.trim(),
       parent: parentId || null,
+      translations: parseTranslations(req.body.translations, ['name']) || undefined,
     })
 
     await category.save()
@@ -121,6 +123,11 @@ export const updateCategory = async (req, res) => {
 
     if (name && name.trim()) {
       category.name = name.trim()
+    }
+
+    if (req.body.translations !== undefined) {
+      category.translations = parseTranslations(req.body.translations, ['name']) || {}
+      category.markModified('translations')
     }
 
     if (parentId !== undefined) {

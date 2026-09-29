@@ -4,6 +4,9 @@ import axios from 'axios'
 import { backendUrl as defaultBackendUrl } from '../src/App.jsx'
 import { toast } from 'react-toastify'
 import RichTextEditor from '../components/RichTextEditor'
+import LanguageTabs from '../components/LanguageTabs'
+import AttributesSelector from '../components/AttributesSelector'
+import { emptyProductTranslations, setTranslationMapValue } from '../src/productI18n'
 
 const Add = ({ token, backendUrl: propBackendUrl }) => {
   const backendUrl = propBackendUrl || defaultBackendUrl
@@ -11,6 +14,8 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
   const [name, setName] = useState('')
   const [modelNumber, setModelNumber] = useState('')
   const [description, setDescription] = useState('')
+  const [contentLocale, setContentLocale] = useState('en')
+  const [translations, setTranslations] = useState(emptyProductTranslations)
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
   const [subCategory, setSubCategory] = useState('')
@@ -96,11 +101,23 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
   const onSubmitHandler = async (e) => {
     try {
       e.preventDefault()
+      if (!name.trim()) {
+        toast.error('English product title is required')
+        setContentLocale('en')
+        return
+      }
+      const englishDescriptionText = String(description || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').trim()
+      if (!englishDescriptionText) {
+        toast.error('English product description is required')
+        setContentLocale('en')
+        return
+      }
       const formData = new FormData()
 
       formData.append("name", name)
       formData.append("modelNumber", modelNumber.trim())
       formData.append("description", description)
+      formData.append('translations', JSON.stringify(translations))
       formData.append("price", price)
       formData.append("category", category)
       formData.append("subCategory", subCategory)
@@ -136,6 +153,8 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
         setName('')
         setModelNumber('')
         setDescription('')
+        setTranslations(emptyProductTranslations())
+        setContentLocale('en')
         setPrice('')
         setSizes([])
         setMainCategoryId('')
@@ -240,8 +259,27 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
         </p>
       </div>
       <div className='w-full'>
-        <p className='mb-2'>Product Name</p>
-        <input onChange={(e) => { setName(e.target.value) }} value={name} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='Type here' required />
+        <p className='mb-2'>Product Name & Description</p>
+        <LanguageTabs value={contentLocale} onChange={setContentLocale} />
+        <p className='text-xs text-gray-500 mb-2'>
+          English is required. Other languages can stay empty — the storefront shows English for any blank name, description, attribute, or size.
+        </p>
+        {contentLocale === 'en' ? (
+          <>
+            <input onChange={(e) => { setName(e.target.value) }} value={name} className='w-full max-w-[500px] px-3 py-2' type="text" placeholder='English title' required />
+          </>
+        ) : (
+          <input
+            onChange={(e) => setTranslations((prev) => ({
+              ...prev,
+              [contentLocale]: { ...prev[contentLocale], name: e.target.value },
+            }))}
+            value={translations[contentLocale]?.name || ''}
+            className='w-full max-w-[500px] px-3 py-2'
+            type="text"
+            placeholder={`${contentLocale.toUpperCase()} title (optional, falls back to English)`}
+          />
+        )}
       </div>
       <div className='w-full'>
         <p className='mb-2'>Model (optional)</p>
@@ -257,8 +295,14 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
         <p className='mb-2'>Product Description (Rich Text Editor)</p>
         <div className='w-full max-w-[900px]'>
           <RichTextEditor
-            value={description}
-            onChange={setDescription}
+            value={contentLocale === 'en' ? description : (translations[contentLocale]?.description || '')}
+            onChange={(value) => {
+              if (contentLocale === 'en') setDescription(value)
+              else setTranslations((prev) => ({
+                ...prev,
+                [contentLocale]: { ...prev[contentLocale], description: value },
+              }))
+            }}
             token={token}
             backendUrl={backendUrl}
           />
@@ -325,6 +369,11 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
           categoryOptions={categoryOptions}
           attributeValues={attributeValues}
           onChange={setAttributeValues}
+          locale={contentLocale}
+          translations={translations}
+          onTranslationsChange={(loc, id, value) => {
+            setTranslations((prev) => setTranslationMapValue(prev, loc, 'attributes', id, value))
+          }}
         />
       </div>
       <div className='w-full'>
@@ -383,6 +432,25 @@ const Add = ({ token, backendUrl: propBackendUrl }) => {
             Add Size
           </button>
         </div>
+        {contentLocale !== 'en' && sizes.length > 0 ? (
+          <div className='mt-3 space-y-2 max-w-[500px]'>
+            <p className='text-xs text-gray-500'>
+              Optional {contentLocale.toUpperCase()} size labels. Empty uses the English name.
+            </p>
+            {sizes.map((sizeLabel) => (
+              <div key={sizeLabel} className='flex items-center gap-2'>
+                <span className='w-40 shrink-0 text-sm text-gray-500 truncate'>{sizeLabel}</span>
+                <input
+                  type='text'
+                  value={translations[contentLocale]?.sizes?.[sizeLabel] || ''}
+                  onChange={(e) => setTranslations((prev) => setTranslationMapValue(prev, contentLocale, 'sizes', sizeLabel, e.target.value))}
+                  placeholder={sizeLabel}
+                  className='flex-1 px-3 py-2 border border-gray-300 rounded-lg'
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className='flex gap-2 mt-2'>
         <input onChange={() => setBestseller(prev => !prev)} checked={bestseller} type="checkbox" id="bestseller" />
@@ -437,99 +505,6 @@ const DraggableImage = ({ image, index, total, moveImage, removeImage }) => {
         图片 {index + 1}
       </div>
       <div className='absolute inset-0 rounded-lg border border-transparent group-hover:border-blue-500 group-active:border-blue-600 transition-colors pointer-events-none'></div>
-    </div>
-  )
-}
-
-const AttributesSelector = ({ mainCategoryId, subCategoryId, thirdCategoryId, categoryOptions, attributeValues, onChange }) => {
-  const categoryMap = useMemo(() => {
-    const map = {}
-    categoryOptions.forEach(cat => {
-      map[cat._id] = cat
-    })
-    return map
-  }, [categoryOptions])
-
-  const mainCategory = mainCategoryId ? categoryMap[mainCategoryId] : null
-  const subCategory = subCategoryId ? categoryMap[subCategoryId] : null
-  const thirdCategory = thirdCategoryId ? categoryMap[thirdCategoryId] : null
-
-  const availableAttributes = useMemo(() => {
-    const ordered = []
-    const seen = new Set()
-
-    const pushAttributes = (category) => {
-      if (category?.attributes) {
-        category.attributes.forEach(attr => {
-          if (!attr) return
-          const id = attr._id || attr.id || attr
-          if (!id || seen.has(String(id))) return
-          seen.add(String(id))
-          ordered.push(attr)
-        })
-      }
-    }
-
-    pushAttributes(mainCategory)
-    pushAttributes(subCategory)
-    pushAttributes(thirdCategory)
-
-    return ordered
-  }, [mainCategory, subCategory, thirdCategory])
-
-  if (!mainCategory && !subCategory && !thirdCategory) {
-    return <p className='text-sm text-gray-500 bg-gray-50 border border-dashed border-gray-300 rounded-lg px-3 py-2'>Select a category to see available attributes.</p>
-  }
-
-  if (!availableAttributes.length) {
-    return <p className='text-sm text-gray-500 bg-gray-50 border border-dashed border-gray-300 rounded-lg px-3 py-2'>No attributes defined for this category yet. Add attributes from the Categories page.</p>
-  }
-
-  return (
-    <div className='flex flex-col gap-2'>
-      {availableAttributes.map(attribute => {
-        const rawId = attribute._id || attribute.id
-        if (!rawId) return null
-        const id = String(rawId)
-        const value = attributeValues[id] || ''
-        const color = attribute.color || '#3b82f6'
-        const handleChange = (nextValue) => {
-          onChange(prev => {
-            const next = { ...prev }
-            if (nextValue && nextValue.trim()) {
-              next[id] = nextValue
-            } else {
-              delete next[id]
-            }
-            return next
-          })
-        }
-        return (
-          <div
-            key={id}
-            className='inline-flex items-center gap-3 px-4 py-1.5 rounded-full border shadow-sm bg-white'
-            style={{ borderColor: color, boxShadow: `0 0 0 1px ${color}20` }}
-          >
-            <span className='text-sm font-medium' style={{ color }}>{attribute.label || attribute.name}</span>
-            <input
-              type='text'
-              value={value}
-              onChange={(e) => handleChange(e.target.value)}
-              placeholder={`Enter ${attribute.label || attribute.name}`}
-              className='bg-transparent outline-none text-sm text-gray-700 placeholder:text-gray-300'
-            />
-            {value && (
-              <button
-                type='button'
-                onClick={() => handleChange('')}
-                className='text-xs text-gray-400 hover:text-gray-600'
-              >
-                ×
-              </button>
-            )}
-          </div>
-        )
-      })}
     </div>
   )
 }

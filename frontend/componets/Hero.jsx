@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState, useEffect, useContext, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { LocaleLink } from './LocaleLink'
 import { ShopContext } from '../context/ShopContext'
 
 const isInternalLink = (url) => {
@@ -52,9 +52,9 @@ const SlideImage = ({ slide, isActive, variant = 'carousel' }) => {
 
   if (isInternalLink(slide.linkUrl)) {
     return (
-      <Link to={getInternalPath(slide.linkUrl)} className={wrapClass}>
+      <LocaleLink to={getInternalPath(slide.linkUrl)} className={wrapClass}>
         {imgElement}
-      </Link>
+      </LocaleLink>
     )
   }
 
@@ -181,10 +181,10 @@ const Hero = () => {
 
     if (isInternalLink(slide.linkUrl)) {
       return (
-        <Link to={getInternalPath(slide.linkUrl)} className={buttonClass}>
+        <LocaleLink to={getInternalPath(slide.linkUrl)} className={buttonClass}>
           {slide.buttonText || 'View All Products'}
           <span>{'\u2192'}</span>
-        </Link>
+        </LocaleLink>
       )
     }
 

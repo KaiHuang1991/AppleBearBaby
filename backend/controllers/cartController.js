@@ -1,4 +1,6 @@
 import userModel from "../models/userModel.js"
+import productModel from "../models/productModel.js"
+import { getProductMoq, clampQuantityToMoq } from '../utils/productMoq.js'
 import { sendInquiryNotificationEmail } from '../utils/inquiryEmail.js'
 //import googleapis from 'googleapis'
 // add products to cart
@@ -16,8 +18,10 @@ const addToCart = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' })
         }
 
+        const product = await productModel.findById(itemId).populate('attributes.attribute')
+        const moq = getProductMoq(product)
         const normalizedSize = size || 'Default'
-        const qty = Math.max(1, parseInt(quantity, 10) || 1)
+        const qty = clampQuantityToMoq(quantity, moq)
         let cartData = userData.cartData || {}
 
         if (!cartData[itemId]) {
@@ -53,7 +57,9 @@ const updateCart = async (req, res) => {
 
         let cartData = userData.cartData || {}
         const normalizedSize = (size && typeof size === 'string' && size.trim() && size.toLowerCase() !== 'undefined') ? size.trim() : 'Default'
-        const qty = Number(quantity) || 0
+        const product = await productModel.findById(itemId).populate('attributes.attribute')
+        const moq = getProductMoq(product)
+        const qty = clampQuantityToMoq(quantity, moq, { allowZero: true })
 
         if (!cartData[itemId]) {
             cartData[itemId] = {}

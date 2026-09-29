@@ -25,6 +25,12 @@ const attributeSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  translations: {
+    zh: { label: { type: String, default: '' } },
+    es: { label: { type: String, default: '' } },
+    ar: { label: { type: String, default: '' } },
+    fr: { label: { type: String, default: '' } },
+  },
 }, {
   timestamps: true,
 })

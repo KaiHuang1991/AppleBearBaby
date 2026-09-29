@@ -25,6 +25,32 @@ const productSchema = new mongoose.Schema({
   updatedAt: { type: Number },
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'review' }],
   averageRating: { type: Number, default: 0 },
+  translations: {
+    zh: {
+      name: { type: String, default: '' },
+      description: { type: String, default: '' },
+      attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
+      sizes: { type: mongoose.Schema.Types.Mixed, default: {} },
+    },
+    es: {
+      name: { type: String, default: '' },
+      description: { type: String, default: '' },
+      attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
+      sizes: { type: mongoose.Schema.Types.Mixed, default: {} },
+    },
+    ar: {
+      name: { type: String, default: '' },
+      description: { type: String, default: '' },
+      attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
+      sizes: { type: mongoose.Schema.Types.Mixed, default: {} },
+    },
+    fr: {
+      name: { type: String, default: '' },
+      description: { type: String, default: '' },
+      attributes: { type: mongoose.Schema.Types.Mixed, default: {} },
+      sizes: { type: mongoose.Schema.Types.Mixed, default: {} },
+    },
+  },
 });
 
 productSchema.index({ reviews: 1 });

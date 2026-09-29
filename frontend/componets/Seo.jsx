@@ -1,6 +1,16 @@
 import { Helmet } from 'react-helmet-async'
+import { useLocation } from 'react-router-dom'
 import { SITE } from '../src/seo/config'
 import { formatPageTitle, getCanonicalUrl, toAbsoluteUrl, truncate } from '../src/seo/utils'
+import {
+  buildHreflangLinks,
+  dirFor,
+  getCurrentLocale,
+  getLocaleFromPath,
+  htmlLang,
+  ogLocaleFor,
+  stripLocale,
+} from '../src/i18n/locales'
 
 /**
  * Unified SEO meta tags (title, description, OG, Twitter, robots, optional JSON-LD).
@@ -16,21 +26,28 @@ const Seo = ({
   includeBrandInTitle = true,
   jsonLd,
 }) => {
+  const { pathname } = useLocation()
+  const locale = getLocaleFromPath(pathname) || getCurrentLocale()
   const pageTitle = formatPageTitle(title, { includeBrand: includeBrandInTitle })
   const metaDescription = truncate(description || '', 160)
   const metaKeywords = keywords || ''
   const canonicalUrl = getCanonicalUrl(canonical)
   const ogImage = toAbsoluteUrl(image || SITE.defaultImage)
+  const origin = typeof window !== 'undefined' ? window.location.origin : SITE.origin || ''
+  const hreflangs = buildHreflangLinks(stripLocale(pathname), origin)
 
   return (
-    <Helmet>
+    <Helmet htmlAttributes={{ lang: htmlLang(locale), dir: dirFor(locale) }}>
       <title>{pageTitle}</title>
       {metaDescription ? <meta name="description" content={metaDescription} /> : null}
       {metaKeywords ? <meta name="keywords" content={metaKeywords} /> : null}
       {canonicalUrl ? <link rel="canonical" href={canonicalUrl} /> : null}
+      {hreflangs.map((link) => (
+        <link key={link.hreflang} rel="alternate" hrefLang={link.hreflang} href={link.href} />
+      ))}
 
       <meta property="og:site_name" content={SITE.name} />
-      <meta property="og:locale" content={SITE.locale} />
+      <meta property="og:locale" content={ogLocaleFor(locale)} />
       <meta property="og:type" content={ogType} />
       <meta property="og:title" content={pageTitle} />
       {metaDescription ? <meta property="og:description" content={metaDescription} /> : null}

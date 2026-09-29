@@ -20,12 +20,12 @@ import {
   isObjectIdString,
 } from '../utils/productSlug.js'
 import { findBlogBySlugOrId, getBlogUrlKey } from '../utils/blogSlug.js'
-import { resolveStaticPageKey, STATIC_PAGE_SEO } from '../utils/pageSeo.js'
+import { resolveStaticPageKey, getStaticPageSeo } from '../utils/pageSeo.js'
 import {
-  OEM_FAQS,
   buildFaqPageJsonLd,
   buildOrganizationNode,
   faqBodyHtml,
+  getOemFaqs,
 } from '../utils/oemFaq.js'
 import { wholesaleProductDescription } from '../utils/productSnippet.js'
 import { findCategoryBySlug, getCategoryLandingSeo, getCategorySlug, slugifyCategory } from '../utils/categorySlug.js'
@@ -35,6 +35,11 @@ import {
   buildProductBreadcrumbList,
   buildProductReviewJsonLd,
 } from '../utils/productJsonLd.js'
+import {
+  localizedField,
+  parseLocaleParam,
+  withLocale,
+} from '../utils/locales.js'
 import categoryModel from '../models/categoryModel.js'
 import reviewModel from '../models/reviewModel.js'
 
@@ -162,13 +167,14 @@ const buildKeywords = (product) => {
 export const productOgPage = async (req, res) => {
   try {
     const { productId } = req.params
+    const locale = parseLocaleParam(req.query.locale)
 
     if (!productId) {
       return res.status(404).type('text/plain').send('Product not found')
     }
 
     const product = await findProductBySlugOrId(productId, {
-      select: 'name slug description image price modelNumber category subCategory thirdCategory categoryId subCategoryId thirdCategoryId',
+      select: 'name slug description image price modelNumber category subCategory thirdCategory categoryId subCategoryId thirdCategoryId translations',
       lean: true,
     })
 
@@ -178,23 +184,24 @@ export const productOgPage = async (req, res) => {
 
     const frontendOrigin = getFrontendOrigin()
     const urlKey = getProductUrlKey(product)
-    const canonical = `${frontendOrigin}/product/${urlKey}`
+    const canonical = `${frontendOrigin}${withLocale(`/product/${urlKey}`, locale)}`
 
     // Prefer semantic slug URLs: ObjectId requests redirect when slug exists
     if (isObjectIdString(productId) && product.slug && product.slug !== productId) {
       res.setHeader('Cache-Control', 'public, max-age=300')
-      return res.redirect(301, `/product/${product.slug}`)
+      return res.redirect(301, withLocale(`/product/${product.slug}`, locale))
     }
 
-    const cacheKey = `product:${urlKey}`
+    const cacheKey = `product:${locale}:${urlKey}`
     const cachedHtml = getCachedSeoHtml(cacheKey)
     if (cachedHtml) {
       return sendSeoHtml(res, cachedHtml, 'HIT')
     }
 
-    const title = product.name || 'Product'
-    const plainDescription = stripHtml(product.description || '')
-    const description = wholesaleProductDescription(product.name, product.description || '')
+    const title = localizedField(product, 'name', locale) || product.name || 'Product'
+    const localizedDescription = localizedField(product, 'description', locale) || product.description || ''
+    const plainDescription = stripHtml(localizedDescription)
+    const description = wholesaleProductDescription(title, localizedDescription)
     const images = normalizeOgImages(product.image, frontendOrigin)
     const shareImages = buildOgShareImages(images, process.env.CLOUDINARY_NAME)
     const lcpImage = optimizeDeliveryImage(images[0] || '', { width: 800 })
@@ -235,6 +242,7 @@ export const productOgPage = async (req, res) => {
       }),
       reviews: buildProductReviewJsonLd(approvedReviews),
       aggregateRating: buildProductAggregateRating(approvedReviews),
+      locale,
     }
 
     const spaIndex = await loadSpaIndexHtml()
@@ -257,12 +265,13 @@ export const productOgPage = async (req, res) => {
 export const blogOgPage = async (req, res) => {
   try {
     const { blogKey } = req.params
+    const locale = parseLocaleParam(req.query.locale)
     if (!blogKey) {
       return res.status(404).type('text/plain').send('Article not found')
     }
 
     const blog = await findBlogBySlugOrId(blogKey, {
-      select: 'title slug excerpt content image author category tags createdAt updatedAt isPublished indexable',
+      select: 'title slug excerpt content image author category tags createdAt updatedAt isPublished indexable translations',
       lean: true,
     })
 
@@ -275,24 +284,24 @@ export const blogOgPage = async (req, res) => {
 
     if (isObjectIdString(blogKey) && blog.slug && blog.slug !== blogKey) {
       res.setHeader('Cache-Control', 'public, max-age=300')
-      return res.redirect(301, `/blog/${blog.slug}`)
+      return res.redirect(301, withLocale(`/blog/${blog.slug}`, locale))
     }
 
-    const cacheKey = `blog:${urlKey}`
+    const cacheKey = `blog:${locale}:${urlKey}`
     const cachedHtml = getCachedSeoHtml(cacheKey)
     if (cachedHtml) {
       return sendSeoHtml(res, cachedHtml, 'HIT')
     }
 
-    const title = blog.title || 'Article'
-    const plain = stripHtml(blog.excerpt || blog.content || '')
+    const title = localizedField(blog, 'title', locale) || blog.title || 'Article'
+    const plain = stripHtml(localizedField(blog, 'excerpt', locale) || blog.excerpt || localizedField(blog, 'content', locale) || blog.content || '')
     const description = plain.slice(0, 160)
     const images = normalizeOgImages(blog.image ? [blog.image] : [], frontendOrigin)
     const shareImages = buildOgShareImages(images, process.env.CLOUDINARY_NAME)
     const lcpImage = optimizeDeliveryImage(images[0] || '', { width: 800 })
     const keywordParts = [title, blog.category, ...(Array.isArray(blog.tags) ? blog.tags : [])]
     const keywords = [...new Set(keywordParts.filter(Boolean))].slice(0, 12).join(', ')
-    const canonical = `${frontendOrigin}/blog/${urlKey}`
+    const canonical = `${frontendOrigin}${withLocale(`/blog/${urlKey}`, locale)}`
 
     const seoInput = {
       title,
@@ -311,8 +320,9 @@ export const blogOgPage = async (req, res) => {
         : blog.createdAt
           ? new Date(blog.createdAt).toISOString()
           : '',
-      fullDescription: stripHtml(blog.content || blog.excerpt || '').slice(0, 2000),
+      fullDescription: stripHtml(localizedField(blog, 'content', locale) || blog.content || blog.excerpt || '').slice(0, 2000),
       robots: blog.indexable === false ? 'noindex, follow' : 'index, follow',
+      locale,
     }
 
     const spaIndex = await loadSpaIndexHtml()
@@ -335,14 +345,16 @@ export const pageOgPage = async (req, res) => {
       return res.status(404).type('text/plain').send('Page not found')
     }
 
-    const page = STATIC_PAGE_SEO[pageKey]
-    const cacheKey = `page:${pageKey}`
+    const locale = parseLocaleParam(req.query.locale)
+    const page = getStaticPageSeo(pageKey, locale)
+    const cacheKey = `page:${locale}:${pageKey}`
     const cachedHtml = getCachedSeoHtml(cacheKey)
     if (cachedHtml) {
       return sendSeoHtml(res, cachedHtml, 'HIT')
     }
 
     const frontendOrigin = getFrontendOrigin()
+    const faqs = getOemFaqs(locale)
     const canonical = `${frontendOrigin}${page.path}`
     const seoInput = {
       title: page.title,
@@ -353,7 +365,8 @@ export const pageOgPage = async (req, res) => {
       siteName: 'AppleBear Baby',
       brand: 'AppleBearBaby',
       image: `${frontendOrigin}/applebear.png`,
-      extraBodyHtml: pageKey === 'faq' ? faqBodyHtml(OEM_FAQS) : '',
+      extraBodyHtml: pageKey === 'faq' ? faqBodyHtml(faqs) : '',
+      locale,
       jsonLd:
         pageKey === 'home'
           ? {
@@ -364,16 +377,17 @@ export const pageOgPage = async (req, res) => {
                   '@type': 'WebSite',
                   name: 'AppleBear Baby',
                   url: frontendOrigin,
+                  inLanguage: locale === 'zh' ? 'zh-Hans' : locale,
                   potentialAction: {
                     '@type': 'SearchAction',
-                    target: `${frontendOrigin}/collection?search={search_term_string}`,
+                    target: `${frontendOrigin}${withLocale('/collection', locale)}?search={search_term_string}`,
                     'query-input': 'required name=search_term_string',
                   },
                 },
               ],
             }
           : pageKey === 'faq'
-            ? buildFaqPageJsonLd(frontendOrigin, OEM_FAQS)
+            ? buildFaqPageJsonLd(frontendOrigin, faqs, locale)
             : undefined,
     }
 
@@ -393,6 +407,7 @@ export const pageOgPage = async (req, res) => {
 export const collectionCategoryOgPage = async (req, res) => {
   try {
     const slug = String(req.params.slug || '')
+    const locale = parseLocaleParam(req.query.locale)
     const { category, categories } = await findCategoryBySlug(slug)
     if (!category) {
       const frontendOrigin = getFrontendOrigin()
@@ -403,9 +418,10 @@ export const collectionCategoryOgPage = async (req, res) => {
           'The page you requested could not be found on AppleBear Baby. Browse our wholesale catalog or contact the factory for a quote.',
         robots: 'noindex, follow',
         heading: 'Page not found',
-        canonical: `${frontendOrigin}/collection/${slugifyCategory(slug)}`,
+        canonical: `${frontendOrigin}${withLocale(`/collection/${slugifyCategory(slug)}`, locale)}`,
         siteName: 'AppleBear Baby',
         brand: 'AppleBearBaby',
+        locale,
       }
       const html = spaIndex
         ? injectSeoIntoHtml(spaIndex, buildPageSeoFragments(seoInput))
@@ -416,15 +432,16 @@ export const collectionCategoryOgPage = async (req, res) => {
     const frontendOrigin = getFrontendOrigin()
     const canonicalSlug = getCategorySlug(category, categories) || slugifyCategory(slug)
     if (canonicalSlug && canonicalSlug !== slugifyCategory(slug)) {
-      return res.redirect(301, `/collection/${canonicalSlug}`)
+      return res.redirect(301, withLocale(`/collection/${canonicalSlug}`, locale))
     }
 
-    const seo = getCategoryLandingSeo(category, categories)
+    const categoryName = localizedField(category, 'name', locale) || category.name
+    const seo = getCategoryLandingSeo({ ...category, name: categoryName }, categories)
     const counts = await getCategoryProductCounts(categories)
     const productCount = counts.get(String(category._id)) || 0
     const comingSoon = productCount === 0
-    const canonical = `${frontendOrigin}/collection/${canonicalSlug}`
-    const cacheKey = `page:collection:${canonicalSlug}:${comingSoon ? 'soon' : 'live'}`
+    const canonical = `${frontendOrigin}${withLocale(`/collection/${canonicalSlug}`, locale)}`
+    const cacheKey = `page:${locale}:collection:${canonicalSlug}:${comingSoon ? 'soon' : 'live'}`
     const cachedHtml = getCachedSeoHtml(cacheKey)
     if (cachedHtml) {
       return sendSeoHtml(res, cachedHtml, 'HIT')
@@ -433,15 +450,16 @@ export const collectionCategoryOgPage = async (req, res) => {
     const seoInput = {
       title: comingSoon ? `${seo.title.replace(/ Wholesale$/, '')} Coming Soon` : seo.title,
       description: comingSoon
-        ? `AppleBear Baby ${category.name} OEM line is coming soon. Request a wholesale quote to be notified when SKUs are listed.`
+        ? `AppleBear Baby ${categoryName} OEM line is coming soon. Request a wholesale quote to be notified when SKUs are listed.`
         : seo.description,
       keywords: seo.keywords,
       canonical,
-      heading: comingSoon ? `${category.name} — Coming soon` : seo.heading,
+      heading: comingSoon ? `${categoryName} — Coming soon` : seo.heading,
       siteName: 'AppleBear Baby',
       brand: 'AppleBearBaby',
       image: `${frontendOrigin}/applebear.png`,
       robots: comingSoon ? 'noindex, follow' : 'index, follow',
+      locale,
     }
 
     const spaIndex = await loadSpaIndexHtml()

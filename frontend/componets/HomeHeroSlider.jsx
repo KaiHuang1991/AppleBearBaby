@@ -1,33 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from './LocaleLink'
 import { homeImages } from '../src/assets/galleryAssets'
 
-const HERO_SLIDES = [
-  {
-    image: homeImages.hero,
-    badge: 'OEM / ODM Manufacturer',
-    title: 'One-Stop Baby Bottle & Sippy Cup Manufacturer',
-    text: 'Professional OEM/ODM factory with over 20 years of experience — from custom design and mold development to mass production for wholesale buyers worldwide.',
-  },
-  {
-    image: homeImages.manufacturing,
-    badge: 'In-House Production',
-    title: 'From Mold Development to Mass Production',
-    text: 'Injection molding, automated assembly, and dedicated quality control under one roof — built for private-label and wholesale programs.',
-  },
-  {
-    image: homeImages.assembly,
-    badge: 'Global Wholesale Partner',
-    title: 'Trusted by Buyers in 30+ Countries',
-    text: 'Custom design, reliable export packing, and account managers who respond to OEM inquiries within 24 hours.',
-  },
-].filter((slide) => slide.image)
+const HERO_SLIDE_IMAGES = [
+  homeImages.hero,
+  homeImages.manufacturing,
+  homeImages.assembly,
+].filter(Boolean)
 
 const HomeHeroSlider = () => {
+  const { t } = useTranslation()
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
-  const slide = HERO_SLIDES[index] || HERO_SLIDES[0]
-  const count = HERO_SLIDES.length
+  const slides = t('home.hero', { returnObjects: true })
+  const list = Array.isArray(slides)
+    ? slides.map((item, i) => ({ ...item, image: HERO_SLIDE_IMAGES[i] })).filter((item) => item.image)
+    : []
+  const slide = list[index] || list[0]
+  const count = list.length
 
   const go = useCallback((next) => {
     setIndex((current) => {
@@ -52,7 +43,7 @@ const HomeHeroSlider = () => {
       onMouseLeave={() => setPaused(false)}
     >
       <div className='home-hero-slides' aria-hidden='true'>
-        {HERO_SLIDES.map((item, i) => (
+        {list.map((item, i) => (
           <div key={item.image} className={`home-hero-slide${i === index ? ' is-active' : ''}`}>
             {i === index ? (
               <img
@@ -79,13 +70,13 @@ const HomeHeroSlider = () => {
             {slide.text}
           </p>
           <div className='flex flex-wrap gap-3 home-hero-layer home-hero-layer--4'>
-            <Link to='/collection' className='corp-btn px-6 py-3'>
-              Browse Wholesale Catalog
+            <LocaleLink to='/collection' className='corp-btn px-6 py-3'>
+              {t('common.viewAll')}
               <span aria-hidden='true'>→</span>
-            </Link>
-            <Link to='/contact' className='corp-btn-outline bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 px-6 py-3'>
-              Get Free Quote
-            </Link>
+            </LocaleLink>
+            <LocaleLink to='/contact' className='corp-btn-outline bg-white/10 text-white border-white/30 hover:bg-white/20 hover:border-white/50 px-6 py-3'>
+              {t('common.getQuote')}
+            </LocaleLink>
           </div>
         </div>
       </div>
@@ -109,7 +100,7 @@ const HomeHeroSlider = () => {
             <span aria-hidden='true'>›</span>
           </button>
           <div className='home-hero-dots' role='tablist' aria-label='Hero slides'>
-            {HERO_SLIDES.map((item, i) => (
+            {list.map((item, i) => (
               <button
                 key={item.image}
                 type='button'

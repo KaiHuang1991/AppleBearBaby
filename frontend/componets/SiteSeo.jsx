@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import Seo from './Seo'
 import { getHomeJsonLd, getRouteSeo, isSeoOwnedRoute } from '../src/seo/config'
+import { getLocaleFromPath, isHomePath } from '../src/i18n/locales'
 
 /**
  * Route-based SEO for all pages except product/blog detail (they use <Seo /> directly).
@@ -12,8 +13,9 @@ const SiteSeo = () => {
     return null
   }
 
+  const locale = getLocaleFromPath(pathname)
   const meta = getRouteSeo(pathname)
-  const jsonLd = pathname === '/' ? getHomeJsonLd() : undefined
+  const jsonLd = isHomePath(pathname) ? getHomeJsonLd(locale) : undefined
 
   return (
     <Seo

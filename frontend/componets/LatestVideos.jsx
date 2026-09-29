@@ -1,11 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { LocaleLink } from './LocaleLink'
 import Title from './Title'
 import YouTubeEmbed from './YouTubeEmbed'
 import { ShopContext } from '../context/ShopContext'
+import { useTranslation } from 'react-i18next'
 
 const LatestVideos = () => {
   const { api } = useContext(ShopContext)
+  const { t } = useTranslation()
   const [videos, setVideos] = useState([])
 
   const recordView = async (videoId) => {
@@ -34,7 +36,7 @@ const LatestVideos = () => {
 
   return (
     <section className="my-14 md:my-20">
-      <Title text1="Watch" text2="Our Videos" subtitle="Product demos and factory highlights — click to play." />
+      <Title text1={t('videos.watch')} text2={t('videos.ourVideos')} subtitle={t('videos.subtitle')} />
 
       <div className="mt-8 grid md:grid-cols-2 gap-6 items-start">
         <div className="cartoon-card p-4">
@@ -59,10 +61,10 @@ const LatestVideos = () => {
       </div>
 
       <div className="text-center mt-8">
-        <Link to="/videos" className="corp-btn inline-flex px-8">
-          View all videos
+        <LocaleLink to="/videos" className="corp-btn inline-flex px-8">
+          {t('videos.viewAll')}
           <span aria-hidden="true">→</span>
-        </Link>
+        </LocaleLink>
       </div>
     </section>
   )

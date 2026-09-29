@@ -2,6 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { backendUrl as defaultBackendUrl } from '../src/App.jsx'
+import LanguageTabs from '../components/LanguageTabs'
+
+const emptyCategoryTranslations = () => ({
+  zh: { name: '' },
+  es: { name: '' },
+  ar: { name: '' },
+  fr: { name: '' },
+})
 
 const flattenCategories = (nodes, depth = 0) => {
   return nodes.reduce((acc, node) => {
@@ -37,6 +45,8 @@ const Categories = ({ token, backendUrl: propBackendUrl }) => {
   const [attributeForm, setAttributeForm] = useState(defaultAttributeForm)
   const [attributeMode, setAttributeMode] = useState('add')
   const [attributeSubmitting, setAttributeSubmitting] = useState(false)
+  const [nameEditor, setNameEditor] = useState(null)
+  const [nameSaving, setNameSaving] = useState(false)
 
   const fetchCategories = async () => {
     setLoading(true)
@@ -201,22 +211,47 @@ const Categories = ({ token, backendUrl: propBackendUrl }) => {
     }
   }
 
-  const handleRenameCategory = async (category) => {
-    const newName = window.prompt('Enter new category name', category.name)
-    if (!newName || !newName.trim()) return
+  const handleRenameCategory = (category) => {
+    const translations = emptyCategoryTranslations()
+    for (const loc of ['zh', 'es', 'ar', 'fr']) {
+      translations[loc] = { name: category.translations?.[loc]?.name || '' }
+    }
+    setNameEditor({
+      id: category._id,
+      name: category.name || '',
+      translations,
+      locale: 'en',
+    })
+  }
+
+  const saveCategoryNames = async (e) => {
+    e?.preventDefault?.()
+    if (!nameEditor?.id) return
+    const englishName = String(nameEditor.name || '').trim()
+    if (!englishName) {
+      toast.error('English category name is required')
+      setNameEditor((prev) => (prev ? { ...prev, locale: 'en' } : prev))
+      return
+    }
+    setNameSaving(true)
     try {
-      const { data } = await axios.put(`${backendUrl}/api/categories/${category._id}`, { name: newName.trim() }, {
-        headers: { token },
-      })
+      const { data } = await axios.put(
+        `${backendUrl}/api/categories/${nameEditor.id}`,
+        { name: englishName, translations: nameEditor.translations },
+        { headers: { token } }
+      )
       if (data.success) {
-        toast.success('Category renamed')
+        toast.success('Category names saved')
+        setNameEditor(null)
         await fetchCategories()
       } else {
-        toast.error(data.message || 'Failed to rename category')
+        toast.error(data.message || 'Failed to save category names')
       }
     } catch (error) {
-      console.error('Failed to rename category', error)
-      toast.error(error.response?.data?.message || error.message || 'Failed to rename category')
+      console.error('Failed to save category names', error)
+      toast.error(error.response?.data?.message || error.message || 'Failed to save category names')
+    } finally {
+      setNameSaving(false)
     }
   }
 
@@ -301,6 +336,56 @@ const Categories = ({ token, backendUrl: propBackendUrl }) => {
           {submitting ? 'Saving...' : 'Add Category'}
         </button>
       </form>
+
+      {nameEditor ? (
+        <form onSubmit={saveCategoryNames} className='bg-white rounded-xl shadow-sm border border-blue-200 p-6 space-y-3'>
+          <div className='flex items-start justify-between gap-3'>
+            <div>
+              <h3 className='text-lg font-semibold text-gray-800'>Edit category names</h3>
+              <p className='text-sm text-gray-500'>
+                English is required. Other languages can stay empty — the storefront will show English.
+              </p>
+            </div>
+            <button type='button' onClick={() => setNameEditor(null)} className='text-sm text-gray-400 hover:text-gray-600'>Close</button>
+          </div>
+          <LanguageTabs
+            value={nameEditor.locale}
+            onChange={(locale) => setNameEditor((prev) => (prev ? { ...prev, locale } : prev))}
+          />
+          {nameEditor.locale === 'en' ? (
+            <input
+              value={nameEditor.name}
+              onChange={(e) => setNameEditor((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
+              className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg'
+              placeholder='English name'
+              required
+            />
+          ) : (
+            <input
+              value={nameEditor.translations[nameEditor.locale]?.name || ''}
+              onChange={(e) => setNameEditor((prev) => {
+                if (!prev) return prev
+                const loc = prev.locale
+                return {
+                  ...prev,
+                  translations: {
+                    ...prev.translations,
+                    [loc]: { ...prev.translations[loc], name: e.target.value },
+                  },
+                }
+              })}
+              className='w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-lg'
+              placeholder={`${nameEditor.locale.toUpperCase()} name (optional)`}
+            />
+          )}
+          <div className='flex gap-3'>
+            <button type='submit' disabled={nameSaving} className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60'>
+              {nameSaving ? 'Saving...' : 'Save names'}
+            </button>
+            <button type='button' onClick={() => setNameEditor(null)} className='px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100'>Cancel</button>
+          </div>
+        </form>
+      ) : null}
 
       <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
         <h3 className='text-lg font-semibold text-gray-800 mb-4'>Existing Categories</h3>
@@ -404,7 +489,7 @@ const CategoryTree = ({
               onClick={() => onEditCategory?.(node)}
               className='text-xs px-2 py-1 border border-gray-300 rounded-full hover:bg-gray-100'
             >
-              Edit
+              Edit names
             </button>
             <button
               type='button'

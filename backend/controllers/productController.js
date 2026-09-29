@@ -7,6 +7,7 @@ import attributeModel from '../models/attributeModel.js'
 import mongoose from 'mongoose'
 import { ensureUniqueProductSlug, findProductBySlugOrId } from '../utils/productSlug.js'
 import { invalidateSitemapCache } from '../utils/sitemapService.js'
+import { parseTranslations } from '../utils/locales.js'
 import { buildProductSearchFilter } from '../utils/productSearch.js'
 // function for add product
 const parseJsonField = (value, defaultValue) => {
@@ -147,7 +148,8 @@ const addProduct = async (req, res) => {
         attributes: attributeValues,
         image: imagesUrl,
         date: Date.now(),
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
+        translations: parseTranslations(req.body.translations, ['name', 'description'], ['attributes', 'sizes']) || undefined,
     }
 
     const product = new productModel(productData)
@@ -340,6 +342,10 @@ const updateProduct = async (req, res) => {
             currenctProduct.modelNumber = modelNumberTrim
         }
         currenctProduct.description = description
+        if (req.body.translations !== undefined) {
+            currenctProduct.translations = parseTranslations(req.body.translations, ['name', 'description'], ['attributes', 'sizes']) || {}
+            currenctProduct.markModified('translations')
+        }
         currenctProduct.price = Number(price)
         currenctProduct.category = resolvedCategoryName
         currenctProduct.categoryId = resolvedCategoryId

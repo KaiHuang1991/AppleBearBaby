@@ -1,11 +1,14 @@
 import React, { useContext, useMemo, useState, useCallback, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { ShopContext } from '../context/ShopContext'
+import { getProductMoq, clampQuantityToMoq } from '../src/utils/productMoq'
 
 const NAVBAR_FALLBACK_HEIGHT = 84
 
 const SideCart = () => {
   const { isCartOpen, closeCart, cartItems, products, currency, updateQuantity, getCartAmount, navigate } = useContext(ShopContext)
+  const { t } = useTranslation()
   const [navbarHeight, setNavbarHeight] = useState(NAVBAR_FALLBACK_HEIGHT)
   const [pendingMap, setPendingMap] = useState({})
   /** Local quantity text while typing; subtotal uses cart until blur / Enter commits. */
@@ -25,10 +28,13 @@ const SideCart = () => {
   }, [])
 
   const handleUpdateQuantity = useCallback(async (productId, size, quantity) => {
+    const product = products.find((p) => String(p._id) === String(productId))
+    const moq = getProductMoq(product)
+    const nextQty = clampQuantityToMoq(quantity, moq, { allowZero: true })
     const key = `${productId}__${size}`
     setPending(key, true)
     try {
-      await updateQuantity(productId, size, quantity)
+      await updateQuantity(productId, size, nextQty)
       setDraftQty((prev) => {
         const next = { ...prev }
         delete next[key]
@@ -37,7 +43,7 @@ const SideCart = () => {
     } finally {
       setPending(key, false)
     }
-  }, [setPending, updateQuantity])
+  }, [setPending, updateQuantity, products])
 
   const commitDraftQuantity = useCallback(
     async (item) => {
@@ -61,7 +67,10 @@ const SideCart = () => {
         })
         return
       }
-      if (v === item.quantity) {
+      const product = products.find((p) => String(p._id) === String(item._id))
+      const moq = getProductMoq(product)
+      const clamped = clampQuantityToMoq(v, moq, { allowZero: true })
+      if (clamped === item.quantity) {
         setDraftQty((prev) => {
           const next = { ...prev }
           delete next[itemKey]
@@ -69,9 +78,9 @@ const SideCart = () => {
         })
         return
       }
-      await handleUpdateQuantity(item._id, item.size, v)
+      await handleUpdateQuantity(item._id, item.size, clamped)
     },
-    [draftQty, handleUpdateQuantity]
+    [draftQty, handleUpdateQuantity, products]
   )
 
   const items = useMemo(() => {
@@ -144,13 +153,13 @@ const SideCart = () => {
         style={panelStyle}
       >
         <div className='flex items-center justify-between p-4 border-b'>
-          <h3 className='text-lg font-semibold'>Your Cart</h3>
+          <h3 className='text-lg font-semibold'>{t('common.yourCart')}</h3>
           <button onClick={closeCart} className='text-gray-500 hover:text-gray-700'>✕</button>
         </div>
 
         <div className='h-[calc(100%-180px)] overflow-y-auto p-4'>
           {items.length === 0 ? (
-            <p className='text-gray-500 text-sm'>Your cart is empty.</p>
+            <p className='text-gray-500 text-sm'>{t('common.emptyCart')}</p>
           ) : (
             <div className='space-y-4'>
               {items.map((item, idx) => (
@@ -158,24 +167,26 @@ const SideCart = () => {
                   <img src={item.image} alt='' className='w-16 h-16 object-cover rounded-md border' />
                   <div className='flex-1'>
                     <p className='text-sm font-medium line-clamp-2'>{item.name}</p>
-                    <div className='text-xs text-gray-500 mt-0.5'>Size: {item.size}</div>
+                    <div className='text-xs text-gray-500 mt-0.5'>{t('common.size', { size: item.size })}</div>
                     <div className='flex items-center gap-3 mt-2'>
                       {(() => {
                         const itemKey = `${item._id}__${item.size}`
                         const isPending = !!pendingMap[itemKey]
+                        const product = products.find((p) => String(p._id) === String(item._id))
+                        const moq = getProductMoq(product)
                         return (
                       <div className='flex items-center border rounded-md overflow-hidden'>
                         <button
-                          onClick={() => handleUpdateQuantity(item._id, item.size, Math.max(0, item.quantity - 1))}
+                          onClick={() => handleUpdateQuantity(item._id, item.size, Math.max(moq, item.quantity - 1))}
                           className='px-2 py-1 text-sm disabled:opacity-50'
-                          disabled={isPending}
+                          disabled={isPending || item.quantity <= moq}
                         >
                           -
                         </button>
                         <input
                           className='w-10 text-center text-sm border-l border-r disabled:bg-gray-100'
                           type='number'
-                          min={0}
+                          min={moq}
                           value={draftQty[itemKey] !== undefined ? draftQty[itemKey] : item.quantity}
                           disabled={isPending}
                           onChange={(e) => {
@@ -211,7 +222,7 @@ const SideCart = () => {
                     className='text-red-500 text-sm disabled:opacity-50'
                     disabled={!!pendingMap[`${item._id}__${item.size}`]}
                   >
-                    Remove
+                    {t('common.remove')}
                   </button>
                 </div>
               ))}
@@ -222,12 +233,12 @@ const SideCart = () => {
         {/* Footer */}
         <div className='absolute bottom-0 left-0 right-0 border-t p-4 bg-white'>
           <div className='flex items-center justify-between mb-3'>
-            <span className='text-sm text-gray-600'>Subtotal</span>
+            <span className='text-sm text-gray-600'>{t('common.subtotal')}</span>
             <span className='text-base font-semibold'>{currency}{subtotal.toFixed(2)}</span>
           </div>
           <div className='flex gap-3'>
-            <button onClick={() => { closeCart(); navigate('/cart') }} className='flex-1 border rounded-md py-2 text-sm'>View Cart</button>
-            <button onClick={() => { closeCart(); navigate('/cart') }} className='flex-1 bg-black text-white rounded-md py-2 text-sm'>Request Quote</button>
+            <button onClick={() => { closeCart(); navigate('/cart') }} className='flex-1 border rounded-md py-2 text-sm'>{t('common.viewCart')}</button>
+            <button onClick={() => { closeCart(); navigate('/cart') }} className='flex-1 bg-black text-white rounded-md py-2 text-sm'>{t('common.requestQuote')}</button>
           </div>
         </div>
       </div>

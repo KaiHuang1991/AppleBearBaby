@@ -1,12 +1,15 @@
 import React, { useContext } from 'react'
 import { ShopContext } from '../context/ShopContext'
-import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from './LocaleLink'
 import { flyToCart } from '../src/utils/flyToCart'
 import { getProductPath } from '../src/utils/productPath'
 import { optimizeCloudinaryUrl } from '../src/utils/cloudinaryUrl'
+import { getProductMoq } from '../src/utils/productMoq'
 
 const ProductItem = ({ id, slug, image, name, price, modelNumber }) => {
-  const { currency, addToCart } = useContext(ShopContext)
+  const { currency, addToCart, products } = useContext(ShopContext)
+  const { t } = useTranslation()
   const productPath = getProductPath({ _id: id, slug })
   const thumb = image?.[0]
     ? optimizeCloudinaryUrl(image[0], { width: 400 })
@@ -15,14 +18,15 @@ const ProductItem = ({ id, slug, image, name, price, modelNumber }) => {
   const handleAddToCart = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    addToCart(id)
+    const product = products.find((p) => String(p._id) === String(id))
+    addToCart(id, 'Default', getProductMoq(product))
     const card = e.currentTarget.closest('.cartoon-card')
     const imgEl = card ? card.querySelector('img.product-item-img') : null
     if (imgEl) flyToCart(imgEl)
   }
 
   return (
-    <Link
+    <LocaleLink
       className="catalog-product-item block min-w-0 max-w-full w-full text-gray-700 cursor-pointer h-full"
       to={productPath}
     >
@@ -43,7 +47,7 @@ const ProductItem = ({ id, slug, image, name, price, modelNumber }) => {
         <div className="space-y-2 flex-1 flex flex-col">
           <p className="text-base font-medium text-gray-800 line-clamp-2 min-h-[3rem]">{name}</p>
           {modelNumber && String(modelNumber).trim() ? (
-            <p className="text-xs text-slate-500 -mt-1">Model {String(modelNumber).trim()}</p>
+            <p className="text-xs text-slate-500 -mt-1">{t('common.model', { code: String(modelNumber).trim() })}</p>
           ) : null}
           <div className="flex flex-col  flex-start justify-between sm:flex-row">
             <p className="text-base font-bold text-blue-600">
@@ -51,7 +55,7 @@ const ProductItem = ({ id, slug, image, name, price, modelNumber }) => {
               {price}
             </p>
             <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-medium border border-blue-100">
-              Best Value
+              {t('product.bestValue', { defaultValue: t('common.bestValue') })}
             </span>
           </div>
           <button
@@ -59,11 +63,11 @@ const ProductItem = ({ id, slug, image, name, price, modelNumber }) => {
             className="w-full cartoon-btn py-2 text-white font-semibold text-sm mt-auto"
             onClick={handleAddToCart}
           >
-            Add to Inquiry List
+            {t('common.addToInquiry')}
           </button>
         </div>
       </div>
-    </Link>
+    </LocaleLink>
   )
 }
 

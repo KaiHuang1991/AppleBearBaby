@@ -1,3 +1,5 @@
+import { getCurrentLocale, withLocale } from '../i18n/locales'
+
 /**
  * Canonical storefront path for a product (prefers SEO slug).
  */
@@ -11,7 +13,8 @@ export function getProductUrlKey(productOrId, slug) {
 
 export function getProductPath(productOrId, slug) {
   const key = getProductUrlKey(productOrId, slug)
-  return key ? `/product/${key}` : '/collection'
+  const path = key ? `/product/${key}` : '/collection'
+  return withLocale(path, getCurrentLocale())
 }
 
 export function isMongoObjectId(value) {

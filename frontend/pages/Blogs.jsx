@@ -1,10 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import { getBlogPath } from '../src/utils/blogPath';
+import { localizeBlog, useShopLocale } from '../src/i18n/localized';
+import { dateLocaleFor } from '../src/i18n/locales';
+import { useTranslation } from 'react-i18next';
+import { LocaleLink } from '../componets/LocaleLink';
 
 const Blogs = () => {
   const { api } = useContext(ShopContext);
+  const { t } = useTranslation();
+  const locale = useShopLocale();
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,7 +49,7 @@ const Blogs = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(dateLocaleFor(locale), {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -63,9 +68,9 @@ const Blogs = () => {
     <div className="page-shell bg-white">
       <div className="section-container py-10 md:py-14">
         <div className="text-center mb-12">
-          <h1 className="corp-section-title">OEM & Wholesale Buyer Guides</h1>
+          <h1 className="corp-section-title">{t('blogs.title')}</h1>
           <p className="corp-section-subtitle mx-auto">
-            Factory notes on MOQ, samples, lead time, materials, and packing — written for OEM and wholesale buyers.
+            {t('blogs.subtitle')}
           </p>
           
           {/* Search Bar */}
@@ -76,7 +81,7 @@ const Blogs = () => {
                   type="text"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search buyer guides..."
+                  placeholder={t('blogs.searchPlaceholder')}
                   className="w-full px-5 py-3 pl-12 pr-12 border-2 border-blue-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700 shadow-sm"
                 />
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 text-xl">
@@ -96,7 +101,7 @@ const Blogs = () => {
                 type="submit"
                 className="cartoon-btn px-8 py-3 text-white font-semibold rounded-full hover:scale-105 transition-transform"
               >
-                Search
+                {t('blogs.search')}
               </button>
             </div>
           </form>
@@ -106,11 +111,11 @@ const Blogs = () => {
             <div className="mt-4 text-sm text-gray-600">
               {blogs.length > 0 ? (
                 <p>
-                  Found <span className="font-semibold text-blue-600">{blogs.length}</span> result{blogs.length !== 1 ? 's' : ''} for "<span className="font-semibold">{searchTerm}</span>"
+                  {t('blogs.found', { count: blogs.length, term: searchTerm })}
                 </p>
               ) : (
                 <p>
-                  No results found for "<span className="font-semibold">{searchTerm}</span>". Try different keywords.
+                  {t('blogs.noneFor', { term: searchTerm })}
                 </p>
               )}
             </div>
@@ -122,32 +127,34 @@ const Blogs = () => {
           <div className="text-center py-12">
             <span className="text-6xl mb-4 block">📭</span>
             <h3 className="text-xl font-semibold text-gray-600 mb-2">
-              {searchTerm ? 'No matching blogs found' : 'No blogs available'}
+              {searchTerm ? t('blogs.noMatch') : t('blogs.empty')}
             </h3>
             <p className="text-gray-500 mb-4">
-              {searchTerm ? 'Try searching with different keywords' : 'Check back later for new content.'}
+              {searchTerm ? t('blogs.tryKeywords') : t('blogs.checkLater')}
             </p>
             {searchTerm && (
               <button
                 onClick={handleClearSearch}
                 className="cartoon-btn px-6 py-2 text-white font-semibold text-sm"
               >
-                Clear Search
+                {t('blogs.clear')}
               </button>
             )}
           </div>
         ) : blogs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {blogs.map((blog) => (
+            {blogs.map((blog) => {
+              const display = localizeBlog(blog, locale)
+              return (
               <article key={blog._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 {blog.image && (
-                  <Link to={getBlogPath(blog)} className="block aspect-video overflow-hidden">
+                  <LocaleLink to={getBlogPath(blog)} className="block aspect-video overflow-hidden">
                     <img
                       src={blog.image}
-                      alt={blog.title}
+                      alt={display.title}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
-                  </Link>
+                  </LocaleLink>
                 )}
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -156,31 +163,31 @@ const Blogs = () => {
                     </span>
                   </div>
                   <h2 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                    <Link to={getBlogPath(blog)} className="hover:text-blue-600">
-                      {blog.title}
-                    </Link>
+                    <LocaleLink to={getBlogPath(blog)} className="hover:text-blue-600">
+                      {display.title}
+                    </LocaleLink>
                   </h2>
                   <p className="text-gray-600 mb-3 text-sm line-clamp-3">
-                    {blog.excerpt}
+                    {display.excerpt}
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-500">By {blog.author}</span>
+                      <span className="text-gray-500">{t('blogs.by', { author: blog.author })}</span>
                       <span className="text-gray-400">•</span>
                       <span className="text-gray-500">
                         {formatDate(blog.createdAt)}
                       </span>
                     </div>
-                    <Link
+                    <LocaleLink
                       to={getBlogPath(blog)}
                       className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                     >
-                      Read More →
-                    </Link>
+                      {t('blogs.readMore')} →
+                    </LocaleLink>
                   </div>
                 </div>
               </article>
-            ))}
+            )})}
           </div>
         ) : null}
       </div>

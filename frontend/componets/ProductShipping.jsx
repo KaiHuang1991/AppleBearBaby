@@ -1,5 +1,6 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from './LocaleLink'
 import { BULK_OPTIONS, RETURN_POLICY_DAYS, SAMPLE_CARRIERS } from '../src/commercePolicy'
 import '../styles/ProductDescription.css'
 
@@ -20,29 +21,28 @@ const IconShip = () => (
 )
 
 const ProductShipping = ({ compact = false }) => {
+  const { t } = useTranslation()
   return (
     <section className={`product-shipping ${compact ? 'product-shipping--compact' : ''}`} aria-labelledby='product-shipping-title'>
       <div className='product-shipping-pattern' aria-hidden='true' />
       <div className='product-shipping-head'>
-        <p className='product-shipping-kicker'>Factory logistics</p>
+        <p className='product-shipping-kicker'>{t('product.shipKicker')}</p>
         <h2 id='product-shipping-title' className='product-shipping-title'>
-          Shipping for samples and bulk
+          {t('product.shipTitle')}
         </h2>
         <p className='product-shipping-lead'>
-          Freight is quoted with your inquiry. Samples go by postal or international courier. Bulk moves by sea, or by the China forwarder you appoint.
+          {t('product.shipLead')}
         </p>
       </div>
 
       <div className='product-shipping-grid'>
         <article className='product-ship-card product-ship-card--sample'>
           <div className='product-ship-card-top'>
-            <span className='product-ship-badge'>Samples</span>
+            <span className='product-ship-badge'>{t('product.samples')}</span>
             <IconParcel />
           </div>
-          <h3>China Post, Alibaba express, DHL / FedEx / TNT</h3>
-          <p>
-            Small trial orders usually ship as a China Post small packet, Alibaba online express, or an international courier such as DHL, FedEx, or TNT. We confirm the lane after you share destination and urgency.
-          </p>
+          <h3>{t('product.samplesTitle')}</h3>
+          <p>{t('product.samplesBody')}</p>
           <ul>
             {SAMPLE_CARRIERS.map((item) => (
               <li key={item}>{item}</li>
@@ -52,13 +52,11 @@ const ProductShipping = ({ compact = false }) => {
 
         <article className='product-ship-card product-ship-card--bulk'>
           <div className='product-ship-card-top'>
-            <span className='product-ship-badge product-ship-badge--bulk'>Bulk / OEM</span>
+            <span className='product-ship-badge product-ship-badge--bulk'>{t('product.bulk')}</span>
             <IconShip />
           </div>
-          <h3>FCL, LCL, or your China forwarder</h3>
-          <p>
-            Production lots typically go FCL or LCL by sea. You may also appoint your own China freight forwarder for air, rail, or sea. The factory can deliver to the warehouse or port they name.
-          </p>
+          <h3>{t('product.bulkTitle')}</h3>
+          <p>{t('product.bulkBody')}</p>
           <ul>
             {BULK_OPTIONS.map((item) => (
               <li key={item}>{item}</li>
@@ -69,15 +67,15 @@ const ProductShipping = ({ compact = false }) => {
 
       <div id='returns' className='product-shipping-return'>
         <p>
-          <strong>Quality returns:</strong> factory defects can be raised within {RETURN_POLICY_DAYS} days of arrival. Custom OEM, printed, or made-to-order goods are not returnable for a change of mind. Return freight is quoted case by case.
+          <strong>{t('product.returnsLabel')}</strong> {t('product.returnsBody', { days: RETURN_POLICY_DAYS })}
         </p>
-        <Link to='/shipping' className='product-shipping-link'>
-          Full shipping &amp; return policy
-        </Link>
+        <LocaleLink to='/shipping' className='product-shipping-link'>
+          {t('product.fullPolicy')}
+        </LocaleLink>
         {' · '}
-        <Link to='/shipping#track' className='product-shipping-link'>
-          Track shipment
-        </Link>
+        <LocaleLink to='/shipping#track' className='product-shipping-link'>
+          {t('product.track')}
+        </LocaleLink>
       </div>
     </section>
   )

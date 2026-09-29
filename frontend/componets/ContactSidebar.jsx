@@ -1,8 +1,10 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import { ShopContext } from '../context/ShopContext'
+import { stripLocale } from '../src/i18n/locales'
 
 const HIDE_CONTACT_SIDEBAR_PATHS = new Set([
   '/profile',
@@ -13,8 +15,9 @@ const HIDE_CONTACT_SIDEBAR_PATHS = new Set([
 ])
 
 export const shouldHideContactSidebar = (pathname) => {
-  if (HIDE_CONTACT_SIDEBAR_PATHS.has(pathname)) return true
-  if (pathname.startsWith('/inquiries/')) return true
+  const stripped = stripLocale(pathname)
+  if (HIDE_CONTACT_SIDEBAR_PATHS.has(stripped)) return true
+  if (stripped.startsWith('/inquiries/')) return true
   return false
 }
 
@@ -104,6 +107,7 @@ function groupContactsByChannel(contacts) {
 const ContactSidebar = () => {
   const { pathname } = useLocation()
   const { api } = useContext(ShopContext)
+  const { t } = useTranslation()
   const [contacts, setContacts] = useState(FALLBACK_CONTACTS)
   const [mobileDockVisible, setMobileDockVisible] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -206,9 +210,9 @@ const ContactSidebar = () => {
 
   return (
     <>
-      <div className='hidden sm:fixed sm:top-1/2 sm:right-0 sm:z-50 sm:block'>
+      <div className='hidden sm:fixed sm:top-1/2 sm:right-0 sm:z-50 sm:block contact-rail-desktop rtl:sm:right-auto rtl:sm:left-0'>
         <div className='group relative' tabIndex={0} aria-label='Contact shortcuts'>
-          <div className='flex flex-col items-center gap-4 rounded-l-2xl bg-gradient-to-b from-blue-500 via-sky-500 to-cyan-400 px-3 py-4 shadow-lg transition-opacity duration-200 group-hover:hidden group-focus-within:hidden'>
+          <div className='flex flex-col items-center gap-4 rounded-l-2xl rtl:rounded-l-none rtl:rounded-r-2xl bg-gradient-to-b from-blue-500 via-sky-500 to-cyan-400 px-3 py-4 shadow-lg transition-opacity duration-200 group-hover:hidden group-focus-within:hidden'>
             {channelGroups.map((group) => {
               const first = group.contacts[0]
               return (
@@ -224,7 +228,7 @@ const ContactSidebar = () => {
             })}
           </div>
 
-          <div className='absolute top-0 right-full mr-3 hidden min-w-max max-w-[calc(100vw-2rem)] rounded-lg bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 px-6 py-5 text-sm font-medium text-white shadow-xl group-hover:flex group-hover:flex-col group-focus-within:flex group-focus-within:flex-col'>
+          <div className='contact-rail-expand absolute top-0 right-full mr-3 hidden min-w-max max-w-[calc(100vw-2rem)] rounded-lg bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-400 px-6 py-5 text-sm font-medium text-white shadow-xl group-hover:flex group-hover:flex-col group-focus-within:flex group-focus-within:flex-col rtl:right-auto rtl:left-full rtl:mr-0 rtl:ml-3'>
             {channelGroups.map((group, index) => (
               <div
                 key={group.channel}
@@ -240,7 +244,7 @@ const ContactSidebar = () => {
 
       <button
         type='button'
-        className='sm:hidden fixed top-1/2 right-0 z-[51] flex h-28 min-h-[44px] w-9 min-w-[36px] -translate-y-1/2 items-center justify-center rounded-l-xl border-0 bg-gradient-to-b from-blue-500 via-sky-500 to-cyan-400 text-white shadow-lg shadow-blue-900/10 outline-none ring-0 transition hover:brightness-105 active:brightness-95 focus-visible:ring-2 focus-visible:ring-white/70'
+        className='sm:hidden fixed top-1/2 right-0 z-[51] flex h-28 min-h-[44px] w-9 min-w-[36px] -translate-y-1/2 items-center justify-center rounded-l-xl border-0 bg-gradient-to-b from-blue-500 via-sky-500 to-cyan-400 text-white shadow-lg shadow-blue-900/10 outline-none ring-0 transition hover:brightness-105 active:brightness-95 focus-visible:ring-2 focus-visible:ring-white/70 rtl:right-auto rtl:left-0 rtl:rounded-l-none rtl:rounded-r-xl'
         onClick={() => (mobileDockVisible ? collapseMobileDock() : setMobileDockVisible(true))}
         aria-expanded={mobileDockVisible}
         aria-label={mobileDockVisible ? '收起联系方式' : '展开联系方式'}
@@ -307,7 +311,7 @@ const ContactSidebar = () => {
                 {primaryIcon}
               </span>
               <span className='text-sm font-semibold tracking-wide'>
-                {mobileOpen ? 'Close contact' : 'Contact us'}
+                {mobileOpen ? t('common.closeContact') : t('common.contactUs')}
               </span>
             </button>
           </div>

@@ -24,6 +24,12 @@ const categorySchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  translations: {
+    zh: { name: { type: String, default: '' } },
+    es: { name: { type: String, default: '' } },
+    ar: { name: { type: String, default: '' } },
+    fr: { name: { type: String, default: '' } },
+  },
 }, {
   timestamps: true,
 })

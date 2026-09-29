@@ -1,6 +1,7 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
 import { assets } from '../src/assets/assets'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from './LocaleLink'
 
 /** Social profile URLs */
 const RELATED_LINKS = [
@@ -66,6 +67,8 @@ const RELATED_LINKS = [
 ]
 
 const Footer = () => {
+  const { t } = useTranslation()
+  const year = new Date().getFullYear()
   return (
     <footer className='border-t border-slate-200 bg-white mt-16'>
       <div className='section-container py-12 md:py-16'>
@@ -81,37 +84,37 @@ const Footer = () => {
               decoding="async"
             />
             <p className='max-w-md text-slate-600 leading-relaxed'>
-              Leading wholesale supplier of premium baby care products for healthcare facilities, daycare centers, and retailers. Quality assurance, bulk pricing, and dedicated support.
+              {t('footer.blurb')}
             </p>
             <div className='flex flex-wrap gap-2 mt-5'>
               <span className='inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-100'>
-                Quality Assured
+                {t('footer.quality')}
               </span>
               <span className='inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-100'>
-                Fast Delivery
+                {t('footer.delivery')}
               </span>
               <span className='inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full border border-blue-100'>
-                Best Prices
+                {t('footer.prices')}
               </span>
             </div>
           </div>
 
           <div>
-            <p className='text-sm font-semibold text-slate-800 uppercase tracking-wide mb-4'>Company</p>
+            <p className='text-sm font-semibold text-slate-800 uppercase tracking-wide mb-4'>{t('footer.company')}</p>
             <ul className='flex flex-col gap-2.5 text-slate-600'>
-              <li><Link to='/about' className='hover:text-blue-600 transition-colors'>About Us</Link></li>
-              <li><Link to='/collection' className='hover:text-blue-600 transition-colors'>Wholesale Catalog</Link></li>
-              <li><Link to='/contact' className='hover:text-blue-600 transition-colors'>Contact</Link></li>
-              <li><Link to='/shipping' className='hover:text-blue-600 transition-colors'>Shipping &amp; Returns</Link></li>
-              <li><Link to='/shipping#track' className='hover:text-blue-600 transition-colors'>Track shipment</Link></li>
-              <li><Link to='/faq' className='hover:text-blue-600 transition-colors'>OEM FAQ</Link></li>
-              <li><Link to='/blogs' className='hover:text-blue-600 transition-colors'>Blog</Link></li>
-              <li><Link to='/videos' className='hover:text-blue-600 transition-colors'>Videos</Link></li>
+              <li><LocaleLink to='/about' className='hover:text-blue-600 transition-colors'>{t('footer.about')}</LocaleLink></li>
+              <li><LocaleLink to='/collection' className='hover:text-blue-600 transition-colors'>{t('footer.catalog')}</LocaleLink></li>
+              <li><LocaleLink to='/contact' className='hover:text-blue-600 transition-colors'>{t('footer.contact')}</LocaleLink></li>
+              <li><LocaleLink to='/shipping' className='hover:text-blue-600 transition-colors'>{t('footer.shipping')}</LocaleLink></li>
+              <li><LocaleLink to='/shipping#track' className='hover:text-blue-600 transition-colors'>{t('footer.track')}</LocaleLink></li>
+              <li><LocaleLink to='/faq' className='hover:text-blue-600 transition-colors'>{t('footer.faq')}</LocaleLink></li>
+              <li><LocaleLink to='/blogs' className='hover:text-blue-600 transition-colors'>{t('footer.blog')}</LocaleLink></li>
+              <li><LocaleLink to='/videos' className='hover:text-blue-600 transition-colors'>{t('footer.videos')}</LocaleLink></li>
             </ul>
           </div>
 
           <div>
-            <p className='text-sm font-semibold text-slate-800 uppercase tracking-wide mb-4'>Wholesale Contact</p>
+            <p className='text-sm font-semibold text-slate-800 uppercase tracking-wide mb-4'>{t('footer.wholesaleContact')}</p>
             <ul className='flex flex-col gap-2.5 text-slate-600'>
               <li>
                 <a
@@ -132,13 +135,13 @@ const Footer = () => {
                 </a>
               </li>
               <li className='text-slate-500 leading-relaxed pt-1'>
-                No.9 Hengde Road, Niansanli Street, Yiwu City, Zhejiang, China
+                {t('contact.address')}
               </li>
             </ul>
           </div>
 
           <div>
-            <p className='text-sm font-semibold text-slate-800 uppercase tracking-wide mb-4'>Related Links</p>
+            <p className='text-sm font-semibold text-slate-800 uppercase tracking-wide mb-4'>{t('footer.related')}</p>
             <div className='grid grid-cols-2 gap-3 w-fit'>
               {RELATED_LINKS.map(({ key, label, href, icon }) => (
                 <a
@@ -159,11 +162,7 @@ const Footer = () => {
 
         <div className='border-t border-slate-200 mt-10 pt-6 text-center text-xs text-slate-500'>
           <p>
-            Copyright 2026 @{' '}
-            <a href='https://applebearbaby.net' className='hover:text-blue-600 transition-colors'>
-              applebearbaby.net
-            </a>
-            {' '}— All Rights Reserved
+            {t('footer.copyright', { year })}
           </p>
         </div>
       </div>

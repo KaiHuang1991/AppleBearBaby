@@ -6,6 +6,30 @@ import 'dotenv/config'
 import connectDB from '../config/mongodb.js'
 import blogModel from '../models/blogModel.js'
 import { invalidateSitemapCache } from '../utils/sitemapService.js'
+import { OEM_BLOG_I18N } from './oem-blog-i18n.js'
+import { PREFIX_LOCALES, withLocale } from '../utils/locales.js'
+
+function localizeHtml(html, locale) {
+  return String(html || '')
+    .replace(/href="https:\/\/applebearbaby\.net(\/[^"]*)"/g, (_, path) => `href="https://applebearbaby.net${withLocale(path, locale)}"`)
+    .replace(/href="(\/[^"]+)"/g, (_, path) => `href="${withLocale(path, locale)}"`)
+}
+
+function translationsFor(slug) {
+  const block = OEM_BLOG_I18N[slug]
+  if (!block) return undefined
+  const out = {}
+  for (const loc of PREFIX_LOCALES) {
+    const entry = block[loc]
+    if (!entry) continue
+    out[loc] = {
+      title: entry.title || '',
+      excerpt: entry.excerpt || '',
+      content: localizeHtml(entry.content, loc),
+    }
+  }
+  return out
+}
 
 const SLUG = 'moq-samples-and-lead-time-what-to-ask-before-ordering-baby-bottles'
 const title = 'MOQ, Samples, and Lead Time: What to Ask Before Ordering Baby Bottles'
@@ -78,6 +102,7 @@ async function main() {
     readTime: 7,
     isPublished: true,
     indexable: true,
+    translations: translationsFor(SLUG),
   }
 
   if (existing) {

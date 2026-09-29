@@ -1,5 +1,6 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from '../componets/LocaleLink'
 import { assets } from '../src/assets/assets'
 import ShipmentTracker from '../componets/ShipmentTracker'
 import { BULK_OPTIONS, RETURN_POLICY_DAYS, SAMPLE_CARRIERS } from '../src/commercePolicy'
@@ -47,6 +48,11 @@ const STEPS = [
 ]
 
 const Shipping = () => {
+  const { t } = useTranslation()
+  const steps = t('shipping.steps', { returnObjects: true })
+  const sampleCarriers = t('shipping.sampleCarriers', { returnObjects: true })
+  const bulkOptions = t('shipping.bulkOptions', { returnObjects: true })
+  const returnBullets = t('shipping.returnBullets', { returnObjects: true })
   return (
     <div className='page-shell bg-white'>
       <section
@@ -55,11 +61,11 @@ const Shipping = () => {
       >
         <div className='page-hero-content'>
           <p className='mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-blue-100'>
-            Factory logistics from Yiwu
+            {t('shipping.eyebrow')}
           </p>
-          <h1>Shipping &amp; returns for wholesale buyers</h1>
+          <h1>{t('shipping.heroTitle')}</h1>
           <p>
-            Samples go by postal or international courier. Production lots move by sea, or by the China forwarder you appoint. Freight is quoted with your inquiry.
+            {t('shipping.heroText')}
           </p>
         </div>
       </section>
@@ -68,28 +74,28 @@ const Shipping = () => {
         <div className='section-container grid grid-cols-2 lg:grid-cols-4 gap-8'>
           <div className='text-center px-2'>
             <p className='text-2xl md:text-3xl font-bold text-blue-600'>Yiwu</p>
-            <p className='text-sm text-slate-600 mt-1'>Export origin, Zhejiang</p>
+            <p className='text-sm text-slate-600 mt-1'>{t('shipping.origin')}</p>
           </div>
           <div className='text-center px-2'>
-            <p className='text-2xl md:text-3xl font-bold text-blue-600'>5 lanes</p>
-            <p className='text-sm text-slate-600 mt-1'>Postal, express, sea, air, rail</p>
+            <p className='text-2xl md:text-3xl font-bold text-blue-600'>{t('shipping.lanesCount')}</p>
+            <p className='text-sm text-slate-600 mt-1'>{t('shipping.lanes')}</p>
           </div>
           <div className='text-center px-2'>
             <p className='text-2xl md:text-3xl font-bold text-blue-600'>FCL / LCL</p>
-            <p className='text-sm text-slate-600 mt-1'>Bulk ocean freight</p>
+            <p className='text-sm text-slate-600 mt-1'>{t('shipping.ocean')}</p>
           </div>
           <div className='text-center px-2'>
-            <p className='text-2xl md:text-3xl font-bold text-blue-600'>{RETURN_POLICY_DAYS} days</p>
-            <p className='text-sm text-slate-600 mt-1'>Factory quality window</p>
+            <p className='text-2xl md:text-3xl font-bold text-blue-600'>{t('shipping.days', { count: RETURN_POLICY_DAYS })}</p>
+            <p className='text-sm text-slate-600 mt-1'>{t('shipping.returns')}</p>
           </div>
         </div>
       </section>
 
       <section className='section-container py-16 md:py-24'>
         <div className='text-center mb-12'>
-          <h2 className='corp-section-title'>Choose the lane that fits the order</h2>
+          <h2 className='corp-section-title'>{t('shipping.laneTitle')}</h2>
           <p className='corp-section-subtitle mx-auto'>
-            We do not publish a flat freight table. The quote depends on destination, carton volume, and whether you use our lane or your own China forwarder.
+            {t('shipping.laneSubtitle')}
           </p>
         </div>
 
@@ -100,15 +106,15 @@ const Shipping = () => {
                 <IconBox />
               </div>
               <span className='inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700'>
-                Samples
+                {t('shipping.samplesBadge')}
               </span>
             </div>
-            <h3 className='text-xl font-semibold text-slate-900 mb-3'>China Post, Alibaba express, DHL / FedEx / TNT</h3>
+            <h3 className='text-xl font-semibold text-slate-900 mb-3'>{t('shipping.samplesHeading')}</h3>
             <p className='text-sm text-slate-600 leading-relaxed mb-5'>
-              Trial orders usually ship as a China Post small packet, Alibaba online express, or an international courier. We confirm the lane after you share destination and urgency.
+              {t('shipping.samplesBody')}
             </p>
             <ul className='flex flex-wrap gap-2'>
-              {SAMPLE_CARRIERS.map((item) => (
+              {(Array.isArray(sampleCarriers) ? sampleCarriers : SAMPLE_CARRIERS).map((item) => (
                 <li
                   key={item}
                   className='rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700'
@@ -125,15 +131,15 @@ const Shipping = () => {
                 <IconShip />
               </div>
               <span className='inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700'>
-                Bulk / OEM
+                {t('shipping.bulkBadge')}
               </span>
             </div>
-            <h3 className='text-xl font-semibold text-slate-900 mb-3'>FCL, LCL, or your China forwarder</h3>
+            <h3 className='text-xl font-semibold text-slate-900 mb-3'>{t('shipping.bulkHeading')}</h3>
             <p className='text-sm text-slate-600 leading-relaxed mb-5'>
-              Production lots typically go FCL or LCL by sea. You may appoint your own China freight forwarder for air, rail, or sea. The factory can deliver to the warehouse or port they name.
+              {t('shipping.bulkBody')}
             </p>
             <ul className='flex flex-wrap gap-2'>
-              {BULK_OPTIONS.map((item) => (
+              {(Array.isArray(bulkOptions) ? bulkOptions : BULK_OPTIONS).map((item) => (
                 <li
                   key={item}
                   className='rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700'
@@ -152,15 +158,15 @@ const Shipping = () => {
 
       <section className='section-container py-16 md:py-24'>
           <div className='text-center mb-12'>
-            <h2 className='corp-section-title'>How to quote freight</h2>
+            <h2 className='corp-section-title'>{t('shipping.stepsTitle')}</h2>
             <p className='corp-section-subtitle mx-auto'>
-              Three steps from inquiry to a packing-list estimate. No online checkout freight — we quote the lane with your order.
+              {t('shipping.stepsSubtitle')}
             </p>
           </div>
           <div className='grid md:grid-cols-3 gap-6'>
-            {STEPS.map((step) => (
-              <div key={step.n} className='corp-feature-card'>
-                <p className='text-xs font-bold tracking-[0.18em] text-blue-600 mb-3'>STEP {step.n}</p>
+            {(Array.isArray(steps) ? steps : STEPS).map((step, i) => (
+              <div key={STEPS[i]?.n || i} className='corp-feature-card'>
+                <p className='text-xs font-bold tracking-[0.18em] text-blue-600 mb-3'>{t('shipping.stepLabel', { n: STEPS[i]?.n })}</p>
                 <h3 className='font-semibold text-slate-800 mb-2'>{step.title}</h3>
                 <p className='text-sm text-slate-600 leading-relaxed'>{step.text}</p>
               </div>
@@ -174,15 +180,14 @@ const Shipping = () => {
             <div className='corp-icon-circle mb-5'>
               <IconShield />
             </div>
-            <h2 className='corp-section-title mb-4'>Return policy</h2>
+            <h2 className='corp-section-title mb-4'>{t('shipping.returnTitle')}</h2>
             <p className='text-slate-600 leading-relaxed mb-6'>
-              Report factory quality defects within {RETURN_POLICY_DAYS} days of arrival, with photos and order details. We arrange replacement or credit after inspection. Return freight is quoted case by case.
+              {t('shipping.returnText', { days: RETURN_POLICY_DAYS })}
             </p>
             <ul className='corp-check-list'>
-              <li>Factory defects raised within {RETURN_POLICY_DAYS} days of arrival</li>
-              <li>Photos and order details required for inspection</li>
-              <li>Replacement or credit after we confirm the issue</li>
-              <li>Custom OEM, printed, or made-to-order goods are not returnable for a change of mind</li>
+              {(Array.isArray(returnBullets) ? returnBullets : []).map((item) => (
+                <li key={item}>{String(item).replace(/\{\{days\}\}/g, String(RETURN_POLICY_DAYS))}</li>
+              ))}
             </ul>
           </div>
 
@@ -190,18 +195,18 @@ const Shipping = () => {
             <div className='corp-icon-circle mb-5'>
               <IconQuote />
             </div>
-            <h2 className='text-2xl font-bold text-slate-800 mb-2'>Need a shipping quote?</h2>
+            <h2 className='text-2xl font-bold text-slate-800 mb-2'>{t('shipping.quoteTitle')}</h2>
             <p className='text-slate-500 text-sm leading-relaxed mb-8'>
-              Send destination, quantity, and your preferred lane. The wholesale team replies with available options.
+              {t('shipping.quoteText')}
             </p>
             <div className='flex flex-wrap gap-3'>
-              <Link to='/contact' className='corp-btn'>
-                Request a shipping quote
+              <LocaleLink to='/contact' className='corp-btn'>
+                {t('shipping.quoteCta')}
                 <span aria-hidden='true'>→</span>
-              </Link>
-              <Link to='/collection' className='corp-btn-outline'>
-                Browse catalog
-              </Link>
+              </LocaleLink>
+              <LocaleLink to='/collection' className='corp-btn-outline'>
+                {t('shipping.browseCatalog')}
+              </LocaleLink>
             </div>
           </div>
         </div>

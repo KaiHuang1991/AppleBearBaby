@@ -1860,6 +1860,36 @@ body {
   user-drag: none;
 }
 
+html[dir='rtl'] .corp-btn span[aria-hidden],
+html[dir='rtl'] .corp-btn-outline span[aria-hidden] {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+html[dir='rtl'] .contact-rail-desktop {
+  right: auto;
+  left: 0;
+}
+
+html[dir='rtl'] .contact-rail-desktop .rounded-l-2xl {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+html[dir='rtl'] .contact-rail-expand {
+  right: auto;
+  left: 100%;
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
+html[dir='rtl'] .dropdown-menu {
+  right: auto;
+  left: 0;
+}
+
 /* Ensure dropdown menu items are clickable */
 .dropdown-menu p,
 .dropdown-menu button {

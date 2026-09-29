@@ -1,5 +1,7 @@
 import { matchPath } from 'react-router-dom'
 import { buildOrganizationNode } from '../oemFaq'
+import i18n from '../i18n'
+import { getLocaleFromPath, isHomePath, stripLocale, withLocale } from '../i18n/locales'
 
 export const SITE = {
   name: 'AppleBear Baby',
@@ -126,31 +128,48 @@ export const SEO_OWNED_PATTERNS = [
 ]
 
 export function isSeoOwnedRoute(pathname) {
-  return SEO_OWNED_PATTERNS.some((pattern) => matchPath({ path: pattern, end: true }, pathname))
+  const stripped = stripLocale(pathname)
+  return SEO_OWNED_PATTERNS.some((pattern) => matchPath({ path: pattern, end: true }, stripped))
 }
 
 export function getRouteSeo(pathname) {
-  if (ROUTE_SEO[pathname]) {
-    return { ...ROUTE_SEO[pathname] }
-  }
+  const locale = getLocaleFromPath(pathname)
+  const stripped = stripLocale(pathname)
+  const t = i18n.getFixedT(locale)
+  let entry = ROUTE_SEO[stripped] ? { ...ROUTE_SEO[stripped] } : null
 
-  for (const { pattern, entry } of PATTERN_SEO) {
-    if (matchPath({ path: pattern, end: true }, pathname)) {
-      return { ...entry }
+  if (!entry) {
+    for (const { pattern, entry: patternEntry } of PATTERN_SEO) {
+      if (matchPath({ path: pattern, end: true }, stripped)) {
+        entry = { ...patternEntry }
+        break
+      }
     }
   }
 
-  return {
-    title: 'Page Not Found',
-    description:
-      'The page you requested could not be found on AppleBear Baby. Browse our wholesale catalog or contact the factory for a quote.',
-    ogType: 'website',
-    robots: 'noindex, follow',
+  if (!entry) {
+    return {
+      title: t('notFound.title'),
+      description: t('notFound.text'),
+      ogType: 'website',
+      robots: 'noindex, follow',
+      locale,
+    }
   }
+
+  if (ROUTE_SEO[stripped]) {
+    const seoTitle = t(`seo.${stripped}.title`, { defaultValue: entry.title })
+    const seoDescription = t(`seo.${stripped}.description`, { defaultValue: entry.description })
+    entry.title = seoTitle
+    entry.description = seoDescription
+  }
+
+  return { ...entry, locale }
 }
 
-export function getHomeJsonLd() {
+export function getHomeJsonLd(locale) {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const collectionPath = withLocale('/collection', locale)
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -159,9 +178,10 @@ export function getHomeJsonLd() {
         '@type': 'WebSite',
         name: SITE.name,
         url: origin || undefined,
+        inLanguage: locale === 'zh' ? 'zh-Hans' : locale,
         potentialAction: {
           '@type': 'SearchAction',
-          target: origin ? `${origin}/collection?search={search_term_string}` : undefined,
+          target: origin ? `${origin}${collectionPath}?search={search_term_string}` : undefined,
           'query-input': 'required name=search_term_string',
         },
       },

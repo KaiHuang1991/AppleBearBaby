@@ -6,6 +6,14 @@ import RelatedPicker from '../components/RelatedPicker'
 import axios from 'axios'
 import { BLOG_CATEGORIES } from '../src/blogCategories'
 import { backendUrl } from '../src/resolveBackendUrl'
+import LanguageTabs from '../components/LanguageTabs'
+
+const emptyBlogTranslations = () => ({
+  zh: { title: '', excerpt: '', content: '' },
+  es: { title: '', excerpt: '', content: '' },
+  ar: { title: '', excerpt: '', content: '' },
+  fr: { title: '', excerpt: '', content: '' },
+})
 
 const productLabel = (product) => {
   const model = product.modelNumber ? ` (${product.modelNumber})` : ''
@@ -30,6 +38,8 @@ const AddBlog = ({ token }) => {
     tags: '',
     isPublished: true
   })
+  const [contentLocale, setContentLocale] = useState('en')
+  const [translations, setTranslations] = useState(emptyBlogTranslations)
   const [productIds, setProductIds] = useState([])
   const [productOptions, setProductOptions] = useState([])
 
@@ -73,6 +83,15 @@ const AddBlog = ({ token }) => {
           tags: blog.tags ? blog.tags.join(', ') : '',
           isPublished: blog.isPublished !== undefined ? blog.isPublished : true
         })
+        const nextTranslations = emptyBlogTranslations()
+        for (const loc of ['zh', 'es', 'ar', 'fr']) {
+          nextTranslations[loc] = {
+            title: blog.translations?.[loc]?.title || '',
+            excerpt: blog.translations?.[loc]?.excerpt || '',
+            content: blog.translations?.[loc]?.content || '',
+          }
+        }
+        setTranslations(nextTranslations)
         setProductIds(
           (blog.productIds || []).map((item) => String(item._id || item)).filter(Boolean)
         )
@@ -146,7 +165,8 @@ const AddBlog = ({ token }) => {
         ...formData,
         author: formData.author.trim() || 'AppleBear Baby',
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        productIds
+        productIds,
+        translations,
       }
 
       const url = id ? `${backendUrl}/api/blogs/${id}` : `${backendUrl}/api/blogs`
@@ -215,6 +235,8 @@ const AddBlog = ({ token }) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Title *
               </label>
+              <LanguageTabs value={contentLocale} onChange={setContentLocale} />
+              {contentLocale === 'en' ? (
               <input
                 type="text"
                 name="title"
@@ -224,6 +246,18 @@ const AddBlog = ({ token }) => {
                 placeholder="Enter blog title"
                 required
               />
+              ) : (
+              <input
+                type="text"
+                value={translations[contentLocale]?.title || ''}
+                onChange={(e) => setTranslations((prev) => ({
+                  ...prev,
+                  [contentLocale]: { ...prev[contentLocale], title: e.target.value },
+                }))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={`${contentLocale.toUpperCase()} title (optional)`}
+              />
+              )}
             </div>
 
             {/* Category and Author */}
@@ -346,8 +380,14 @@ const AddBlog = ({ token }) => {
               </label>
               <textarea
                 name="excerpt"
-                value={formData.excerpt}
-                onChange={handleInputChange}
+                value={contentLocale === 'en' ? formData.excerpt : (translations[contentLocale]?.excerpt || '')}
+                onChange={(e) => {
+                  if (contentLocale === 'en') handleInputChange(e)
+                  else setTranslations((prev) => ({
+                    ...prev,
+                    [contentLocale]: { ...prev[contentLocale], excerpt: e.target.value },
+                  }))
+                }}
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Brief description of the blog post"
@@ -361,8 +401,14 @@ const AddBlog = ({ token }) => {
                 Content *
               </label>
               <RichTextEditor
-                value={formData.content}
-                onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
+                value={contentLocale === 'en' ? formData.content : (translations[contentLocale]?.content || '')}
+                onChange={(value) => {
+                  if (contentLocale === 'en') setFormData(prev => ({ ...prev, content: value }))
+                  else setTranslations((prev) => ({
+                    ...prev,
+                    [contentLocale]: { ...prev[contentLocale], content: value },
+                  }))
+                }}
                 token={token}
                 backendUrl={backendUrl}
                 placeholder="Switch to HTML to paste a full article, or write here and insert product image URLs."

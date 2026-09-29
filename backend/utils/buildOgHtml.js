@@ -1,5 +1,12 @@
 import { buildProductOfferExtras, getCommercePolicyOrigin } from './commercePolicy.js'
 import { PRODUCT_FAQS, buildInlineFaqJsonLd, buildOrganizationNode, faqBodyHtml } from './oemFaq.js'
+import {
+  buildHreflangHtml,
+  dirFor,
+  htmlLang,
+  normalizeLocale,
+  ogLocaleFor,
+} from './locales.js'
 
 const escapeHtml = (value = '') =>
   String(value)
@@ -7,6 +14,25 @@ const escapeHtml = (value = '') =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+
+function localeHeadBits(canonical = '', locale = 'en') {
+  const loc = normalizeLocale(locale)
+  let origin = ''
+  let pathname = '/'
+  try {
+    const url = new URL(canonical)
+    origin = url.origin
+    pathname = url.pathname || '/'
+  } catch {
+    pathname = String(canonical || '/')
+  }
+  return {
+    ogLocale: ogLocaleFor(loc),
+    htmlLang: htmlLang(loc),
+    htmlDir: dirFor(loc),
+    hreflang: buildHreflangHtml(pathname, origin),
+  }
+}
 
 export const stripHtml = (html = '') =>
   String(html)
@@ -177,6 +203,7 @@ export const buildProductSeoFragments = ({
   breadcrumb,
   reviews,
   aggregateRating,
+  locale = 'en',
 }) => {
   const pageTitle = formatPageTitle(title, siteName)
   const safeTitle = escapeHtml(pageTitle)
@@ -219,14 +246,17 @@ export const buildProductSeoFragments = ({
     aggregateRating,
   })
 
+  const locBits = localeHeadBits(canonical, locale)
+  const hreflangBlock = locBits.hreflang ? `\n${locBits.hreflang}` : ''
+
   const headInjection = `
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDescription}" />${keywordsMeta}
-  <link rel="canonical" href="${safeCanonical}" />${lcpPreload}
+  <link rel="canonical" href="${safeCanonical}" />${hreflangBlock}${lcpPreload}
   <meta name="robots" content="index, follow" />
   <meta name="author" content="${safeBrand}" />
   <meta property="og:site_name" content="${safeSite}" />
-  <meta property="og:locale" content="en_US" />
+  <meta property="og:locale" content="${locBits.ogLocale}" />
   <meta property="og:type" content="product" />
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDescription}" />${ogImageMeta}
@@ -261,7 +291,7 @@ export const buildProductSeoFragments = ({
 <script>document.documentElement.classList.add('js')</script>
 `
 
-  return { pageTitle, headInjection, bodyInjection, jsonLd }
+  return { pageTitle, headInjection, bodyInjection, jsonLd, htmlLang: locBits.htmlLang, htmlDir: locBits.htmlDir }
 }
 
 /**
@@ -271,7 +301,12 @@ export const injectSeoIntoHtml = (indexHtml, fragments) => {
   let html = String(indexHtml || '')
   if (!html) return ''
 
-  const { headInjection, bodyInjection } = fragments
+  const { headInjection, bodyInjection, htmlLang: lang, htmlDir } = fragments
+
+  if (lang || htmlDir) {
+    const attrs = ` lang="${lang || 'en'}"${htmlDir ? ` dir="${htmlDir}"` : ''}`
+    html = html.replace(/<html\b[^>]*>/i, `<html${attrs}>`)
+  }
 
   // Drop default title / description so injected tags win
   html = html.replace(/<title>[^<]*<\/title>\s*/i, '')
@@ -321,6 +356,7 @@ export const buildBlogSeoFragments = ({
   dateModified = '',
   fullDescription = '',
   robots = 'index, follow',
+  locale = 'en',
 }) => {
   const pageTitle = formatPageTitle(title, siteName)
   const safeTitle = escapeHtml(pageTitle)
@@ -360,14 +396,17 @@ export const buildBlogSeoFragments = ({
     mainEntityOfPage: canonical,
   }
 
+  const locBits = localeHeadBits(canonical, locale)
+  const hreflangBlock = locBits.hreflang ? `\n${locBits.hreflang}` : ''
+
   const headInjection = `
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDescription}" />${keywordsMeta}
-  <link rel="canonical" href="${safeCanonical}" />${lcpPreload}
+  <link rel="canonical" href="${safeCanonical}" />${hreflangBlock}${lcpPreload}
   <meta name="robots" content="${escapeHtml(robots)}" />
   <meta name="author" content="${escapeHtml(author || brand)}" />
   <meta property="og:site_name" content="${safeSite}" />
-  <meta property="og:locale" content="en_US" />
+  <meta property="og:locale" content="${locBits.ogLocale}" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDescription}" />${ogImageMeta}
@@ -396,13 +435,13 @@ export const buildBlogSeoFragments = ({
 <script>document.documentElement.classList.add('js')</script>
 `
 
-  return { pageTitle, headInjection, bodyInjection, jsonLd }
+  return { pageTitle, headInjection, bodyInjection, jsonLd, htmlLang: locBits.htmlLang, htmlDir: locBits.htmlDir }
 }
 
 export const buildBlogOgHtml = (input) => {
   const fragments = buildBlogSeoFragments(input)
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${fragments.htmlLang || 'en'}" dir="${fragments.htmlDir || 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -431,6 +470,7 @@ export const buildPageSeoFragments = ({
   image = '',
   jsonLd,
   extraBodyHtml = '',
+  locale = 'en',
 }) => {
   const pageTitle = formatPageTitle(title, siteName)
   const safeTitle = escapeHtml(pageTitle)
@@ -453,14 +493,17 @@ export const buildPageSeoFragments = ({
     isPartOf: { '@type': 'WebSite', name: siteName, url: canonical.replace(/\/[^/]*$/, '/') },
   }
 
+  const locBits = localeHeadBits(canonical, locale)
+  const hreflangBlock = locBits.hreflang ? `\n${locBits.hreflang}` : ''
+
   const headInjection = `
   <title>${safeTitle}</title>
   <meta name="description" content="${safeDescription}" />${keywordsMeta}
-  <link rel="canonical" href="${safeCanonical}" />
+  <link rel="canonical" href="${safeCanonical}" />${hreflangBlock}
   <meta name="robots" content="${escapeHtml(robots)}" />
   <meta name="author" content="${escapeHtml(brand)}" />
   <meta property="og:site_name" content="${safeSite}" />
-  <meta property="og:locale" content="en_US" />
+  <meta property="og:locale" content="${locBits.ogLocale}" />
   <meta property="og:type" content="${escapeHtml(ogType)}" />
   <meta property="og:title" content="${safeTitle}" />
   <meta property="og:description" content="${safeDescription}" />${ogImageMeta}
@@ -482,13 +525,13 @@ export const buildPageSeoFragments = ({
 <script>document.documentElement.classList.add('js')</script>
 `
 
-  return { pageTitle, headInjection, bodyInjection, jsonLd: graph }
+  return { pageTitle, headInjection, bodyInjection, jsonLd: graph, htmlLang: locBits.htmlLang, htmlDir: locBits.htmlDir }
 }
 
 export const buildPageOgHtml = (input) => {
   const fragments = buildPageSeoFragments(input)
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${fragments.htmlLang || 'en'}" dir="${fragments.htmlDir || 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -542,7 +585,7 @@ export const buildProductOgHtml = ({
   })
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${fragments.htmlLang || 'en'}" dir="${fragments.htmlDir || 'ltr'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -1,3 +1,5 @@
+import { getCurrentLocale, withLocale } from '../i18n/locales'
+
 /**
  * Canonical storefront path for a blog article (prefers SEO slug).
  */
@@ -11,7 +13,8 @@ export function getBlogUrlKey(blogOrId, slug) {
 
 export function getBlogPath(blogOrId, slug) {
   const key = getBlogUrlKey(blogOrId, slug)
-  return key ? `/blog/${key}` : '/blogs'
+  const path = key ? `/blog/${key}` : '/blogs'
+  return withLocale(path, getCurrentLocale())
 }
 
 export function isMongoObjectId(value) {

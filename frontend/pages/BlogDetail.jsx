@@ -10,6 +10,10 @@ import { toAbsoluteUrl } from '../src/seo/utils';
 import NotFound from './NotFound';
 import { getBlogPath, isMongoObjectId } from '../src/utils/blogPath';
 import { getProductPath } from '../src/utils/productPath';
+import { localizeBlog, localizedField, useShopLocale } from '../src/i18n/localized';
+import { dateLocaleFor } from '../src/i18n/locales';
+import { useTranslation } from 'react-i18next';
+import { LocaleLink } from '../componets/LocaleLink';
 
 const BlogDetail = () => {
   const { blogKey, id } = useParams();
@@ -24,6 +28,9 @@ const BlogDetail = () => {
   const [editContent, setEditContent] = useState('');
   
   const { getBlogComments, addBlogComment, updateBlogComment, deleteBlogComment, token, user, api } = useContext(ShopContext);
+  const { t } = useTranslation();
+  const locale = useShopLocale();
+  const displayBlog = blog ? localizeBlog(blog, locale) : null;
 
   useEffect(() => {
     fetchBlog();
@@ -105,12 +112,12 @@ const BlogDetail = () => {
   };
 
   const computedExcerpt = useMemo(() => {
-    if (!blog || !blog.content) return ''
+    if (!displayBlog || !displayBlog.content) return ''
     const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = blog.content
+    tempDiv.innerHTML = displayBlog.content
     const text = tempDiv.textContent || tempDiv.innerText || ''
     return text.replace(/\s+/g, ' ').trim().slice(0, 180)
-  }, [blog])
+  }, [displayBlog])
 
   const blogJsonLd = useMemo(() => {
     if (!blog) return null
@@ -118,8 +125,8 @@ const BlogDetail = () => {
     return {
       '@context': 'https://schema.org',
       '@type': 'Article',
-      headline: blog.title,
-      description: computedExcerpt || blog.excerpt || '',
+      headline: displayBlog.title,
+      description: computedExcerpt || displayBlog.excerpt || '',
       image: blog.image ? [blog.image] : undefined,
       datePublished: blog.createdAt,
       dateModified: blog.updatedAt || blog.createdAt,
@@ -134,7 +141,7 @@ const BlogDetail = () => {
   }, [blog, computedExcerpt])
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(dateLocaleFor(locale), {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -159,8 +166,8 @@ const BlogDetail = () => {
       <div className="absolute inset-0 cartoon-bg"></div>
       <div className="absolute inset-0 cartoon-hearts opacity-10"></div>
       <Seo
-        title={blog.title}
-        description={computedExcerpt || blog.excerpt}
+        title={displayBlog.title}
+        description={computedExcerpt || displayBlog.excerpt}
         image={blog.image}
         keywords={Array.isArray(blog.tags) ? blog.tags.join(', ') : undefined}
         canonical={toAbsoluteUrl(getBlogPath(blog))}
@@ -174,9 +181,9 @@ const BlogDetail = () => {
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Back Button */}
         <div className="mb-6">
-          <Link to="/blogs" className="text-blue-600 hover:text-blue-700 flex items-center gap-2">
-            ← Back to Blogs
-          </Link>
+          <LocaleLink to="/blogs" className="text-blue-600 hover:text-blue-700 flex items-center gap-2">
+            ← {t('blogs.back')}
+          </LocaleLink>
         </div>
 
         {/* Blog Content */}
@@ -185,7 +192,7 @@ const BlogDetail = () => {
             <div className="aspect-video overflow-hidden">
               <img
                 src={blog.image}
-                alt={blog.title}
+                alt={displayBlog.title}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -199,27 +206,27 @@ const BlogDetail = () => {
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent prata-regular mb-4">
-              {blog.title}
+              {displayBlog.title}
             </h1>
 
             <div className="flex items-center gap-4 mb-6 text-sm text-gray-600">
-              <span>By {blog.author}</span>
+              <span>{t('blogs.by', { author: blog.author })}</span>
               <span>•</span>
               <span>{formatDate(blog.createdAt)}</span>
             </div>
 
             <div 
               className="prose prose-lg max-w-none product-description-detail"
-              dangerouslySetInnerHTML={{ __html: blog.content }}
+              dangerouslySetInnerHTML={{ __html: displayBlog.content }}
             />
-            <BlogShare blog={{ ...blog, excerpt: computedExcerpt || blog.excerpt }} />
+            <BlogShare blog={{ ...displayBlog, excerpt: computedExcerpt || displayBlog.excerpt }} />
           </div>
         </article>
 
         {Array.isArray(blog.productIds) && blog.productIds.some((item) => item && typeof item === 'object') ? (
           <div className="mt-8 bg-white rounded-lg shadow-lg p-8">
             <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-6">
-              Related products
+              {t('blogs.relatedProducts')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {blog.productIds
@@ -233,16 +240,16 @@ const BlogDetail = () => {
                     {product.image?.[0] ? (
                       <img
                         src={product.image[0]}
-                        alt={product.name}
+                        alt={localizedField(product, 'name', locale) || product.name}
                         className="w-16 h-16 object-cover rounded-md flex-shrink-0"
                       />
                     ) : null}
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                      <p className="font-medium text-gray-900 truncate">{localizedField(product, 'name', locale) || product.name}</p>
                       {product.modelNumber ? (
-                        <p className="text-sm text-gray-500">Model {product.modelNumber}</p>
+                        <p className="text-sm text-gray-500">{t('common.model', { code: product.modelNumber })}</p>
                       ) : null}
-                      <span className="text-sm text-blue-600">View product →</span>
+                      <span className="text-sm text-blue-600">{t('blogs.viewProduct')}</span>
                     </div>
                   </Link>
                 ))}
@@ -255,7 +262,7 @@ const BlogDetail = () => {
           <div className="flex items-center gap-2 mb-6">
             <span className="text-2xl">💬</span>
             <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Comments ({comments.length})
+              {t('blogs.comments', { count: comments.length })}
             </h3>
           </div>
           

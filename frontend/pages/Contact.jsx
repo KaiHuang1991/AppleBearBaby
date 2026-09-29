@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ShopContext } from '../context/ShopContext'
 import { toast } from 'react-toastify'
 import { trackInquiryFormConversions } from '../src/googleAds'
@@ -59,6 +60,7 @@ const ContactIcons = {
 
 const Contact = () => {
   const { sendInquiryEmail, token } = useContext(ShopContext)
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -108,12 +110,12 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name.trim() || !form.email.trim()) {
-      toast.error('Please enter your name and email address')
+      toast.error(t('contact.nameEmailRequired'))
       return
     }
     const message = buildMessage()
     if (!message) {
-      toast.error('Please enter a message')
+      toast.error(t('contact.messageRequired'))
       return
     }
 
@@ -128,7 +130,7 @@ const Contact = () => {
       formData.append('attachments', JSON.stringify([]))
 
       const result = await sendInquiryEmail(formData)
-      toast.success('Your request has been sent. We will respond within 24 hours.')
+      toast.success(t('contact.success'))
       if (result?.conversion) {
         trackInquiryFormConversions(result.conversion)
       }
@@ -142,7 +144,7 @@ const Contact = () => {
         message: '',
       })
     } catch (error) {
-      toast.error(error.message || 'Failed to send your request. Please try again.')
+      toast.error(error.message || t('home.quoteFail'))
     } finally {
       setLoading(false)
     }
@@ -157,8 +159,8 @@ const Contact = () => {
         }}
       >
         <div className='page-hero-content'>
-          <h1>Contact Applebear</h1>
-          <p>Reach our wholesale team for pricing, bulk orders, and partnership inquiries.</p>
+          <h1>{t('contact.heroTitle')}</h1>
+          <p>{t('contact.heroText')}</p>
         </div>
       </section>
 
@@ -166,18 +168,16 @@ const Contact = () => {
         <div className='grid lg:grid-cols-2 gap-10 lg:gap-14 items-stretch'>
           <div className='flex flex-col h-full min-h-0'>
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1 auto-rows-fr'>
-              <ContactInfoCard icon={ContactIcons.location} title='Factory Address'>
-                No.9 Hengde Road, Niansanli Street,<br />
-                Yiwu City, Jinhua City,<br />
-                Zhejiang Province, China
+              <ContactInfoCard icon={ContactIcons.location} title={t('contact.location')}>
+                {t('contact.address')}
               </ContactInfoCard>
-              <ContactInfoCard icon={ContactIcons.phone} title='Phone'>
+              <ContactInfoCard icon={ContactIcons.phone} title={t('common.phone')}>
                 <a href={WHATSAPP_URL} target='_blank' rel='noopener noreferrer' className='hover:text-blue-600 transition-colors'>
                   {PHONE_DISPLAY}
                 </a>
-                <span className='block mt-1 text-xs'>(Add on WeChat as well)</span>
+                <span className='block mt-1 text-xs'>{t('contact.wechatHint')}</span>
               </ContactInfoCard>
-              <ContactInfoCard icon={ContactIcons.email} title='Email'>
+              <ContactInfoCard icon={ContactIcons.email} title={t('common.email')}>
                 <a
                   href={emailHref}
                   {...(emailHref.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
@@ -191,9 +191,8 @@ const Contact = () => {
                   +86 15867976938
                 </a>
               </ContactInfoCard>
-              <ContactInfoCard icon={ContactIcons.clock} title='Business Hours'>
-                Monday – Friday:<br />
-                9:00 AM – 6:00 PM (CST)
+              <ContactInfoCard icon={ContactIcons.clock} title={t('contact.hoursTitle')}>
+                {t('contact.hours')}
               </ContactInfoCard>
               <ContactInfoCard icon={ContactIcons.globe} title='Alibaba'>
                 <a href={ALIBABA_URL} target='_blank' rel='noopener noreferrer' className='hover:text-blue-600 transition-colors break-all'>
@@ -209,7 +208,7 @@ const Contact = () => {
                 className='inline-flex items-center justify-center gap-2 rounded-lg bg-sky-100 text-sky-700 font-semibold text-sm py-3.5 px-4 hover:bg-sky-200 transition-colors'
               >
                 {ContactIcons.email}
-                Send Email
+                {t('contact.sendEmail')}
               </a>
               <a
                 href={WHATSAPP_URL}
@@ -218,42 +217,42 @@ const Contact = () => {
                 className='inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white font-semibold text-sm py-3.5 px-4 hover:bg-[#20bd5a] transition-colors'
               >
                 {ContactIcons.whatsapp}
-                WhatsApp Chat
+                {t('contact.whatsappChat')}
               </a>
             </div>
           </div>
 
           <div className='corp-feature-card p-6 sm:p-8 md:p-10 h-full flex flex-col'>
-            <h2 className='text-2xl font-bold text-slate-800 mb-2'>Get a Free Quote</h2>
+            <h2 className='text-2xl font-bold text-slate-800 mb-2'>{t('contact.quoteFormTitle')}</h2>
             <p className='text-slate-500 text-sm mb-8'>
-              Tell us your requirements and we&apos;ll respond within 24 hours
+              {t('contact.quoteFormHint')}
             </p>
 
             <form onSubmit={handleSubmit} className='space-y-5 flex-1 flex flex-col'>
               <div className='grid sm:grid-cols-2 gap-5'>
                 <label className='block'>
                   <span className='text-sm font-medium text-slate-700'>
-                    Your Name <span className='text-red-500'>*</span>
+                    {t('contact.yourName')} <span className='text-red-500'>*</span>
                   </span>
                   <input
                     type='text'
                     required
                     value={form.name}
                     onChange={updateField('name')}
-                    placeholder='John Smith'
+                    placeholder={t('contact.nameExample')}
                     className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                   />
                 </label>
                 <label className='block'>
                   <span className='text-sm font-medium text-slate-700'>
-                    Email Address <span className='text-red-500'>*</span>
+                    {t('contact.emailAddress')} <span className='text-red-500'>*</span>
                   </span>
                   <input
                     type='email'
                     required
                     value={form.email}
                     onChange={updateField('email')}
-                    placeholder='john@company.com'
+                    placeholder={t('contact.emailExample')}
                     className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                   />
                 </label>
@@ -261,22 +260,22 @@ const Contact = () => {
 
               <div className='grid sm:grid-cols-2 gap-5'>
                 <label className='block'>
-                  <span className='text-sm font-medium text-slate-700'>Company Name</span>
+                  <span className='text-sm font-medium text-slate-700'>{t('contact.companyName')}</span>
                   <input
                     type='text'
                     value={form.company}
                     onChange={updateField('company')}
-                    placeholder='Your Company Ltd.'
+                    placeholder={t('contact.companyExample')}
                     className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                   />
                 </label>
                 <label className='block'>
-                  <span className='text-sm font-medium text-slate-700'>Country</span>
+                  <span className='text-sm font-medium text-slate-700'>{t('common.country')}</span>
                   <input
                     type='text'
                     value={form.country}
                     onChange={updateField('country')}
-                    placeholder='United States'
+                    placeholder={t('contact.countryExample')}
                     className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                   />
                 </label>
@@ -284,35 +283,37 @@ const Contact = () => {
 
               <div className='grid sm:grid-cols-2 gap-5'>
                 <label className='block'>
-                  <span className='text-sm font-medium text-slate-700'>Phone</span>
+                  <span className='text-sm font-medium text-slate-700'>{t('common.phone')}</span>
                   <input
                     type='tel'
                     value={form.phone}
                     onChange={updateField('phone')}
-                    placeholder='Phone'
+                    placeholder={t('contact.phonePh')}
                     className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                   />
                 </label>
                 <label className='block'>
-                  <span className='text-sm font-medium text-slate-700'>Preferred Software</span>
+                  <span className='text-sm font-medium text-slate-700'>{t('contact.preferredSoftware')}</span>
                   <select
                     value={form.preferredSoftware}
                     onChange={updateField('preferredSoftware')}
                     className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                   >
                     {PREFERRED_SOFTWARE.map((option) => (
-                      <option key={option} value={option}>{option}</option>
+                      <option key={option} value={option}>
+                        {option === 'Email' ? t('common.email') : option === 'Phone' ? t('common.phone') : option}
+                      </option>
                     ))}
                   </select>
                 </label>
               </div>
 
               <label className='block'>
-                <span className='text-sm font-medium text-slate-700'>Message</span>
+                <span className='text-sm font-medium text-slate-700'>{t('common.message')}</span>
                 <textarea
                   value={form.message}
                   onChange={updateField('message')}
-                  placeholder='Message'
+                  placeholder={t('contact.messagePh')}
                   rows={5}
                   className='mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none resize-y min-h-[120px] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                 />
@@ -326,7 +327,7 @@ const Contact = () => {
                 <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24' aria-hidden='true'>
                   <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 19l9 2-9-18-9 18 9-2zm0 0v-8' />
                 </svg>
-                {loading ? 'Sending...' : 'Send Your Request'}
+                {loading ? t('common.sending') : t('contact.sendRequest')}
               </button>
             </form>
           </div>

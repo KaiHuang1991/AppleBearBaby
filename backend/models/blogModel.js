@@ -21,7 +21,13 @@ const blogSchema = new mongoose.Schema(
     /** Parent-advice / off-brand posts stay live but out of Google and the public list */
     indexable: { type: Boolean, default: true },
     /** Products this guide belongs to — same idea as video.productId, but a guide can cover a family */
-    productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }]
+    productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'product' }],
+    translations: {
+      zh: { title: { type: String, default: '' }, excerpt: { type: String, default: '' }, content: { type: String, default: '' } },
+      es: { title: { type: String, default: '' }, excerpt: { type: String, default: '' }, content: { type: String, default: '' } },
+      ar: { title: { type: String, default: '' }, excerpt: { type: String, default: '' }, content: { type: String, default: '' } },
+      fr: { title: { type: String, default: '' }, excerpt: { type: String, default: '' }, content: { type: String, default: '' } },
+    },
   },
   { timestamps: true }
 );

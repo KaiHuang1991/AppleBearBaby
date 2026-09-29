@@ -3,6 +3,8 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { createHttpClient, createShopApi } from "@applebear/api";
 import { resolveBackendUrl } from "../src/resolveBackendUrl.js";
+import { getCurrentLocale, withLocale } from "../src/i18n/locales";
+import { getProductMoq, clampQuantityToMoq } from "../src/utils/productMoq";
 
 export const ShopContext = createContext();
 
@@ -102,7 +104,14 @@ const ShopContextProvider = (props) => {
     }
   }
 
-  const navigate = useNavigate()
+  const rawNavigate = useNavigate()
+  const navigate = useCallback((to, opts) => {
+    if (typeof to === 'number') return rawNavigate(to, opts)
+    if (typeof to === 'string' && to.startsWith('/') && !to.startsWith('//')) {
+      return rawNavigate(withLocale(to, getCurrentLocale()), opts)
+    }
+    return rawNavigate(to, opts)
+  }, [rawNavigate])
 
   /** Apply login response (email or OAuth). Cookie holds the session; token state is boolean. */
   const completeLogin = (data, { redirectTo = '/' } = {}) => {
@@ -163,7 +172,9 @@ const ShopContextProvider = (props) => {
     }
 
     const normalizedSize = size || 'Default'
-    const qty = Math.max(1, parseInt(quantity, 10) || 1)
+    const product = products.find((p) => String(p._id) === String(itemId))
+    const moq = getProductMoq(product)
+    const qty = clampQuantityToMoq(quantity, moq)
 
     try {
       const response = await api.cartAdd(
@@ -342,8 +353,8 @@ const ShopContextProvider = (props) => {
     }
   }
 
-  const fetchCategories = useCallback(async () => {
-    setLoadingCategories(true)
+  const fetchCategories = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoadingCategories(true)
     try {
       const response = await api.categoriesList()
       if (response.data.success) {
@@ -377,14 +388,24 @@ const ShopContextProvider = (props) => {
       }
     } catch (error) {
       console.error('Failed to load categories:', error)
-      toast.error(error.response?.data?.message || error.message || 'Failed to load categories')
+      if (!silent) toast.error(error.response?.data?.message || error.message || 'Failed to load categories')
     } finally {
-      setLoadingCategories(false)
+      if (!silent) setLoadingCategories(false)
     }
   }, [api])
 
   useEffect(() => {
     fetchCategories()
+    const refresh = () => fetchCategories({ silent: true })
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [fetchCategories])
 
   const getCategoryPathByIds = (categoryId, subCategoryId, thirdCategoryId) => {
@@ -403,6 +424,7 @@ const ShopContextProvider = (props) => {
         id: currentId,
         name: node.name,
         parent: node.parent || null,
+        translations: node.translations,
       })
 
       visited.add(currentId)
@@ -696,7 +718,10 @@ const ShopContextProvider = (props) => {
     }
 
     try {
-      const response = await api.cartUpdate({ itemId, size, quantity })
+      const product = products.find((p) => String(p._id) === String(itemId))
+      const moq = getProductMoq(product)
+      const qty = clampQuantityToMoq(quantity, moq, { allowZero: true })
+      const response = await api.cartUpdate({ itemId, size, quantity: qty })
       if (response.data.success) {
         setCartItems(sanitizeCartData(response.data.newCartData))
       }

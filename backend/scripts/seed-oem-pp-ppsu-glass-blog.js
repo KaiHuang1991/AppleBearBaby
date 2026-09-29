@@ -7,6 +7,30 @@ import mongoose from 'mongoose'
 import connectDB from '../config/mongodb.js'
 import blogModel from '../models/blogModel.js'
 import { invalidateSitemapCache } from '../utils/sitemapService.js'
+import { OEM_BLOG_I18N } from './oem-blog-i18n.js'
+import { PREFIX_LOCALES, withLocale } from '../utils/locales.js'
+
+function localizeHtml(html, locale) {
+  return String(html || '')
+    .replace(/href="https:\/\/applebearbaby\.net(\/[^"]*)"/g, (_, path) => `href="https://applebearbaby.net${withLocale(path, locale)}"`)
+    .replace(/href="(\/[^"]+)"/g, (_, path) => `href="${withLocale(path, locale)}"`)
+}
+
+function translationsFor(slug) {
+  const block = OEM_BLOG_I18N[slug]
+  if (!block) return undefined
+  const out = {}
+  for (const loc of PREFIX_LOCALES) {
+    const entry = block[loc]
+    if (!entry) continue
+    out[loc] = {
+      title: entry.title || '',
+      excerpt: entry.excerpt || '',
+      content: localizeHtml(entry.content, loc),
+    }
+  }
+  return out
+}
 
 const SLUG = 'pp-vs-ppsu-vs-glass-baby-bottles-which-material-to-specify-in-an-oem-rfq'
 const title = 'PP vs Glass Baby Bottles: Which Material to Specify in an OEM RFQ'
@@ -104,6 +128,7 @@ async function main() {
     readTime: 8,
     isPublished: true,
     indexable: true,
+    translations: translationsFor(SLUG),
     productIds: [
       new mongoose.Types.ObjectId('6a1e5b4cae4ecdcde9157694'),
       new mongoose.Types.ObjectId('6a1e62a8ae4ecdcde915777a'),

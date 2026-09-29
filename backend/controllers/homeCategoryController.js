@@ -21,6 +21,7 @@ function serializeTile(tile, categories, counts, { includeInactiveMeta = false }
     categoryId,
     categoryName: category.name,
     title: String(tile.title || '').trim() || category.name,
+    translations: category.translations || {},
     imageUrl: tile.imageUrl || '',
     slug: getCategorySlug(category, categories),
     order: tile.order || 0,

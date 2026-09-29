@@ -3,11 +3,14 @@ import { ShopContext } from '../context/ShopContext'
 import { assets } from '../src/assets/assets'
 import ProductItem from '../componets/ProductItem'
 import Seo from '../componets/Seo'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { getCategoryAncestors, getCategoryLandingSeo, getCategorySlug, resolveCategoryIdFromSlug, slugifyCategory } from '../src/utils/categorySlug'
 import { toAbsoluteUrl } from '../src/seo/utils'
 import NotFound from './NotFound'
 import { productMatchesSearch } from '../src/utils/productSearch'
+import { localizedField, useShopLocale } from '../src/i18n/localized'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from '../componets/LocaleLink'
 
 const buildCollectionUrl = ({ slug, search } = {}) => {
   const params = new URLSearchParams(search || '')
@@ -20,9 +23,10 @@ const buildCollectionUrl = ({ slug, search } = {}) => {
 }
 
 const Collection = () => {
-  const { products, search, setSearch, showSearch, setShowSearch, categoryTree, loadingCategories, loadingProducts, getProductCategoryIds, categories } = useContext(ShopContext)
+  const { products, search, setSearch, showSearch, setShowSearch, categoryTree, loadingCategories, loadingProducts, getProductCategoryIds, categories, navigate } = useContext(ShopContext)
+  const { t } = useTranslation()
+  const locale = useShopLocale()
   const location = useLocation()
-  const navigate = useNavigate()
   const { categorySlug } = useParams()
   const searchInputRef = useRef(null)
   const [showFilter, setShowFilter] = useState(false)
@@ -79,10 +83,10 @@ const Collection = () => {
   const activeCategoryLabel = useMemo(() => {
     if (!activeCategory) return 'CATALOG'
     const names = getCategoryAncestors(activeCategory, categories)
-      .map((cat) => String(cat?.name || '').trim())
+      .map((cat) => String(localizedField(cat, 'name', locale) || cat?.name || '').trim())
       .filter(Boolean)
-    return (names.length ? names.join(' / ') : String(activeCategory.name)).toUpperCase()
-  }, [activeCategory, categories])
+    return (names.length ? names.join(' / ') : String(localizedField(activeCategory, 'name', locale) || activeCategory.name)).toUpperCase()
+  }, [activeCategory, categories, locale])
 
   const categoryHasSkus = useMemo(() => {
     if (!activeCategory) return false
@@ -200,7 +204,7 @@ const Collection = () => {
               }}
               className={`flex-1 text-left text-sm font-medium transition-colors truncate ${isSelected ? 'text-blue-600 underline' : 'text-gray-700 hover:text-blue-500'}`}
             >
-              {node?.name}
+              {localizedField(node, 'name', locale) || node?.name}
             </button>
           </div>
           {hasChildren && isExpanded && (
@@ -355,12 +359,12 @@ const Collection = () => {
       {/*filter options*/}
       <div className='w-full lg:w-auto lg:min-w-40 lg:max-w-[14rem] shrink-0'>
         <p onClick = {()=>setShowFilter(!showFilter)} className='my-2 text-xl flex items-center cursor-pointer gap-2 text-blue-600 lg:cursor-default'>
-          Filters
+          {t('collection.filters')}
           <img className={`h-3 lg:hidden ${showFilter?'rotate-90':''}`} src={assets.dropdown_icon} alt="" />
         </p>
         {/* search input */}
         <div className={`cartoon-card px-4 py-4 ${showFilter ? '' : 'hidden'} lg:block`}>
-          <label className='text-xs font-semibold text-blue-600 uppercase tracking-wide'>Search Products</label>
+          <label className='text-xs font-semibold text-blue-600 uppercase tracking-wide'>{t('collection.search')}</label>
           <div className='mt-2 flex items-center gap-2 rounded-full border border-blue-200 bg-white pl-3 pr-2 py-2 shadow-sm focus-within:border-blue-500 transition-colors min-w-0'>
             <img src={assets.search_icon} alt='Search' className='w-4 h-4 opacity-70 shrink-0'/>
             <input
@@ -368,28 +372,28 @@ const Collection = () => {
               type='text'
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder='Name, model, specs'
+              placeholder={t('collection.searchPh')}
               className='min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-gray-400 placeholder:truncate'
             />
           </div>
         </div>
         {/*category filter*/}
         <div className={`cartoon-card pl-5 pr-4 py-3 mt-6 ${showFilter ? '' : 'hidden'} lg:block`}>
-          <p className='mb-3 text-sm font-medium text-blue-600'>CATEGORIES</p>
+          <p className='mb-3 text-sm font-medium text-blue-600'>{t('collection.categories')}</p>
           <button
             type='button'
             onClick={() => navigate(buildCollectionUrl({ search: location.search }))}
             className={`mb-2 text-xs font-semibold uppercase tracking-[0.2em] transition-colors ${selectedCategoryIds.length === 0 ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'}`}
           >
-            View All
+            {t('collection.viewAll')}
           </button>
           <div className='flex flex-col gap-2 text-sm font-light text-gray-700'>
             {loadingCategories ? (
-              <span className='text-xs text-gray-500'>Loading categories...</span>
+              <span className='text-xs text-gray-500'>{t('collection.loadingCats')}</span>
             ) : categoryTree && categoryTree.length > 0 ? (
               renderCategoryTree(categoryTree)
             ) : (
-              <span className='text-xs text-gray-500'>No categories available.</span>
+              <span className='text-xs text-gray-500'>{t('collection.noCats')}</span>
             )}
           </div>
         </div>
@@ -398,7 +402,7 @@ const Collection = () => {
       <div className='flex-1 min-w-0 w-full'>
         <div className='flex flex-wrap items-center justify-between gap-3 text-base lg:text-2xl mb-4'>
           <h1 className='corp-section-title text-base lg:text-2xl mb-0'>
-            WHOLESALE
+            {t('collection.title')}
             <span className='text-blue-600'>
               {' '}
               {activeCategoryLabel}
@@ -406,30 +410,29 @@ const Collection = () => {
           </h1>
           {/*product sort*/}
           <select onChange={(e)=>setSortType(e.target.value)} className='cartoon-border text-sm px-2 py-1.5 bg-white max-w-full shrink-0'>
-            <option value={"relevent"}>Sort By: Relevent</option>
-            <option value="low-high">Sort By: Low-High</option>
-            <option value="high-low">Sort By: High-Low</option>
+            <option value={"relevent"}>{t('collection.sortRelevant')}</option>
+            <option value="low-high">{t('collection.sortLow')}</option>
+            <option value="high-low">{t('collection.sortHigh')}</option>
           </select>
         </div>
          {/*map products*/}
          {isComingSoon ? (
           <div className='cartoon-card px-6 py-12 text-center'>
-            <p className='text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 mb-3'>Coming soon</p>
-            <h2 className='text-2xl font-semibold text-slate-800 mb-3'>{activeCategory?.name}</h2>
+            <p className='text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 mb-3'>{t('common.comingSoon')}</p>
+            <h2 className='text-2xl font-semibold text-slate-800 mb-3'>{localizedField(activeCategory, 'name', locale) || activeCategory?.name}</h2>
             <p className='text-slate-600 max-w-xl mx-auto mb-8'>
-              This OEM line is in the catalog and will be listed here once wholesale SKUs are ready.
-              Request a factory quote if you want samples or to be notified when stock is available.
+              {t('collection.comingSoonBody')}
             </p>
-            <Link to='/contact' className='corp-btn px-6 py-3 inline-flex'>
-              Request a quote
-            </Link>
+            <LocaleLink to='/contact' className='corp-btn px-6 py-3 inline-flex'>
+              {t('common.requestQuote')}
+            </LocaleLink>
           </div>
          ) : (
          <>
          <div className='catalog-product-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-10 gap-y-6 lg:gap-y-15 w-full min-w-0 max-w-full sm:max-w-none lg:max-w-none mx-auto sm:mx-0 box-border'>
           {
             currentProducts.map((product,productIndex)=>(
-              <ProductItem key={productIndex} id={product._id} slug={product.slug} image={product.image} name={product.name} price={product.price} modelNumber={product.modelNumber} />
+              <ProductItem key={productIndex} id={product._id} slug={product.slug} image={product.image} name={localizedField(product, 'name', locale) || product.name} price={product.price} modelNumber={product.modelNumber} />
             ))
           }
         </div>
@@ -437,8 +440,8 @@ const Collection = () => {
         {/* Results info */}
         <div className='text-center text-sm text-gray-600 mt-8 mb-3 px-1'>
           {filterProducts.length === 0
-            ? (loadingProducts || loadingCategories ? 'Loading products...' : 'No products match these filters.')
-            : `Showing ${startIndex + 1} - ${Math.min(endIndex, filterProducts.length)} of ${filterProducts.length} products`}
+            ? (loadingProducts || loadingCategories ? t('common.loading') : t('common.noProducts'))
+            : t('common.showing', { from: startIndex + 1, to: Math.min(endIndex, filterProducts.length), count: filterProducts.length })}
         </div>
 
         {/* Pagination */}
@@ -452,10 +455,10 @@ const Collection = () => {
                 disabled={currentPage === 1}
                 className='px-3 py-2 text-sm rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
               >
-                Previous
+                {t('common.previous')}
               </button>
               <span className='text-sm font-medium text-gray-600 px-1 shrink-0'>
-                Page {currentPage} / {totalPages}
+                {t('common.pageOf', { current: currentPage, total: totalPages })}
               </span>
               <button
                 type='button'
@@ -463,7 +466,7 @@ const Collection = () => {
                 disabled={currentPage === totalPages}
                 className='px-3 py-2 text-sm rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
 
@@ -475,7 +478,7 @@ const Collection = () => {
                 disabled={currentPage === 1}
                 className='px-4 py-2 rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
               >
-                Previous
+                {t('common.previous')}
               </button>
               <div className='flex flex-wrap justify-center gap-2'>
                 {[...Array(totalPages)].map((_, index) => {
@@ -512,7 +515,7 @@ const Collection = () => {
                 disabled={currentPage === totalPages}
                 className='px-4 py-2 rounded-md bg-white border border-blue-300 text-blue-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-50 transition-colors shrink-0'
               >
-                Next
+                {t('common.next')}
               </button>
             </div>
           </>

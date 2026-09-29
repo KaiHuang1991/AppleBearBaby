@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from './LocaleLink'
 import { homeImages, factoryCarousel } from '../src/assets/galleryAssets'
 import { productCategories } from '../src/assets/categoryAssets'
 import { certificationItems } from '../src/assets/certificationAssets'
@@ -135,7 +136,11 @@ const fallbackImageFor = (tile) => {
 
 const HomeLanding = () => {
   const { api } = useContext(ShopContext)
+  const { t } = useTranslation()
   const [categoryTiles, setCategoryTiles] = useState(productCategories)
+  const whyItems = t('home.why', { returnObjects: true })
+  const processItems = t('home.processSteps', { returnObjects: true })
+  const certTitles = t('home.certsList', { returnObjects: true })
 
   useEffect(() => {
     let cancelled = false
@@ -150,6 +155,7 @@ const HomeLanding = () => {
           slug: tile.slug,
           image: tile.imageUrl || fallbackImageFor(tile),
           comingSoon: Boolean(tile.comingSoon),
+          translations: tile.translations,
         })))
       } catch (error) {
         console.error('Failed to load homepage categories:', error)
@@ -166,28 +172,28 @@ const HomeLanding = () => {
       <HomeHeroSlider />
 
       <HomeSection variant='stats' innerClassName='home-stat-grid'>
-        <AnimatedMetric value='20+' label='Years Experience' />
-        <AnimatedMetric value='30+' label='Export Countries' />
-        <AnimatedMetric value='20+' label='Product Lines' />
+        <AnimatedMetric value='20+' label={t('home.years')} />
+        <AnimatedMetric value='30+' label={t('home.countries')} />
+        <AnimatedMetric value='20+' label={t('home.lines')} />
       </HomeSection>
 
       <HomeSection variant='categories'>
         <Reveal>
           <SectionHeader
             index={1}
-            eyebrow='Product Range'
-            title='Our Product'
-            highlight='Categories'
-            subtitle='Premium baby feeding and care products for wholesale and OEM partners.'
+            eyebrow={t('home.rangeEyebrow')}
+            title={t('home.rangeTitle')}
+            highlight={t('home.rangeHighlight')}
+            subtitle={t('home.rangeSubtitle')}
           />
         </Reveal>
         <HomeCategorySlider items={categoryTiles} />
         <Reveal delay={120}>
           <div className='text-center mt-10'>
-            <Link to='/collection' className='corp-btn-outline px-8'>
-              View All Products
+            <LocaleLink to='/collection' className='corp-btn-outline px-8'>
+              {t('common.viewAll')}
               <span aria-hidden='true'>→</span>
-            </Link>
+            </LocaleLink>
           </div>
         </Reveal>
       </HomeSection>
@@ -196,17 +202,17 @@ const HomeLanding = () => {
         <Reveal>
           <SectionHeader
             index={2}
-            eyebrow='Why Partner With Us'
-            title='Why Choose'
-            highlight='Applebear'
-            subtitle='One-stop baby product manufacturing with professional OEM/ODM experience.'
+            eyebrow={t('home.whyEyebrow')}
+            title={t('home.whyTitle')}
+            highlight={t('home.whyHighlight')}
+            subtitle={t('home.whySubtitle')}
             dark
           />
         </Reveal>
         <div className='home-why-grid'>
-          {WHY_CHOOSE.map((item, i) => (
+          {(Array.isArray(whyItems) ? whyItems : WHY_CHOOSE).map((item, i) => (
             <Reveal key={item.title} delay={i * 90}>
-              <WhyChooseCard icon={item.icon} title={item.title} description={item.description} />
+              <WhyChooseCard icon={WHY_CHOOSE[i]?.icon} title={item.title} description={item.description} />
             </Reveal>
           ))}
         </div>
@@ -217,23 +223,23 @@ const HomeLanding = () => {
           <Reveal className='relative home-manufacturing-visual'>
             <HomeImage
               src={homeImages.manufacturing}
-              alt='Applebear injection molding production line'
+              alt={t('home.mfgAlt')}
               className='corp-image w-full aspect-[4/3] object-cover'
               wrapperClassName='w-full aspect-[4/3]'
             />
             <div className='home-manufacturing-badge'>
-              <p className='text-xs text-slate-500 uppercase tracking-wide'>Est. 1998</p>
-              <p className='font-bold text-slate-800'>20+ Years Manufacturing</p>
+              <p className='text-xs text-slate-500 uppercase tracking-wide'>{t('home.est')}</p>
+              <p className='font-bold text-slate-800'>{t('home.yearsMfg')}</p>
             </div>
           </Reveal>
           <div>
             <Reveal>
               <SectionHeader
                 index={3}
-                eyebrow='Capabilities'
-                title='World-Class Manufacturing'
-                highlight='Capabilities'
-                subtitle='Our facility is equipped with advanced injection molding machines, automated assembly lines, and dedicated quality control — every product manufactured to international safety standards.'
+                eyebrow={t('home.capEyebrow')}
+                title={t('home.capTitle')}
+                highlight={t('home.capHighlight')}
+                subtitle={t('home.capSubtitle')}
                 align='left'
               />
             </Reveal>
@@ -242,7 +248,7 @@ const HomeLanding = () => {
                 <Reveal key={item.label} delay={i * 80}>
                   <AnimatedMetric
                     value={item.value}
-                    label={item.label}
+                    label={t(`home.metrics.${['area', 'lines', 'workers', 'output'][i]}`, { defaultValue: item.label })}
                     wrapperClassName='home-metric-chip'
                     valueClassName='home-metric-value'
                     labelClassName='home-metric-label'
@@ -251,10 +257,10 @@ const HomeLanding = () => {
               ))}
             </div>
             <Reveal delay={200}>
-              <Link to='/about' className='corp-btn'>
-                Learn About Our Factory
+              <LocaleLink to='/about' className='corp-btn'>
+                {t('home.aboutFactory')}
                 <span aria-hidden='true'>→</span>
-              </Link>
+              </LocaleLink>
             </Reveal>
           </div>
         </div>
@@ -264,10 +270,10 @@ const HomeLanding = () => {
         <Reveal>
           <SectionHeader
             index={4}
-            eyebrow='Factory Tour'
-            title='Inside Our'
-            highlight='Facility'
-            subtitle='Injection molding lines, automated assembly equipment, blow-molding machines, and clean-room standards — see how we manufacture at scale.'
+            eyebrow={t('home.tourEyebrow')}
+            title={t('home.tourTitle')}
+            highlight={t('home.tourHighlight')}
+            subtitle={t('home.tourSubtitle')}
             dark
           />
         </Reveal>
@@ -277,7 +283,7 @@ const HomeLanding = () => {
               <div className='home-factory-photo'>
                 <HomeImage
                   src={src}
-                  alt={`Applebear production equipment ${idx + 1}`}
+                  alt={t('home.factoryPhotoAlt', { n: idx + 1 })}
                   className='w-full h-full object-cover'
                   wrapperClassName='w-full h-full'
                 />
@@ -293,23 +299,26 @@ const HomeLanding = () => {
         <Reveal>
           <SectionHeader
             index={6}
-            eyebrow='How We Work'
-            title='Our Production'
-            highlight='Process'
-            subtitle='Every product goes through our standardized 6-step manufacturing process to ensure consistent quality and safety.'
+            eyebrow={t('home.processEyebrow')}
+            title={t('home.processTitle')}
+            highlight={t('home.processHighlight')}
+            subtitle={t('home.processSubtitle')}
           />
         </Reveal>
         <div className='home-process-grid'>
-          {PROCESS_STEPS.map((item, i) => (
+          {PROCESS_STEPS.map((item, i) => {
+            const copy = Array.isArray(processItems) ? processItems[i] : item
+            return (
             <Reveal key={item.step} delay={i * 90}>
               <div className='home-process-card' data-step={item.step}>
                 <span className='home-process-num' aria-hidden='true'>{item.step}</span>
-                <p className='home-process-label'>STEP {item.step}</p>
-                <h3 className='font-semibold text-slate-800 text-sm mb-2'>{item.title}</h3>
-                <p className='text-xs text-slate-500 leading-relaxed'>{item.description}</p>
+                <p className='home-process-label'>{t('home.processStep', { n: item.step })}</p>
+                <h3 className='font-semibold text-slate-800 text-sm mb-2'>{copy?.title || item.title}</h3>
+                <p className='text-xs text-slate-500 leading-relaxed'>{copy?.description || item.description}</p>
               </div>
             </Reveal>
-          ))}
+            )
+          })}
         </div>
       </HomeSection>
 
@@ -317,16 +326,19 @@ const HomeLanding = () => {
         <Reveal>
           <SectionHeader
             index={7}
-            eyebrow='Quality Assurance'
-            title='International'
-            highlight='Certifications'
-            subtitle='Our products meet the highest international safety standards for buyers and end consumers worldwide.'
+            eyebrow={t('home.certsEyebrow')}
+            title={t('home.certsTitle')}
+            highlight={t('home.certsHighlight')}
+            subtitle={t('home.certsSubtitle')}
           />
         </Reveal>
         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6'>
           {certificationItems.map((item, i) => (
             <Reveal key={item.title} delay={i * 80}>
-              <CertificationCard {...item} />
+              <CertificationCard
+                {...item}
+                title={Array.isArray(certTitles) && certTitles[i] ? certTitles[i] : item.title}
+              />
             </Reveal>
           ))}
         </div>

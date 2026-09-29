@@ -1,16 +1,9 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LocaleLink } from '../componets/LocaleLink'
 import YouTubeEmbed from '../componets/YouTubeEmbed'
 import { ShopContext } from '../context/ShopContext'
 import { getProductPath } from '../src/utils/productPath'
-
-const CATEGORY_LABELS = {
-  'product-demo': 'Product demo',
-  factory: 'Factory',
-  tutorial: 'Tutorial',
-  wholesale: 'Wholesale',
-  other: 'Other',
-}
 
 const SIDEBAR_ITEMS = [
   { value: '', label: 'Home', icon: 'home' },
@@ -27,26 +20,27 @@ const CHANNEL_AVATAR =
 
 const VIDEOS_PER_PAGE = 12
 
-function formatViews(count) {
-  if (!count) return '0 views'
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M views`
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K views`
-  return `${count} views`
+function formatViews(count, t) {
+  if (!count) return t('videos.views', { count: 0 })
+  let display = count
+  if (count >= 1_000_000) display = `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+  else if (count >= 1_000) display = `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+  return t('videos.views', { count: display })
 }
 
-function formatRelativeTime(dateString) {
+function formatRelativeTime(dateString, t) {
   if (!dateString) return ''
   const diffMs = Date.now() - new Date(dateString).getTime()
   const minutes = Math.floor(diffMs / 60_000)
-  if (minutes < 60) return `${Math.max(1, minutes)} minutes ago`
+  if (minutes < 60) return t('videos.minutesAgo', { count: Math.max(1, minutes) })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  if (hours < 24) return t('videos.hoursAgo', { count: hours })
   const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`
+  if (days < 30) return t('videos.daysAgo', { count: days })
   const months = Math.floor(days / 30)
-  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`
+  if (months < 12) return t('videos.monthsAgo', { count: months })
   const years = Math.floor(months / 12)
-  return `${years} year${years === 1 ? '' : 's'} ago`
+  return t('videos.yearsAgo', { count: years })
 }
 
 function SidebarIcon({ type }) {
@@ -93,6 +87,7 @@ function SidebarIcon({ type }) {
 
 const Videos = () => {
   const { api } = useContext(ShopContext)
+  const { t } = useTranslation()
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('')
@@ -114,10 +109,11 @@ const Videos = () => {
   }, [searchTitle, searchModel])
 
   const searchModeLabel = searchTitle && searchModel
-    ? 'Title & model'
+    ? t('videos.titleModel')
     : searchModel
-      ? 'Product model'
-      : 'Title'
+      ? t('videos.productModel')
+      : t('videos.titleOnly')
+  const catLabel = (value) => t(`videos.cats.${value || 'home'}`)
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -239,7 +235,7 @@ const Videos = () => {
                   }`}
                 >
                   <SidebarIcon type={item.icon} />
-                  <span>{item.label}</span>
+                  <span>{catLabel(item.value)}</span>
                 </button>
               )
             })}
@@ -248,23 +244,23 @@ const Videos = () => {
           <hr className="my-3 border-[#e5e5e5]" />
 
           <div className="px-3 py-1">
-            <p className="text-base font-semibold text-[#0f0f0f] mb-2">Explore</p>
+            <p className="text-base font-semibold text-[#0f0f0f] mb-2">{t('videos.explore')}</p>
             <div className="flex flex-col gap-1 text-sm">
-              <Link to="/collection" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
-                Wholesale catalog
-              </Link>
-              <Link to="/about" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
-                About us
-              </Link>
-              <Link to="/contact" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
-                Contact
-              </Link>
+              <LocaleLink to="/collection" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
+                {t('videos.catalog')}
+              </LocaleLink>
+              <LocaleLink to="/about" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
+                {t('videos.about')}
+              </LocaleLink>
+              <LocaleLink to="/contact" className="py-2 px-0 text-[#606060] hover:text-[#0f0f0f] transition-colors">
+                {t('videos.contact')}
+              </LocaleLink>
             </div>
           </div>
         </aside>
 
         <main className="flex-1 min-w-0">
-          <h1 className="sr-only">Product Videos</h1>
+          <h1 className="sr-only">{t('videos.title')}</h1>
           <nav className="lg:hidden px-4 pb-4 flex flex-col gap-0.5 border-b border-[#e5e5e5] mb-4" aria-label="Video categories">
             {SIDEBAR_ITEMS.map((item) => {
               const active = category === item.value
@@ -280,7 +276,7 @@ const Videos = () => {
                   }`}
                 >
                   <SidebarIcon type={item.icon} />
-                  <span>{item.label}</span>
+                  <span>{catLabel(item.value)}</span>
                 </button>
               )
             })}
@@ -295,18 +291,18 @@ const Videos = () => {
               }}
             >
               <label className="relative flex-1 min-w-0">
-                <span className="sr-only">Search videos</span>
+                <span className="sr-only">{t('videos.searchVideos')}</span>
                 <input
                   type="search"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={searchModel && !searchTitle ? 'Search by product model' : 'Search videos'}
+                  placeholder={searchModel && !searchTitle ? t('videos.searchModel') : t('videos.searchVideos')}
                   className="w-full h-11 rounded-full border border-[#ccc] bg-[#f8f8f8] pl-4 pr-12 text-sm text-[#0f0f0f] placeholder:text-[#909090] outline-none focus:border-[#1c62b9] focus:bg-white"
                 />
                 <button
                   type="submit"
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full text-[#0f0f0f] hover:bg-[#e5e5e5] transition-colors"
-                  aria-label="Search"
+                  aria-label={t('videos.searchVideos')}
                 >
                   <svg className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="11" cy="11" r="7" />
@@ -330,7 +326,7 @@ const Videos = () => {
                 </button>
                 {filtersOpen ? (
                   <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#e5e5e5] bg-white shadow-lg p-3 z-30">
-                    <p className="text-xs font-semibold text-[#606060] uppercase tracking-wide mb-2">Search in</p>
+                    <p className="text-xs font-semibold text-[#606060] uppercase tracking-wide mb-2">{t('videos.searchIn')}</p>
                     <label className="flex items-center gap-2 py-1.5 text-sm text-[#0f0f0f] cursor-pointer">
                       <input
                         type="checkbox"
@@ -338,7 +334,7 @@ const Videos = () => {
                         onChange={() => toggleSearchField('title')}
                         className="w-4 h-4 rounded border-[#ccc] text-blue-600 focus:ring-blue-500"
                       />
-                      Title
+                      {t('videos.titleOnly')}
                     </label>
                     <label className="flex items-center gap-2 py-1.5 text-sm text-[#0f0f0f] cursor-pointer">
                       <input
@@ -347,7 +343,7 @@ const Videos = () => {
                         onChange={() => toggleSearchField('model')}
                         className="w-4 h-4 rounded border-[#ccc] text-blue-600 focus:ring-blue-500"
                       />
-                      Product model
+                      {t('videos.productModel')}
                     </label>
                   </div>
                 ) : null}
@@ -371,7 +367,7 @@ const Videos = () => {
               </div>
             ) : videos.length === 0 ? (
               <p className="text-center text-[#606060] py-16">
-                {submittedQuery ? 'No videos match your search.' : 'No videos published yet.'}
+                {submittedQuery ? t('videos.noMatch') : t('videos.noneYet')}
               </p>
             ) : (
               <>
@@ -390,7 +386,7 @@ const Videos = () => {
                             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                           />
                           <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-xs font-medium text-white bg-black/80 leading-none">
-                            {CATEGORY_LABELS[video.category] || 'Video'}
+                            {t(`videos.cats.${video.category}`, { defaultValue: t('videos.video') })}
                           </span>
                         </div>
 
@@ -406,12 +402,12 @@ const Videos = () => {
                             </h3>
                             {video.productId?.modelNumber ? (
                               <p className="text-xs text-[#606060] mt-1 truncate">
-                                Model {video.productId.modelNumber}
+                                {t('common.model', { code: video.productId.modelNumber })}
                               </p>
                             ) : null}
                             <p className="text-sm text-[#606060] mt-1 truncate">{CHANNEL_NAME}</p>
                             <p className="text-sm text-[#606060] truncate">
-                              {formatViews(video.views)} • {formatRelativeTime(video.youtubePublishedAt || video.createdAt)}
+                              {formatViews(video.views, t)} • {formatRelativeTime(video.youtubePublishedAt || video.createdAt, t)}
                             </p>
                           </div>
                         </div>
@@ -465,7 +461,7 @@ const Videos = () => {
               type="button"
               onClick={() => setActiveVideo(null)}
               className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
-              aria-label="Close video"
+              aria-label={t('videos.close')}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -487,8 +483,8 @@ const Videos = () => {
                 <div className="min-w-0">
                   <h2 className="text-lg font-semibold text-[#0f0f0f] leading-snug">{activeVideo.title}</h2>
                   <p className="text-sm text-[#606060] mt-1">
-                    {CHANNEL_NAME} • {formatViews(activeVideo.views)} •{' '}
-                    {formatRelativeTime(activeVideo.youtubePublishedAt || activeVideo.createdAt)}
+                    {CHANNEL_NAME} • {formatViews(activeVideo.views, t)} •{' '}
+                    {formatRelativeTime(activeVideo.youtubePublishedAt || activeVideo.createdAt, t)}
                   </p>
                   {activeVideo.description ? (
                     <p className="text-sm text-[#0f0f0f] mt-3 leading-relaxed whitespace-pre-line">
@@ -496,15 +492,15 @@ const Videos = () => {
                     </p>
                   ) : null}
                   {activeVideo.productId?._id || activeVideo.productId ? (
-                    <Link
+                    <LocaleLink
                       to={getProductPath(activeVideo.productId)}
                       className="inline-block mt-4 text-sm font-medium text-blue-600 hover:underline"
                       onClick={() => setActiveVideo(null)}
                     >
                       {activeVideo.productId?.modelNumber
-                        ? `View related product (${activeVideo.productId.modelNumber}) →`
-                        : 'View related product →'}
-                    </Link>
+                        ? `${t('videos.viewProduct')} (${activeVideo.productId.modelNumber})`
+                        : t('videos.viewProduct')}
+                    </LocaleLink>
                   ) : null}
                 </div>
               </div>

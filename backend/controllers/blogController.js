@@ -4,6 +4,7 @@ import blogModel from '../models/blogModel.js';
 import { ensureUniqueBlogSlug, findBlogBySlugOrId } from '../utils/blogSlug.js';
 import { normalizeObjectIds } from '../utils/objectIds.js';
 import { invalidateSitemapCache } from '../utils/sitemapService.js';
+import { parseTranslations } from '../utils/locales.js';
 
 const PRODUCT_LINK_FIELDS = 'name slug modelNumber image';
 const PUBLIC_BLOG_QUERY = { isPublished: true, indexable: { $ne: false } };
@@ -108,6 +109,7 @@ export const createBlog = async (req, res) => {
       isPublished: isPublished === undefined ? true : Boolean(isPublished),
       indexable: req.body.indexable === undefined ? true : Boolean(req.body.indexable),
       productIds: normalizeObjectIds(productIds),
+      translations: parseTranslations(req.body.translations, ['title', 'excerpt', 'content']) || undefined,
     });
     
     const savedBlog = await newBlog.save();
@@ -148,6 +150,9 @@ export const updateBlog = async (req, res) => {
     }
     if (updateData.productIds !== undefined) {
       updateData.productIds = normalizeObjectIds(updateData.productIds);
+    }
+    if (updateData.translations !== undefined) {
+      updateData.translations = parseTranslations(updateData.translations, ['title', 'excerpt', 'content']) || {};
     }
     
     const blog = await blogModel.findByIdAndUpdate(

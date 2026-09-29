@@ -1,4 +1,5 @@
 import attributeModel from '../models/attributeModel.js'
+import { parseTranslations } from '../utils/locales.js'
 
 export const createAttribute = async (req, res) => {
   try {
@@ -13,6 +14,7 @@ export const createAttribute = async (req, res) => {
       label: label.trim(),
       description,
       color,
+      translations: parseTranslations(req.body.translations, ['label']) || undefined,
     })
 
     await attribute.save()

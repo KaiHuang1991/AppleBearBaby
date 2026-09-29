@@ -1,6 +1,7 @@
 import productModel from '../models/productModel.js'
 import blogModel from '../models/blogModel.js'
 import { STATIC_PAGE_SEO } from './pageSeo.js'
+import { SUPPORTED_LOCALES, stripLocale, withLocale, buildHreflangLinks } from './locales.js'
 import { backfillMissingProductSlugs, hasUsableProductSlug } from './productSlug.js'
 import { backfillMissingBlogSlugs, hasUsableBlogSlug } from './blogSlug.js'
 import { getCategoryProductCounts } from './categoryProducts.js'
@@ -206,6 +207,27 @@ export async function collectSitemapEntries() {
   return [...staticEntries, ...categoryEntries, ...blogEntries, ...productEntries]
 }
 
+function expandEntriesForLocales(entries, origin) {
+  const expanded = []
+  const seenLoc = new Set()
+  for (const entry of entries) {
+    const path = (entry.loc || '').replace(origin, '') || '/'
+    const stripped = stripLocale(path)
+    const alternates = buildHreflangLinks(stripped, origin)
+    for (const locale of SUPPORTED_LOCALES) {
+      const loc = `${origin}${withLocale(stripped, locale)}`
+      if (seenLoc.has(loc)) continue
+      seenLoc.add(loc)
+      expanded.push({
+        ...entry,
+        loc,
+        alternates,
+      })
+    }
+  }
+  return expanded
+}
+
 export function buildSitemapXml(entries) {
   const urlBlocks = entries
     .map((entry) => {
@@ -222,6 +244,13 @@ export function buildSitemapXml(entries) {
       if (entry.priority) {
         lines.push(`    <priority>${entry.priority}</priority>`)
       }
+      if (Array.isArray(entry.alternates)) {
+        for (const alt of entry.alternates) {
+          lines.push(
+            `    <xhtml:link rel="alternate" hreflang="${escapeXml(alt.hreflang)}" href="${escapeXml(alt.href)}" />`
+          )
+        }
+      }
       lines.push('  </url>')
       return lines.join('\n')
     })
@@ -229,7 +258,7 @@ export function buildSitemapXml(entries) {
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     urlBlocks,
     '</urlset>',
     '',
@@ -254,7 +283,7 @@ export async function getSitemapXml({ bypassCache = false } = {}) {
     return { xml: cache.xml, entries: cache.entries, cached: true }
   }
 
-  const entries = await collectSitemapEntries()
+  const entries = expandEntriesForLocales(await collectSitemapEntries(), getSiteOrigin())
   const xml = buildSitemapXml(entries)
   cache = { ts: now, xml, entries }
   return { xml, entries, cached: false }

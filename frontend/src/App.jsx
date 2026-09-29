@@ -5,7 +5,9 @@ import Footer from '../componets/Footer'
 import ScrollToTop from '../componets/ScrollToTop'
 import SiteSeo from '../componets/SiteSeo'
 import GoogleAds from '../componets/GoogleAds'
+import LocaleSync from '../componets/LocaleSync'
 import { ToastContainer } from 'react-toastify'
+import { PREFIX_LOCALES, isHomePath } from './i18n/locales'
 
 const Home = lazy(() => import('../pages/Home'))
 const Collection = lazy(() => import('../pages/Collection'))
@@ -36,9 +38,47 @@ const PageFallback = () => (
   </div>
 )
 
+const STOREFRONT_PAGES = [
+  { path: 'collection', El: Collection },
+  { path: 'collection/:categorySlug', El: Collection },
+  { path: 'about', El: About },
+  { path: 'contact', El: Contact },
+  { path: 'shipping', El: Shipping },
+  { path: 'faq', El: Faq },
+  { path: 'product/:productId', El: Product },
+  { path: 'cart', El: Cart },
+  { path: 'login', El: Login },
+  { path: 'verify-email/:token', El: VerifyEmail },
+  { path: 'awaiting-verification', El: AwaitingVerification },
+  { path: 'reset-password/:token', El: ResetPassword },
+  { path: 'place-order', El: PlaceOrder },
+  { path: 'inquiries', El: Inquiries },
+  { path: 'inquiries/:id', El: InquiryThread },
+  { path: 'profile', El: Profile },
+  { path: 'blogs', El: Blogs },
+  { path: 'blog/:blogKey', El: BlogDetail },
+  { path: 'videos', El: Videos },
+]
+
+function StorefrontRouteList({ prefixed = false }) {
+  return (
+    <Routes>
+      <Route index={prefixed} path={prefixed ? undefined : '/'} element={<Home />} />
+      {STOREFRONT_PAGES.map(({ path, El }) => (
+        <Route key={path} path={prefixed ? path : `/${path}`} element={<El />} />
+      ))}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  )
+}
+
+function PrefixedRoutes() {
+  return <StorefrontRouteList prefixed />
+}
+
 const App = () => {
   const location = useLocation()
-  const isHomePage = location.pathname === '/'
+  const home = isHomePath(location.pathname)
   const [showDeferredWidgets, setShowDeferredWidgets] = useState(false)
 
   useEffect(() => {
@@ -67,6 +107,7 @@ const App = () => {
 
   return (
     <div>
+      <LocaleSync />
       <ScrollToTop />
       <GoogleAds />
       <SiteSeo />
@@ -74,33 +115,20 @@ const App = () => {
       <ToastContainer />
 
       <Suspense fallback={<PageFallback />}>
-        {isHomePage ? (
+        {home ? (
           <Routes>
-            <Route path="/" element={<Home />} />
+            {PREFIX_LOCALES.map((code) => (
+              <Route key={code} path={`/${code}/*`} element={<PrefixedRoutes />} />
+            ))}
+            <Route path="/*" element={<StorefrontRouteList />} />
           </Routes>
         ) : (
           <div className="w-full mx-auto mt-0 h-auto">
             <Routes>
-              <Route path="/collection" element={<Collection />} />
-              <Route path="/collection/:categorySlug" element={<Collection />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/shipping" element={<Shipping />} />
-              <Route path="/faq" element={<Faq />} />
-              <Route path="/product/:productId" element={<Product />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify-email/:token" element={<VerifyEmail />} />
-              <Route path="/awaiting-verification" element={<AwaitingVerification />} />
-              <Route path="/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/place-order" element={<PlaceOrder />} />
-              <Route path="/inquiries" element={<Inquiries />} />
-              <Route path="/inquiries/:id" element={<InquiryThread />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/blogs" element={<Blogs />} />
-              <Route path="/blog/:blogKey" element={<BlogDetail />} />
-              <Route path="/videos" element={<Videos />} />
-              <Route path="*" element={<NotFound />} />
+              {PREFIX_LOCALES.map((code) => (
+                <Route key={code} path={`/${code}/*`} element={<PrefixedRoutes />} />
+              ))}
+              <Route path="/*" element={<StorefrontRouteList />} />
             </Routes>
           </div>
         )}

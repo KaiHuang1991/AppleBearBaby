@@ -1,6 +1,7 @@
-import React, { lazy, Suspense, useContext, useEffect, useRef, useState } from 'react'
+import React, { lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import { useTranslation } from 'react-i18next'
 import SocialShare from '../componets/SocialShare'
 import { buildOgShareImages } from '../src/utils/ogCollage'
 import { ShopContext } from '../context/ShopContext'
@@ -22,8 +23,20 @@ import {
   buildProductBreadcrumbList,
   buildProductReviewJsonLd,
 } from '../src/seo/productJsonLd'
-import { PRODUCT_FAQS, buildInlineFaqJsonLd } from '../src/oemFaq'
+import { buildInlineFaqJsonLd, getProductFaqs } from '../src/oemFaq'
 import ProductOemFaq from '../componets/ProductOemFaq'
+import { localizedField, localizeBlog, localizedAttrLabel, localizedAttributeValue, localizedSizeLabel, useShopLocale } from '../src/i18n/localized'
+import {
+  buildHreflangLinks,
+  dateLocaleFor,
+  dirFor,
+  htmlLang,
+  ogLocaleFor,
+  stripLocale,
+} from '../src/i18n/locales'
+import { LocaleLink } from '../componets/LocaleLink'
+import { SITE } from '../src/seo/config'
+import { getProductMoq, clampQuantityToMoq } from '../src/utils/productMoq'
 
 const RelatedProducts = lazy(() => import('../componets/RelatedProducts'))
 
@@ -31,12 +44,16 @@ const Product = () => {
   const { productId } = useParams()
   const navigate = useNavigate()
   const { products, currency, addToCart, submitComment, getProductCategoryPath, api, categories } = useContext(ShopContext)
+  const { t } = useTranslation()
+  const locale = useShopLocale()
   const [productData, setProductData] = useState(false)
   const [missingProduct, setMissingProduct] = useState(false)
   const [image, setImage] = useState('')
   const [size, setSize] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [tabs, setTabs] = useState('description')
+  const displayName = localizedField(productData, 'name', locale) || productData?.name || ''
+  const displayDescription = localizedField(productData, 'description', locale) || productData?.description || ''
   const enlargedImageRef = useRef(null); // 使用 useRef 跟踪放大图片
 
   const [rating, setRating] = useState(5); // 默认评分 5 星
@@ -64,7 +81,7 @@ const Product = () => {
 
   const formatDateTime = (dateString) => {
     const date = new Date(dateString || Date.now())
-    return date.toLocaleString('zh-CN', {
+    return date.toLocaleString(dateLocaleFor(locale), {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -106,6 +123,10 @@ const Product = () => {
   const resolvedProductId = productData?._id || (isMongoObjectId(productId) ? productId : null)
 
   const categoryPath = getProductCategoryPath(productData)
+  const displayCategoryPath = (categoryPath || []).map((node) => ({
+    ...node,
+    name: localizedField(node, 'name', locale) || node.name,
+  }))
 
   const breadcrumbCollectionTo = (levelIndex) => {
     if (!categoryPath || levelIndex < 0) return '/collection'
@@ -197,7 +218,6 @@ const Product = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
     setImage('')
-    setQuantity(1)
     setProductData(false)
     setMissingProduct(false)
     let cancelled = false
@@ -346,40 +366,38 @@ const Product = () => {
     }
 
     const canonical = getProductCanonicalUrl(productData)
-    const title = productData.name || 'Product'
-    const description = wholesaleProductDescription(productData.name, productData.description || '')
+    const title = displayName || 'Product'
+    const description = wholesaleProductDescription(displayName, displayDescription || '')
     const sourceImages = normalizeImages(productData.image)
     const images = buildOgShareImages(sourceImages)
     const image = images[0] || ''
 
     // 生成关键词：产品名称、分类、属性值等组合
     const keywordsArray = []
-    if (productData.name) keywordsArray.push(productData.name)
+    if (displayName) keywordsArray.push(displayName)
     if (productData.modelNumber && String(productData.modelNumber).trim()) {
       keywordsArray.push(String(productData.modelNumber).trim())
     }
-    if (productData.category) keywordsArray.push(productData.category)
-    if (productData.subCategory) keywordsArray.push(productData.subCategory)
-    if (productData.thirdCategory) keywordsArray.push(productData.thirdCategory)
+    displayCategoryPath.forEach((node) => {
+      if (node?.name) keywordsArray.push(node.name)
+    })
     
     // 添加属性值到关键词
     if (Array.isArray(productData.attributes) && productData.attributes.length > 0) {
       productData.attributes.forEach(attr => {
-        if (attr?.value) {
-          keywordsArray.push(attr.value)
-        }
-        // 也添加属性名称（如果有）
-        if (attr?.attribute) {
-          const attrName = typeof attr.attribute === 'object' ? attr.attribute.name || attr.attribute.label : attr.attribute
-          if (attrName) keywordsArray.push(attrName)
-        }
+        const value = localizedAttributeValue(productData, attr, locale, t)
+        if (value) keywordsArray.push(value)
+        const attrInfo = typeof attr?.attribute === 'object' ? attr.attribute : null
+        const attrName = localizedAttrLabel(attrInfo, locale, t)
+        if (attrName) keywordsArray.push(attrName)
       })
     }
     
     // 添加尺寸到关键词
     if (Array.isArray(productData.sizes) && productData.sizes.length > 0) {
       productData.sizes.forEach(size => {
-        if (size) keywordsArray.push(size)
+        const label = localizedSizeLabel(productData, size, locale, t)
+        if (label) keywordsArray.push(label)
       })
     }
 
@@ -401,6 +419,17 @@ const Product = () => {
   }
 
   const seoMeta = generateSEOMeta()
+  const pageOrigin = typeof window !== 'undefined' ? window.location.origin : SITE.origin || ''
+  const hreflangs = typeof window !== 'undefined'
+    ? buildHreflangLinks(stripLocale(window.location.pathname), pageOrigin)
+    : []
+  const productFaqs = getProductFaqs(locale)
+  const moq = useMemo(() => getProductMoq(productData), [productData])
+
+  useEffect(() => {
+    if (!productData) return
+    setQuantity(moq)
+  }, [productData?._id, moq])
 
   useEffect(() => {
     if (productData?.sizes && productData.sizes.length > 0) {
@@ -415,12 +444,12 @@ const Product = () => {
   const handleAddToInquiry = () => {
     if (productData.sizes && productData.sizes.length > 0) {
       if (!size) {
-        toast.error('Please select a size')
+        toast.error(t('product.selectSizeError'))
         return
       }
-      addToCart(productData._id, size, quantity)
+      addToCart(productData._id, size, clampQuantityToMoq(quantity, moq))
     } else {
-      addToCart(productData._id, 'Default', quantity)
+      addToCart(productData._id, 'Default', clampQuantityToMoq(quantity, moq))
     }
     const imgEl = document.querySelector('img.product-main-img')
     if (imgEl) flyToCart(imgEl)
@@ -429,26 +458,37 @@ const Product = () => {
   const specRows = []
   if (productData) {
     if (productData.modelNumber && String(productData.modelNumber).trim()) {
-      specRows.push({ label: 'Model', value: String(productData.modelNumber).trim() })
+      specRows.push({ label: t('product.specModel'), value: String(productData.modelNumber).trim() })
     }
-    if (productData.category) specRows.push({ label: 'Category', value: productData.category })
-    if (productData.subCategory) specRows.push({ label: 'Subcategory', value: productData.subCategory })
-    if (productData.thirdCategory) specRows.push({ label: 'Type', value: productData.thirdCategory })
+    const catNames = displayCategoryPath.map((node) => node.name).filter(Boolean)
+    if (catNames[0]) specRows.push({ label: t('product.category'), value: catNames[0] })
+    if (catNames[1]) specRows.push({ label: t('product.specSub'), value: catNames[1] })
+    if (catNames[2]) specRows.push({ label: t('product.specType'), value: catNames[2] })
+    if (!catNames.length) {
+      if (productData.category) specRows.push({ label: t('product.category'), value: t(`attributes.${productData.category}`, { defaultValue: productData.category }) })
+      if (productData.subCategory) specRows.push({ label: t('product.specSub'), value: t(`attributes.${productData.subCategory}`, { defaultValue: productData.subCategory }) })
+      if (productData.thirdCategory) specRows.push({ label: t('product.specType'), value: t(`attributes.${productData.thirdCategory}`, { defaultValue: productData.thirdCategory }) })
+    }
     if (Array.isArray(productData.attributes)) {
       productData.attributes.forEach((attribute, index) => {
         if (!attribute) return
         const attrInfo = attribute.attribute || {}
-        const label = attrInfo.label || attrInfo.name || ''
-        const value = attribute.value || ''
+        const label = localizedAttrLabel(attrInfo, locale, t)
+        const value = localizedAttributeValue(productData, attribute, locale, t)
         if (!label || !value) return
         specRows.push({ label, value, key: attrInfo._id || `${label}-${index}` })
       })
     }
   }
 
-  const categoryEyebrow = productData
-    ? [productData.category, productData.subCategory, productData.thirdCategory].filter(Boolean).join(' / ')
-    : ''
+  const categoryEyebrow = displayCategoryPath.length
+    ? displayCategoryPath.map((node) => node.name).filter(Boolean).join(' / ')
+    : productData
+      ? [productData.category, productData.subCategory, productData.thirdCategory]
+          .filter(Boolean)
+          .map((name) => t(`attributes.${name}`, { defaultValue: name }))
+          .join(' / ')
+      : ''
 
   const tabClass = (id) =>
     `product-tab ${tabs === id ? 'product-tab--active' : ''}`
@@ -461,12 +501,16 @@ const Product = () => {
     <main className='mt-20 transition-opacity ease-in duration-500 opacity-100 cartoon-bg min-h-screen pb-28 lg:pb-20'>
       {/* SEO Meta Tags */}
       {seoMeta && (
-        <Helmet>
+        <Helmet htmlAttributes={{ lang: htmlLang(locale), dir: dirFor(locale) }}>
           {/* 基础Meta标签 */}
           <title>{seoMeta.title}</title>
           <meta name="description" content={seoMeta.description} />
           <meta name="keywords" content={seoMeta.keywords} />
           {seoMeta.canonical ? <link rel="canonical" href={seoMeta.canonical} /> : null}
+          {hreflangs.map((link) => (
+            <link key={link.hreflang} rel="alternate" hrefLang={link.hreflang} href={link.href} />
+          ))}
+          <meta property="og:locale" content={ogLocaleFor(locale)} />
           {image ? (
             <link
               rel="preload"
@@ -509,7 +553,7 @@ const Product = () => {
                 '@graph': [
                   {
                     '@type': 'Product',
-                    name: productData.name,
+                    name: displayName,
                     description: seoMeta.description,
                     image: seoMeta.images,
                     brand: { '@type': 'Brand', name: seoMeta.brand },
@@ -529,12 +573,12 @@ const Product = () => {
                   },
                   buildProductBreadcrumbList({
                     origin: typeof window !== 'undefined' ? window.location.origin : '',
-                    categoryPath,
+                    categoryPath: displayCategoryPath,
                     categories,
-                    productName: productData.name,
+                    productName: displayName,
                     canonical: seoMeta.canonical,
                   }),
-                  buildInlineFaqJsonLd(PRODUCT_FAQS),
+                  buildInlineFaqJsonLd(productFaqs),
                 ],
               })}
             </script>
@@ -553,29 +597,29 @@ const Product = () => {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back
+              {t('product.back')}
             </button>
             <span aria-hidden="true">/</span>
-            <Link to='/collection' className='hover:text-[var(--color-brand)] transition-colors'>
-              Catalog
-            </Link>
-            {categoryPath?.map((node, index) => (
+            <LocaleLink to='/collection' className='hover:text-[var(--color-brand)] transition-colors'>
+              {t('product.catalog')}
+            </LocaleLink>
+            {displayCategoryPath?.map((node, index) => (
               <React.Fragment key={node?.id || node?.name || index}>
                 <span aria-hidden="true">/</span>
                 {node?.id ? (
-                  <Link
+                  <LocaleLink
                     to={breadcrumbCollectionTo(index)}
                     className='hover:text-[var(--color-brand)] transition-colors'
                   >
-                    {node?.name || 'Category'}
-                  </Link>
+                    {node?.name || t('product.category')}
+                  </LocaleLink>
                 ) : (
-                  <span>{node?.name || 'Category'}</span>
+                  <span>{node?.name || t('product.category')}</span>
                 )}
               </React.Fragment>
             ))}
             <span aria-hidden="true">/</span>
-            <span className='font-medium text-[var(--color-ink)] truncate max-w-[10rem] sm:max-w-md md:max-w-lg'>{productData.name}</span>
+            <span className='font-medium text-[var(--color-ink)] truncate max-w-[10rem] sm:max-w-md md:max-w-lg'>{displayName}</span>
           </nav>
         </div>
       </div>
@@ -591,12 +635,12 @@ const Product = () => {
                 key={itemIndex}
                 onClick={() => setImage(item)}
                 className={`thumbnail-item ${image === item ? 'thumbnail-item--active' : ''}`}
-                aria-label={`${productData.name} thumbnail ${itemIndex + 1}`}
+                aria-label={`${displayName} thumbnail ${itemIndex + 1}`}
                 aria-pressed={image === item}
               >
                 <img
                   src={optimizeCloudinaryUrl(item, { width: 200 })}
-                  alt={`${productData.name} thumbnail ${itemIndex + 1}`}
+                  alt={`${displayName} thumbnail ${itemIndex + 1}`}
                   width={200}
                   height={200}
                   loading="lazy"
@@ -610,7 +654,7 @@ const Product = () => {
               <img
                 src={optimizeCloudinaryUrl(image, { width: 800 })}
                 className='product-main-img'
-                alt={productData.name}
+                alt={displayName}
                 width={800}
                 height={800}
                 fetchPriority="high"
@@ -618,7 +662,7 @@ const Product = () => {
                 onClick={() => {
                   const gallery = productData.image || []
                   const index = Math.max(0, gallery.indexOf(image))
-                  openZoomViewer(gallery, index, productData.name)
+                  openZoomViewer(gallery, index, displayName)
                 }}
               />
             </div>
@@ -634,12 +678,12 @@ const Product = () => {
           ) : null}
 
           <h1 className='text-xl sm:text-2xl font-semibold text-[var(--color-ink)] leading-snug'>
-            {productData.name}
+            {displayName}
           </h1>
 
           <div className='flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-[var(--color-ink-muted)]'>
             {productData.modelNumber && String(productData.modelNumber).trim() ? (
-              <span>Model {String(productData.modelNumber).trim()}</span>
+              <span>{t('common.model', { code: String(productData.modelNumber).trim() })}</span>
             ) : null}
             <span className='flex items-center gap-1' aria-label={`${averageRating.toFixed(1)} star rating`}>
               {[1, 2, 3, 4, 5].map((star) => (
@@ -658,12 +702,12 @@ const Product = () => {
               className='hover:text-[var(--color-brand)]'
               onClick={() => setTabs('reviews')}
             >
-              {reviews.length} review{reviews.length === 1 ? '' : 's'}
+              {t('product.reviewCount', { count: reviews.length })}
             </button>
           </div>
 
           <div className='product-price-panel'>
-            <span className='text-xs font-medium uppercase tracking-wide text-[var(--color-ink-muted)]'>Wholesale price</span>
+            <span className='text-xs font-medium uppercase tracking-wide text-[var(--color-ink-muted)]'>{t('product.wholesalePrice')}</span>
             <p className='text-3xl font-semibold text-[var(--color-brand)] leading-none mt-1'>
               {currency}{productData.price}
             </p>
@@ -682,7 +726,7 @@ const Product = () => {
 
           {productData.sizes && productData.sizes.length > 0 ? (
             <div className='mt-5'>
-              <p className='text-sm font-medium text-[var(--color-ink)] mb-2'>Select size</p>
+              <p className='text-sm font-medium text-[var(--color-ink)] mb-2'>{t('product.selectSize')}</p>
               <div className='flex gap-2 flex-wrap'>
                 {productData.sizes.map((item, index) => (
                   <button
@@ -695,23 +739,37 @@ const Product = () => {
                         : 'border-slate-200 text-[var(--color-ink)] hover:border-[var(--color-brand)]'
                     }`}
                   >
-                    {item}
+                    {localizedSizeLabel(productData, item, locale, t)}
                   </button>
                 ))}
               </div>
             </div>
           ) : null}
 
-          <div className='flex items-center gap-3 mt-4'>
-            <label htmlFor='product-quantity' className='text-sm font-medium text-[var(--color-ink)]'>Quantity</label>
+          <div className='flex flex-wrap items-center gap-3 mt-4'>
+            <label htmlFor='product-quantity' className='text-sm font-medium text-[var(--color-ink)]'>{t('product.quantity')}</label>
             <input
               id='product-quantity'
               type='number'
-              min='1'
+              min={moq}
+              step='1'
               value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
-              className='w-20 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] focus:border-[var(--color-brand)]'
+              onChange={(e) => {
+                const raw = e.target.value
+                if (raw === '') {
+                  setQuantity('')
+                  return
+                }
+                const n = parseInt(raw, 10)
+                if (!Number.isFinite(n) || n < 0) return
+                setQuantity(n < moq ? moq : n)
+              }}
+              onBlur={() => setQuantity(clampQuantityToMoq(quantity === '' ? moq : quantity, moq))}
+              className='w-24 px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] focus:border-[var(--color-brand)]'
             />
+            {moq > 1 ? (
+              <span className='text-xs text-[var(--color-ink-muted)]'>{t('product.moqMin', { count: moq })}</span>
+            ) : null}
           </div>
 
           <div className='product-cta-block'>
@@ -720,7 +778,7 @@ const Product = () => {
               onClick={handleAddToInquiry}
               className='cartoon-btn text-white px-8 py-3 text-sm w-full sm:w-auto'
             >
-              Add & Inquiry
+              {t('product.addInquiry')}
             </button>
             <SocialShare product={productData} />
           </div>
@@ -730,21 +788,21 @@ const Product = () => {
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              In Stock
+              {t('product.inStock')}
             </li>
             <li>
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                 <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
               </svg>
-              Sample courier / bulk sea
+              {t('product.sampleCourier')}
             </li>
             {productData.bestseller ? (
               <li>
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                Bestseller
+                {t('product.bestseller')}
               </li>
             ) : null}
           </ul>
@@ -762,7 +820,7 @@ const Product = () => {
             aria-selected={tabs === 'description'}
             className={tabClass('description')}
           >
-            Description
+            {t('product.description')}
           </button>
           {productVideos.length > 0 ? (
             <button
@@ -774,7 +832,7 @@ const Product = () => {
               aria-selected={tabs === 'videos'}
               className={tabClass('videos')}
             >
-              Videos ({productVideos.length})
+              {t('product.videos')} ({productVideos.length})
             </button>
           ) : null}
           {productBlogs.length > 0 ? (
@@ -787,7 +845,7 @@ const Product = () => {
               aria-selected={tabs === 'guides'}
               className={tabClass('guides')}
             >
-              Guides ({productBlogs.length})
+              {t('product.guides')} ({productBlogs.length})
             </button>
           ) : null}
           <button
@@ -799,7 +857,7 @@ const Product = () => {
             aria-selected={tabs === 'reviews'}
             className={tabClass('reviews')}
           >
-            Reviews ({reviews.length})
+            {t('product.reviews')} ({reviews.length})
           </button>
         </div>
 
@@ -834,7 +892,9 @@ const Product = () => {
             className="product-tab-panel"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full min-w-0 max-w-4xl">
-              {productBlogs.map((blog) => (
+              {productBlogs.map((blog) => {
+                const display = localizeBlog(blog, locale)
+                return (
                 <Link
                   key={blog._id}
                   to={getBlogPath(blog)}
@@ -842,18 +902,18 @@ const Product = () => {
                 >
                   {blog.image ? (
                     <div className="aspect-video overflow-hidden">
-                      <img src={blog.image} alt={blog.title} className="w-full h-full object-cover" />
+                      <img src={blog.image} alt={display.title} className="w-full h-full object-cover" />
                     </div>
                   ) : null}
                   <div className="p-4">
-                    <h2 className="text-lg font-semibold text-[var(--color-ink)] line-clamp-2">{blog.title}</h2>
-                    {blog.excerpt ? (
-                      <p className="text-sm text-[var(--color-ink-muted)] mt-2 line-clamp-3">{blog.excerpt}</p>
+                    <h2 className="text-lg font-semibold text-[var(--color-ink)] line-clamp-2">{display.title}</h2>
+                    {display.excerpt ? (
+                      <p className="text-sm text-[var(--color-ink-muted)] mt-2 line-clamp-3">{display.excerpt}</p>
                     ) : null}
-                    <span className="inline-block mt-3 text-sm font-medium text-blue-600">Read guide →</span>
+                    <span className="inline-block mt-3 text-sm font-medium text-blue-600">{t('product.readGuide')}</span>
                   </div>
                 </Link>
-              ))}
+              )})}
             </div>
           </div>
         ) : tabs === "description" ? (
@@ -865,7 +925,7 @@ const Product = () => {
           >
             <div
               className="product-description-detail w-full min-w-0"
-              dangerouslySetInnerHTML={{ __html: productData.description }}
+              dangerouslySetInnerHTML={{ __html: displayDescription }}
             />
           </div>
         ) : (
@@ -899,7 +959,7 @@ const Product = () => {
               }
             }} className="space-y-4 max-w-2xl">
               <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">Rating</label>
+                <label className="block text-sm font-medium text-[var(--color-ink)] mb-1">{t('product.rating')}</label>
                 <div className='flex items-center gap-1 mt-2'>
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -922,19 +982,19 @@ const Product = () => {
               </div>
 
               <div>
-                <label htmlFor="review-comment" className="block text-sm font-medium text-[var(--color-ink)] mb-2">Comments</label>
+                <label htmlFor="review-comment" className="block text-sm font-medium text-[var(--color-ink)] mb-2">{t('product.comments')}</label>
                 <textarea
                   id="review-comment"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Please share your thoughts about this product..."
+                  placeholder={t('product.commentsPh')}
                   required
                   className="w-full p-3 border border-slate-200 rounded-md focus:ring-2 focus:ring-[var(--color-brand)] focus:border-[var(--color-brand)] h-32 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">Upload Images (Optional)</label>
+                <label className="block text-sm font-medium text-[var(--color-ink)] mb-2">{t('product.uploadImages')}</label>
                 <div className='flex flex-col sm:flex-row gap-3 items-start'>
                   <input
                     id="review-media-input"
@@ -945,10 +1005,10 @@ const Product = () => {
                     className="hidden"
                   />
                   <label htmlFor="review-media-input" className='corp-btn-outline text-sm cursor-pointer'>
-                    Choose Images
+                    {t('product.chooseImages')}
                   </label>
                   <span className='text-sm text-[var(--color-ink-muted)] mt-1 sm:mt-2'>
-                    {media && media.length > 0 ? `${media.length} file(s) selected` : 'No file selected'}
+                    {media && media.length > 0 ? t('product.filesSelected', { count: media.length }) : t('product.noFile')}
                   </span>
                   {media && media.length > 0 && (
                     <div className='flex flex-row gap-2 flex-wrap'>
@@ -966,7 +1026,7 @@ const Product = () => {
               </div>
 
               <button type="submit" className="cartoon-btn text-white px-8 py-3 text-sm">
-                Submit Review
+                {t('product.submitReview')}
               </button>
             </form>
 
@@ -974,7 +1034,7 @@ const Product = () => {
               {loadingComments ? (
                 <div className="flex justify-center items-center py-10">
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--color-brand)]"></div>
-                  <p className="ml-3">Loading reviews...</p>
+                  <p className="ml-3">{t('product.loadingReviews')}</p>
                 </div>
               ) : reviews && reviews.length > 0 ? (
                 reviews.map((review, index) => (
@@ -982,7 +1042,7 @@ const Product = () => {
                     <div className="flex items-center justify-between mb-2 gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-semibold text-[var(--color-ink)]">
-                          {userNames[index] || 'Anonymous'}
+                          {userNames[index] || t('product.anonymous')}
                         </span>
                         <div className="flex items-center gap-1">
                           {[...Array(5)].map((_, starIndex) => (
@@ -1007,7 +1067,7 @@ const Product = () => {
                             onClick={() => handleDeleteComment(review._id)}
                             className="text-red-500 hover:text-red-700 text-sm font-medium"
                           >
-                            Delete
+                            {t('product.deleteReview')}
                           </button>
                         )}
                       </div>
@@ -1047,7 +1107,7 @@ const Product = () => {
       <div className='product-sticky-cta lg:hidden'>
         <div className='product-sticky-cta-inner'>
           <div className='min-w-0'>
-            <p className='text-xs text-[var(--color-ink-muted)] truncate'>{productData.name}</p>
+            <p className='text-xs text-[var(--color-ink-muted)] truncate'>{displayName}</p>
             <p className='text-lg font-semibold text-[var(--color-brand)] leading-tight'>
               {currency}{productData.price}
             </p>

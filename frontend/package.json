@@ -12,9 +12,11 @@
   "dependencies": {
     "@applebear/api": "*",
     "@tailwindcss/vite": "^4.1.7",
+    "i18next": "^26.4.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-helmet-async": "^2.0.5",
+    "react-i18next": "^17.0.15",
     "react-router-dom": "^7.6.0",
     "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.7"
