@@ -568,6 +568,25 @@ const ShopContextProvider = (props) => {
     getProductsData()
   }, [])
 
+  useEffect(() => {
+    let idleId
+    let timerId
+    const warmBlogList = () => {
+      api.blogsAll({ page: 1, limit: 12 }).catch(() => {})
+    }
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleId = window.requestIdleCallback(warmBlogList, { timeout: 2500 })
+    } else {
+      timerId = window.setTimeout(warmBlogList, 400)
+    }
+    return () => {
+      if (idleId != null && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timerId != null) window.clearTimeout(timerId)
+    }
+  }, [api])
+
   const refreshInquiryUnreadCount = useCallback(async () => {
     if (!token) {
       setInquiryUnreadCount(0)

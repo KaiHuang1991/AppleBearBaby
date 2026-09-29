@@ -36,7 +36,7 @@ const LatestBlog = () => {
   const fetchLatestBlogs = async () => {
     try {
       setLoading(true)
-      const response = await api.blogsAll({ page: 1, limit: 10 })
+      const response = await api.blogsAll({ page: 1, limit: 12 })
       const data = response.data
       
       if (data.success && data.blogs && data.blogs.length > 0) {

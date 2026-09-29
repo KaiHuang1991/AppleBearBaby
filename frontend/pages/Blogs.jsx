@@ -16,27 +16,28 @@ const Blogs = () => {
   const [searchInput, setSearchInput] = useState('');
 
   useEffect(() => {
-    fetchBlogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]); // backendUrl is stable, no need to include
-
-  const fetchBlogs = async () => {
-    try {
-      setLoading(true);
-      const params = searchTerm
-        ? { search: searchTerm }
-        : {};
-      const response = await api.blogsAll(params);
-      
-      if (response.data.success) {
-        setBlogs(response.data.blogs);
+    let cancelled = false;
+    const fetchBlogs = async () => {
+      try {
+        if (!blogs.length) setLoading(true);
+        const params = searchTerm
+          ? { search: searchTerm, page: 1, limit: 12 }
+          : { page: 1, limit: 12 };
+        const response = await api.blogsAll(params);
+        if (cancelled) return;
+        if (response.data.success) {
+          setBlogs(response.data.blogs);
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error fetching blogs:', error);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching blogs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    fetchBlogs();
+    return () => { cancelled = true };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, api]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -55,14 +56,6 @@ const Blogs = () => {
       day: 'numeric'
     });
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="page-shell bg-white">
@@ -122,8 +115,20 @@ const Blogs = () => {
           )}
         </div>
 
-        {/* Blog Grid */}
-        {blogs.length === 0 && !loading ? (
+        {loading && blogs.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-busy="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="aspect-video bg-slate-100 animate-pulse" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 w-24 bg-slate-100 rounded animate-pulse" />
+                  <div className="h-5 w-full bg-slate-100 rounded animate-pulse" />
+                  <div className="h-4 w-4/5 bg-slate-100 rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : blogs.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-6xl mb-4 block">📭</span>
             <h3 className="text-xl font-semibold text-gray-600 mb-2">
@@ -152,6 +157,8 @@ const Blogs = () => {
                     <img
                       src={blog.image}
                       alt={display.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
                   </LocaleLink>

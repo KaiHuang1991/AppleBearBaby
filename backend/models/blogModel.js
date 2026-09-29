@@ -35,6 +35,7 @@ const blogSchema = new mongoose.Schema(
 // Create text index for search functionality
 blogSchema.index({ title: 'text', content: 'text', excerpt: 'text', tags: 'text' });
 blogSchema.index({ productIds: 1, isPublished: 1 });
+blogSchema.index({ isPublished: 1, indexable: 1, createdAt: -1 });
 
 const blogModel = mongoose.models.blog || mongoose.model('blog', blogSchema);
 

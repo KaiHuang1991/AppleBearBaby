@@ -5,50 +5,85 @@ import { ensureUniqueBlogSlug, findBlogBySlugOrId } from '../utils/blogSlug.js';
 import { normalizeObjectIds } from '../utils/objectIds.js';
 import { invalidateSitemapCache } from '../utils/sitemapService.js';
 import { parseTranslations } from '../utils/locales.js';
+import {
+  BLOG_LIST_SELECT,
+  blogListCacheKey,
+  getBlogListCache,
+  invalidateBlogListCache,
+  setBlogListCache,
+} from '../utils/blogListQuery.js';
 
 const PRODUCT_LINK_FIELDS = 'name slug modelNumber image';
 const PUBLIC_BLOG_QUERY = { isPublished: true, indexable: { $ne: false } };
 
-// Get all blogs with optional filtering
-export const getAllBlogs = async (req, res) => {
-  try {
-    const { category, search, page = 1, limit = 10 } = req.query;
-    
-    let query = { ...PUBLIC_BLOG_QUERY };
-    
-    // Filter by category
-    if (category) {
-      query.category = category;
-    }
-    
-    // Search functionality
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { excerpt: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
-    }
-    
-    const skip = (page - 1) * limit;
-    
-    const blogs = await blogModel
+function bumpBlogCaches() {
+  invalidateSitemapCache();
+  invalidateBlogListCache();
+}
+
+function parsePageLimit(query) {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(query.limit, 10) || 12));
+  return { page, limit, skip: (page - 1) * limit };
+}
+
+function listSearchQuery(search) {
+  const term = String(search || '').trim();
+  if (!term) return null;
+  const rx = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  return {
+    $or: [
+      { title: rx },
+      { excerpt: rx },
+      { tags: rx },
+      { slug: rx },
+      { 'translations.zh.title': rx },
+      { 'translations.es.title': rx },
+      { 'translations.ar.title': rx },
+      { 'translations.fr.title': rx },
+    ],
+  };
+}
+
+async function findBlogList(query, { page, limit, skip, category = '', search = '' }) {
+  const cacheKey = blogListCacheKey({ category, search, page, limit });
+  const cached = getBlogListCache(cacheKey);
+  if (cached) return cached;
+
+  const [blogs, total] = await Promise.all([
+    blogModel
       .find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit))
-      .select('-content'); // Don't send full content in list
-    
-    const total = await blogModel.countDocuments(query);
-    
-    res.status(200).json({
-      success: true,
-      blogs,
-      total,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit)
-    });
+      .limit(limit)
+      .select(BLOG_LIST_SELECT)
+      .lean(),
+    blogModel.countDocuments(query),
+  ]);
+
+  const payload = {
+    success: true,
+    blogs,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit) || 1,
+  };
+  setBlogListCache(cacheKey, payload);
+  return payload;
+}
+
+// Get all blogs with optional filtering
+export const getAllBlogs = async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    const { page, limit, skip } = parsePageLimit(req.query);
+
+    const query = { ...PUBLIC_BLOG_QUERY };
+    if (category) query.category = category;
+    const searchClause = listSearchQuery(search);
+    if (searchClause) Object.assign(query, searchClause);
+
+    res.status(200).json(await findBlogList(query, { page, limit, skip, category: category || '', search: search || '' }));
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -71,12 +106,13 @@ export const getBlogById = async (req, res) => {
         message: 'Blog not found'
       });
     }
-    
-    // Increment view count
-    blog.views += 1;
-    await blog.save();
-    await blog.populate('productIds', PRODUCT_LINK_FIELDS);
-    
+
+    await Promise.all([
+      blog.populate('productIds', PRODUCT_LINK_FIELDS),
+      blogModel.updateOne({ _id: blog._id }, { $inc: { views: 1 } }),
+    ]);
+    blog.views = (blog.views || 0) + 1;
+
     res.status(200).json({
       success: true,
       blog
@@ -113,7 +149,7 @@ export const createBlog = async (req, res) => {
     });
     
     const savedBlog = await newBlog.save();
-    invalidateSitemapCache();
+    bumpBlogCaches();
     
     res.status(201).json({
       success: true,
@@ -161,7 +197,7 @@ export const updateBlog = async (req, res) => {
       { new: true, runValidators: true }
     );
     
-    invalidateSitemapCache();
+    bumpBlogCaches();
     
     res.status(200).json({
       success: true,
@@ -191,7 +227,7 @@ export const deleteBlog = async (req, res) => {
     }
 
     await blogModel.findByIdAndDelete(existing._id);
-    invalidateSitemapCache();
+    bumpBlogCaches();
     
     res.status(200).json({
       success: true,
@@ -224,35 +260,31 @@ export const getBlogCategories = async (req, res) => {
 
 export const getAdminBlogs = async (req, res) => {
   try {
-    const { category, search, page = 1, limit = 10 } = req.query;
+    const { category, search } = req.query;
+    const { page, limit, skip } = parsePageLimit(req.query);
     const query = {};
 
     if (category) query.category = category;
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { excerpt: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
-    }
+    const searchClause = listSearchQuery(search);
+    if (searchClause) Object.assign(query, searchClause);
 
-    const skip = (page - 1) * limit;
-    const blogs = await blogModel
-      .find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('-content');
-
-    const total = await blogModel.countDocuments(query);
+    const [blogs, total] = await Promise.all([
+      blogModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select(BLOG_LIST_SELECT)
+        .lean(),
+      blogModel.countDocuments(query),
+    ]);
 
     res.status(200).json({
       success: true,
       blogs,
       total,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(total / limit)
+      currentPage: page,
+      totalPages: Math.ceil(total / limit) || 1
     });
   } catch (error) {
     res.status(500).json({
@@ -273,7 +305,7 @@ export const getBlogsByProduct = async (req, res) => {
     const blogs = await blogModel
       .find({ productIds: productId, ...PUBLIC_BLOG_QUERY })
       .sort({ createdAt: -1 })
-      .select('-content')
+      .select(BLOG_LIST_SELECT)
       .lean();
 
     res.json({ success: true, blogs });
@@ -312,10 +344,13 @@ export const syncProductBlogs = async (req, res) => {
       );
     }
 
+    bumpBlogCaches();
+
     const blogs = await blogModel
       .find({ productIds: productId })
       .sort({ createdAt: -1 })
-      .select('-content');
+      .select(BLOG_LIST_SELECT)
+      .lean();
 
     res.json({ success: true, blogs });
   } catch (error) {
@@ -334,7 +369,8 @@ export const getPopularBlogs = async (req, res) => {
       .find(PUBLIC_BLOG_QUERY)
       .sort({ views: -1 })
       .limit(5)
-      .select('-content');
+      .select(BLOG_LIST_SELECT)
+      .lean();
     
     res.status(200).json({
       success: true,
